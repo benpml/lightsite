@@ -28,7 +28,7 @@
     "db:generate": "pnpm --filter @lightsite/db db:generate",
     "db:migrate": "pnpm --filter @lightsite/db db:migrate",
     "db:studio": "pnpm --filter @lightsite/db db:studio",
-    "deploy:public-worker": "pnpm --filter @lightsite/public-worker deploy",
+    "deploy:public-worker": "pnpm --filter @lightsite/public-worker run deploy",
     "smoke:tracking": "pnpm --filter @lightsite/api smoke:tracking"
   },
   "devDependencies": {

@@ -75,6 +75,12 @@ VITE_API_ORIGIN=https://<render-api-host>
 API_ORIGIN=https://<render-api-host>
 ```
 
+Current Render API URL:
+
+```txt
+https://lightsite-api.onrender.com
+```
+
 ## Cloudflare Pages
 
 Create a Pages project for `apps/web`.
@@ -92,6 +98,12 @@ Environment variables:
 ```txt
 VITE_API_ORIGIN=https://<render-api-host>
 VITE_GIPHY_API_KEY=<giphy key>
+```
+
+Current Cloudflare Pages production URL:
+
+```txt
+https://lightsite-bfi.pages.dev
 ```
 
 The app has:

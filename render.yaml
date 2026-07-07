@@ -23,13 +23,13 @@ services:
       - key: TRUST_PROXY
         value: true
       - key: WEB_ORIGIN
-        value: https://lightsite.pages.dev
+        value: https://lightsite-bfi.pages.dev
       - key: WEB_ORIGINS
-        value: https://lightsite.pages.dev,https://lightsite.io
+        value: https://lightsite-bfi.pages.dev,https://lightsite.io
       - key: PUBLIC_SITE_ORIGIN
         value: https://lightsite.io
       - key: BETTER_AUTH_URL
-        value: https://lightsite.pages.dev
+        value: https://lightsite-bfi.pages.dev
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: TRACKING_SIGNING_SECRET
