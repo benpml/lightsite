@@ -55,9 +55,18 @@ Important Render settings:
 
 - `plan: free` for early testing.
 - Move to `starter` when the API needs to stop sleeping.
-- `preDeployCommand: pnpm db:migrate` runs Drizzle migrations before the new service starts.
 - `TRUST_PROXY=true` is required behind Render's proxy.
 - `API_JSON_BODY_LIMIT=256kb` keeps request bodies bounded.
+
+Render free web services do not support Blueprint `preDeployCommand`, so run Neon
+migrations explicitly before the first deploy and before schema-changing releases:
+
+```bash
+DATABASE_URL=<neon pooled postgres connection string> pnpm db:migrate
+```
+
+When the API moves to a paid fixed-size Render service, we can add
+`preDeployCommand: pnpm db:migrate` back to the Blueprint.
 
 After Render creates the service, update these values if the generated URL differs:
 

@@ -7,7 +7,6 @@ services:
     autoDeploy: true
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @lightsite/api build
-    preDeployCommand: pnpm db:migrate
     startCommand: pnpm --filter @lightsite/api start
     healthCheckPath: /api/health
     envVars:
