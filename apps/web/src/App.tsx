@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react"
+import { Suspense, lazy, type ComponentType } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import {
   Outlet,
@@ -15,66 +15,98 @@ import { createLightsiteQueryClient } from "@/lib/api/query-client"
 
 const queryClient = createLightsiteQueryClient()
 
-const InternalRouteFrame = lazy(() =>
+const InternalRouteFrame = lazyWithReload(() =>
   import("@/components/layout/internal-route-frame").then((module) => ({
     default: module.InternalRouteFrame,
   }))
 )
-const SitesPage = lazy(() =>
+const SitesPage = lazyWithReload(() =>
   import("@/features/sites/sites-page").then((module) => ({
     default: module.SitesPage,
   }))
 )
-const TrackingPage = lazy(() =>
+const TrackingPage = lazyWithReload(() =>
   import("@/features/tracking/tracking-page").then((module) => ({
     default: module.TrackingPage,
   }))
 )
-const TeamPage = lazy(() =>
+const TeamPage = lazyWithReload(() =>
   import("@/features/team/team-page").then((module) => ({
     default: module.TeamPage,
   }))
 )
-const SettingsPage = lazy(() =>
+const SettingsPage = lazyWithReload(() =>
   import("@/features/settings/settings-page").then((module) => ({
     default: module.SettingsPage,
   }))
 )
-const OnboardingPage = lazy(() =>
+const OnboardingPage = lazyWithReload(() =>
   import("@/features/onboarding/onboarding-page").then((module) => ({
     default: module.OnboardingPage,
   }))
 )
-const AuthPage = lazy(() =>
+const AuthPage = lazyWithReload(() =>
   import("@/features/auth/auth-page").then((module) => ({
     default: module.AuthPage,
   }))
 )
-const EditorPage = lazy(() =>
+const EditorPage = lazyWithReload(() =>
   import("@/features/editor/editor-page").then((module) => ({
     default: module.EditorPage,
   }))
 )
-const EditorNextPage = lazy(() =>
+const EditorNextPage = lazyWithReload(() =>
   import("@/features/editor-next/editor-next-page").then((module) => ({
     default: module.EditorNextPage,
   }))
 )
-const DesignSystemPage = lazy(() =>
+const DesignSystemPage = lazyWithReload(() =>
   import("@/features/design-system/design-system-page").then((module) => ({
     default: module.DesignSystemPage,
   }))
 )
-const ComponentIndexPage = lazy(() =>
+const ComponentIndexPage = lazyWithReload(() =>
   import("@/features/design-system/component-index-page").then((module) => ({
     default: module.ComponentIndexPage,
   }))
 )
-const PublicSitePage = lazy(() =>
+const PublicSitePage = lazyWithReload(() =>
   import("@/features/public-site/public-site-page").then((module) => ({
     default: module.PublicSitePage,
   }))
 )
+
+const dynamicImportReloadKey = "lightsite:dynamic-import-reload"
+
+function lazyWithReload<TModule extends { default: ComponentType<any> }>(
+  loader: () => Promise<TModule>,
+) {
+  return lazy(async () => {
+    try {
+      const module = await loader()
+      window.sessionStorage.removeItem(dynamicImportReloadKey)
+      return module
+    } catch (error) {
+      if (isDynamicImportLoadError(error) && !window.sessionStorage.getItem(dynamicImportReloadKey)) {
+        window.sessionStorage.setItem(dynamicImportReloadKey, "1")
+        window.location.reload()
+        return new Promise<TModule>(() => undefined)
+      }
+
+      throw error
+    }
+  })
+}
+
+function isDynamicImportLoadError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(
+    error.message,
+  )
+}
 
 const rootRoute = createRootRoute({
   component: RootLayout,
