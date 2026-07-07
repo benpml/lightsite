@@ -71,7 +71,6 @@ When the API moves to a paid fixed-size Render service, we can add
 After Render creates the service, update these values if the generated URL differs:
 
 ```txt
-VITE_API_ORIGIN=https://<render-api-host>
 API_ORIGIN=https://<render-api-host>
 ```
 
@@ -96,7 +95,8 @@ Root directory: /
 Environment variables:
 
 ```txt
-VITE_API_ORIGIN=https://<render-api-host>
+# Leave VITE_API_ORIGIN unset in production.
+# The web app calls /api/* same-origin, and the Pages Function proxies to Render.
 VITE_GIPHY_API_KEY=<giphy key>
 ```
 
@@ -109,7 +109,7 @@ https://lightsite-bfi.pages.dev
 Current deployment was created with Wrangler direct upload:
 
 ```bash
-VITE_API_ORIGIN=https://lightsite-api.onrender.com pnpm --filter @lightsite/web build
+pnpm --filter @lightsite/web build
 pnpm exec wrangler pages project create lightsite --production-branch main
 pnpm exec wrangler pages deploy apps/web/dist --project-name=lightsite --branch=main
 ```
@@ -121,6 +121,7 @@ The app has:
 
 - `apps/web/public/_redirects` for SPA fallback.
 - `apps/web/public/_headers` for baseline static headers and immutable asset caching.
+- `functions/api/[[path]].ts` for same-origin `/api/*` proxying to the Render API.
 
 ## Cloudflare R2
 
@@ -227,7 +228,7 @@ Before pointing a real domain at this:
 
 1. Render API deploys and `/api/health` returns `ok: true`.
 2. `pnpm db:migrate` has run successfully against Neon.
-3. Cloudflare Pages build has `VITE_API_ORIGIN` set to Render.
+3. Cloudflare Pages build leaves `VITE_API_ORIGIN` unset so authenticated API traffic goes through the same-origin Pages Function.
 4. Cloudflare R2 bucket exists and is bound to the Worker.
 5. Worker deploys and `/health` returns `ok: true`.
 6. Public page path returns HTML through the Worker.

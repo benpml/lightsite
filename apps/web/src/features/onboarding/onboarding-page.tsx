@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { IconArrowRight, IconBuilding, IconRefresh, IconUserCircle } from "@tabler/icons-react"
 import { normalizeWebsiteDomain, slugifyName, validateWorkspaceSlug } from "@lightsite/domain"
 
@@ -18,7 +18,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { getAppBootstrap, completeAccountSetup } from "@/features/app-bootstrap/api"
-import { getApiErrorMessage, getApiFieldError } from "@/lib/api/errors"
+import { getApiErrorMessage, getApiFieldError, isApiClientError } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
 
 import {
@@ -62,6 +62,7 @@ export function OnboardingPage() {
           <OnboardingErrorCard
             message={getApiErrorMessage(bootstrapQuery.error, "Onboarding could not be loaded.")}
             onRetry={() => void bootstrapQuery.refetch()}
+            requiresAuth={isApiClientError(bootstrapQuery.error) && bootstrapQuery.error.status === 401}
           />
         ) : null}
         {bootstrap && step === "verify_email" ? (
@@ -104,21 +105,34 @@ function OnboardingLoadingCard() {
 function OnboardingErrorCard({
   message,
   onRetry,
+  requiresAuth,
 }: {
   message: string
   onRetry: () => void
+  requiresAuth?: boolean
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Setup could not be loaded</CardTitle>
-        <CardDescription>{message}</CardDescription>
+        <CardTitle>{requiresAuth ? "Sign in to continue" : "Setup could not be loaded"}</CardTitle>
+        <CardDescription>
+          {requiresAuth ? "Create an account or sign in before setting up your workspace." : message}
+        </CardDescription>
       </CardHeader>
       <CardFooter>
-        <Button variant="outline" onClick={onRetry}>
-          <IconRefresh data-icon="inline-start" />
-          Retry
-        </Button>
+        {requiresAuth ? (
+          <Button asChild>
+            <Link to="/auth">
+              Continue
+              <IconArrowRight data-icon="inline-end" />
+            </Link>
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={onRetry}>
+            <IconRefresh data-icon="inline-start" />
+            Retry
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )

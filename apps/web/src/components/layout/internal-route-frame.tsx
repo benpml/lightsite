@@ -215,8 +215,8 @@ function InternalUnavailableState({
               </Button>
             ) : isAuthError ? (
               <Button size="compact" asChild>
-                <Link to="/onboarding">
-                  Start setup
+                <Link to="/auth">
+                  Sign in
                   <IconArrowRight data-icon="inline-end" />
                 </Link>
               </Button>

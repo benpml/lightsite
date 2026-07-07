@@ -45,6 +45,11 @@ const OnboardingPage = lazy(() =>
     default: module.OnboardingPage,
   }))
 )
+const AuthPage = lazy(() =>
+  import("@/features/auth/auth-page").then((module) => ({
+    default: module.AuthPage,
+  }))
+)
 const EditorPage = lazy(() =>
   import("@/features/editor/editor-page").then((module) => ({
     default: module.EditorPage,
@@ -113,6 +118,12 @@ const onboardingRoute = createRoute({
   component: OnboardingPage,
 })
 
+const authRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth",
+  component: AuthPage,
+})
+
 const editorRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/editor/$siteId",
@@ -167,6 +178,7 @@ const routeTree = rootRoute.addChildren([
   teamRoute,
   settingsRoute,
   onboardingRoute,
+  authRoute,
   editorRoute,
   editorNextIndexRoute,
   editorNextRoute,
@@ -198,6 +210,7 @@ function RootLayout() {
     location.pathname === "/editor-next" || location.pathname === "/editor-next/"
   const isEditorRoute = location.pathname.startsWith("/editor")
   const isOnboardingRoute = location.pathname.startsWith("/onboarding")
+  const isAuthRoute = location.pathname.startsWith("/auth")
   const isPublicRoute = isPublicSitePath(location.pathname)
 
   if (isBareEditorNextRoute) {
@@ -222,7 +235,7 @@ function RootLayout() {
     )
   }
 
-  if (isOnboardingRoute || isPublicRoute) {
+  if (isOnboardingRoute || isAuthRoute || isPublicRoute) {
     return (
       <Suspense fallback={<RouteFallback />}>
         <Outlet />
@@ -250,6 +263,7 @@ const reservedAppSegments = new Set([
   "editor",
   "editor-next",
   "onboarding",
+  "auth",
   "design-system",
   "components",
 ])

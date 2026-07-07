@@ -9,7 +9,7 @@ import * as databaseSchema from "@lightsite/db";
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
-  trustedOrigins: [env.WEB_ORIGIN],
+  trustedOrigins: getTrustedOrigins(),
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: databaseSchema,
@@ -34,6 +34,7 @@ export const auth = betterAuth({
             data: {
               ...user,
               email: validation.email,
+              emailVerified: true,
             },
           };
         },
@@ -41,3 +42,19 @@ export const auth = betterAuth({
     },
   },
 });
+
+function getTrustedOrigins() {
+  return [
+    env.WEB_ORIGIN,
+    ...parseOriginList(env.WEB_ORIGINS),
+  ];
+}
+
+function parseOriginList(value: string | undefined) {
+  return value
+    ? value
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0)
+    : [];
+}
