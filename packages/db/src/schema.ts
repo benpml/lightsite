@@ -43,6 +43,28 @@ export const analyticsEventTypeEnum = pgEnum("analytics_event_type", [
   "calendar_booked",
   "link_preview_loaded",
 ]);
+export const trackingSessionStateEnum = pgEnum("tracking_session_state", [
+  "active",
+  "ended",
+  "expired",
+  "bot_filtered",
+  "discarded",
+]);
+export const trackingEventTypeEnum = pgEnum("tracking_event_type", [
+  "site_viewed",
+  "heartbeat",
+  "scroll_depth_reached",
+  "element_clicked",
+  "button_clicked",
+  "link_clicked",
+  "calendar_booked",
+  "link_preview_loaded",
+]);
+export const trackingEventSourceEnum = pgEnum("tracking_event_source", [
+  "browser",
+  "preview_html",
+  "preview_og_image",
+]);
 
 export const user = pgTable(
   "user",
@@ -139,7 +161,7 @@ export type SiteContentBlock = {
   fields: Record<string, unknown>;
 };
 
-export type SiteContent = {
+export type LegacySiteContent = {
   schemaVersion: 1;
   header: {
     avatarMode: "single" | "duo";
@@ -155,19 +177,244 @@ export type SiteContent = {
   blocks: SiteContentBlock[];
 };
 
+export type SiteHeaderChrome = {
+  brandName: string;
+  logoUrl: string;
+  primaryButtonText: string;
+  primaryButtonHref: string;
+  secondaryButtonText: string;
+  secondaryButtonHref: string;
+  showSecondaryButton: boolean;
+};
+
+export type SiteHeroChrome = {
+  avatarMode: "single" | "duo";
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  avatarImageUrl: string;
+  avatarImageVariableKey: string;
+  avatarImageAlt: string;
+  avatarImageSecondaryUrl: string;
+  avatarImageSecondaryVariableKey: string;
+  avatarImageSecondaryAlt: string;
+};
+
+export type SiteContent = {
+  schemaVersion: 2;
+  chrome: {
+    siteHeader: SiteHeaderChrome;
+    hero: SiteHeroChrome;
+  };
+  settings: {
+    showTableOfContents: boolean;
+    ogImageAssetId?: string;
+    allowSearchIndexing: false;
+  };
+  variables: SiteVariableDefinition[];
+  blocks: SiteContentBlock[];
+};
+
+const recipientWebsiteVariable: SiteVariableDefinition = {
+  id: "recipient_website",
+  key: "recipient_website",
+  label: "Recipient website",
+  type: "url",
+  defaultValue: "",
+};
+
+export const defaultSiteHeaderChrome: SiteHeaderChrome = {
+  brandName: "Lightsite",
+  logoUrl: "",
+  primaryButtonText: "Book a call",
+  primaryButtonHref: "",
+  secondaryButtonText: "Learn more",
+  secondaryButtonHref: "",
+  showSecondaryButton: false,
+};
+
+export const defaultSiteHeroChrome: SiteHeroChrome = {
+  avatarMode: "single",
+  eyebrow: "",
+  title: "Untitled Lightsite",
+  subtitle: "",
+  avatarImageUrl: "",
+  avatarImageVariableKey: "",
+  avatarImageAlt: "",
+  avatarImageSecondaryUrl: "",
+  avatarImageSecondaryVariableKey: "",
+  avatarImageSecondaryAlt: "",
+};
+
 export const defaultSiteContent: SiteContent = {
-  schemaVersion: 1,
-  header: {
-    avatarMode: "single",
-    title: "Untitled Lightsite",
+  schemaVersion: 2,
+  chrome: {
+    siteHeader: defaultSiteHeaderChrome,
+    hero: defaultSiteHeroChrome,
   },
   settings: {
     showTableOfContents: true,
     allowSearchIndexing: false,
   },
-  variables: [],
+  variables: [recipientWebsiteVariable],
   blocks: [],
 };
+
+export function normalizeSiteContent(value: unknown): SiteContent {
+  if (isSiteContentV2(value)) {
+    return {
+      schemaVersion: 2,
+      chrome: {
+        siteHeader: normalizeSiteHeaderChrome(value.chrome.siteHeader),
+        hero: normalizeSiteHeroChrome(value.chrome.hero),
+      },
+      settings: normalizeSiteSettings(value.settings),
+      variables: normalizeSiteVariables(value.variables),
+      blocks: normalizeSiteBlocks(value.blocks),
+    };
+  }
+
+  if (isLegacySiteContent(value)) {
+    return {
+      schemaVersion: 2,
+      chrome: {
+        siteHeader: { ...defaultSiteHeaderChrome },
+        hero: {
+          ...defaultSiteHeroChrome,
+          avatarMode: value.header.avatarMode,
+          title: value.header.title,
+          subtitle: value.header.subtitle ?? "",
+        },
+      },
+      settings: normalizeSiteSettings(value.settings),
+      variables: normalizeSiteVariables(value.variables),
+      blocks: normalizeSiteBlocks(value.blocks),
+    };
+  }
+
+  return structuredClone(defaultSiteContent);
+}
+
+function isLegacySiteContent(value: unknown): value is LegacySiteContent {
+  return isRecord(value)
+    && value.schemaVersion === 1
+    && isRecord(value.header)
+    && Array.isArray(value.variables)
+    && Array.isArray(value.blocks)
+    && isRecord(value.settings);
+}
+
+function isSiteContentV2(value: unknown): value is SiteContent {
+  return isRecord(value)
+    && value.schemaVersion === 2
+    && isRecord(value.chrome)
+    && isRecord(value.chrome.siteHeader)
+    && isRecord(value.chrome.hero)
+    && isRecord(value.settings)
+    && Array.isArray(value.variables)
+    && Array.isArray(value.blocks);
+}
+
+function normalizeSiteHeaderChrome(value: unknown): SiteHeaderChrome {
+  const input = isRecord(value) ? value : {};
+
+  return {
+    brandName: stringField(input, "brandName", defaultSiteHeaderChrome.brandName),
+    logoUrl: stringField(input, "logoUrl", defaultSiteHeaderChrome.logoUrl),
+    primaryButtonText: stringField(input, "primaryButtonText", defaultSiteHeaderChrome.primaryButtonText),
+    primaryButtonHref: stringField(input, "primaryButtonHref", defaultSiteHeaderChrome.primaryButtonHref),
+    secondaryButtonText: stringField(input, "secondaryButtonText", defaultSiteHeaderChrome.secondaryButtonText),
+    secondaryButtonHref: stringField(input, "secondaryButtonHref", defaultSiteHeaderChrome.secondaryButtonHref),
+    showSecondaryButton: booleanField(input, "showSecondaryButton", defaultSiteHeaderChrome.showSecondaryButton),
+  };
+}
+
+function normalizeSiteHeroChrome(value: unknown): SiteHeroChrome {
+  const input = isRecord(value) ? value : {};
+
+  return {
+    avatarMode: input.avatarMode === "duo" ? "duo" : defaultSiteHeroChrome.avatarMode,
+    eyebrow: stringField(input, "eyebrow", defaultSiteHeroChrome.eyebrow),
+    title: stringField(input, "title", defaultSiteHeroChrome.title),
+    subtitle: stringField(input, "subtitle", defaultSiteHeroChrome.subtitle),
+    avatarImageUrl: stringField(input, "avatarImageUrl", defaultSiteHeroChrome.avatarImageUrl),
+    avatarImageVariableKey: stringField(input, "avatarImageVariableKey", defaultSiteHeroChrome.avatarImageVariableKey),
+    avatarImageAlt: stringField(input, "avatarImageAlt", defaultSiteHeroChrome.avatarImageAlt),
+    avatarImageSecondaryUrl: stringField(input, "avatarImageSecondaryUrl", defaultSiteHeroChrome.avatarImageSecondaryUrl),
+    avatarImageSecondaryVariableKey: stringField(input, "avatarImageSecondaryVariableKey", defaultSiteHeroChrome.avatarImageSecondaryVariableKey),
+    avatarImageSecondaryAlt: stringField(input, "avatarImageSecondaryAlt", defaultSiteHeroChrome.avatarImageSecondaryAlt),
+  };
+}
+
+function normalizeSiteSettings(value: unknown): SiteContent["settings"] {
+  const input = isRecord(value) ? value : {};
+
+  return {
+    showTableOfContents: booleanField(input, "showTableOfContents", true),
+    ...(typeof input.ogImageAssetId === "string" && input.ogImageAssetId.trim().length > 0
+      ? { ogImageAssetId: input.ogImageAssetId }
+      : {}),
+    allowSearchIndexing: false,
+  };
+}
+
+function normalizeSiteVariables(value: unknown): SiteVariableDefinition[] {
+  const variables: SiteVariableDefinition[] = Array.isArray(value)
+    ? value.flatMap((entry) => {
+      if (!isRecord(entry) || typeof entry.id !== "string" || typeof entry.key !== "string" || typeof entry.label !== "string") {
+        return [];
+      }
+
+      const type: SiteVariableDefinition["type"] = entry.type === "image" || entry.type === "url" ? entry.type : "text";
+
+      return [{
+        id: entry.id,
+        key: entry.key,
+        label: entry.label,
+        type,
+        defaultValue: entry.defaultValue,
+      }];
+    })
+    : [];
+
+  return ensureReservedSiteVariables(variables);
+}
+
+function ensureReservedSiteVariables(variables: SiteVariableDefinition[]) {
+  if (variables.some((variable) => variable.key === recipientWebsiteVariable.key)) {
+    return variables;
+  }
+
+  return [recipientWebsiteVariable, ...variables];
+}
+
+function normalizeSiteBlocks(value: unknown): SiteContentBlock[] {
+  return Array.isArray(value)
+    ? value.flatMap((entry) => {
+      if (!isRecord(entry) || typeof entry.id !== "string" || typeof entry.type !== "string" || !isRecord(entry.fields)) {
+        return [];
+      }
+
+      return [{
+        id: entry.id,
+        type: entry.type,
+        fields: entry.fields,
+      }];
+    })
+    : [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function stringField(record: Record<string, unknown>, key: string, fallback: string) {
+  return typeof record[key] === "string" ? record[key] as string : fallback;
+}
+
+function booleanField(record: Record<string, unknown>, key: string, fallback: boolean) {
+  return typeof record[key] === "boolean" ? record[key] as boolean : fallback;
+}
 
 export const workspaces = pgTable(
   "workspaces",
@@ -366,6 +613,73 @@ export const analyticsEvents = pgTable(
   }),
 );
 
+export const trackingSessions = pgTable(
+  "tracking_sessions",
+  {
+    id: varchar("id", { length: 160 }).primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").references(() => siteVariants.id, { onDelete: "set null" }),
+    variantRevision: integer("variant_revision"),
+    publishedVersionId: uuid("published_version_id").notNull().references(() => siteVersions.id, { onDelete: "cascade" }),
+    state: trackingSessionStateEnum("state").notNull().default("active"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    durationMs: integer("duration_ms"),
+    maxScrollDepth: integer("max_scroll_depth"),
+    referrerHost: varchar("referrer_host", { length: 253 }),
+    browserName: varchar("browser_name", { length: 80 }),
+    osName: varchar("os_name", { length: 80 }),
+    deviceType: varchar("device_type", { length: 40 }),
+    country: varchar("country", { length: 2 }),
+    isBot: boolean("is_bot").notNull().default(false),
+    botName: varchar("bot_name", { length: 80 }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceStartedAtIdx: index("tracking_sessions_workspace_started_at_idx").on(table.workspaceId, table.startedAt),
+    siteStartedAtIdx: index("tracking_sessions_site_started_at_idx").on(table.siteId, table.startedAt),
+    variantStartedAtIdx: index("tracking_sessions_variant_started_at_idx").on(table.variantId, table.startedAt),
+  }),
+);
+
+export const trackingEvents = pgTable(
+  "tracking_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventId: varchar("event_id", { length: 160 }).notNull(),
+    batchId: varchar("batch_id", { length: 160 }).notNull(),
+    visitorSessionId: varchar("visitor_session_id", { length: 160 })
+      .references(() => trackingSessions.id, { onDelete: "set null" }),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").references(() => siteVariants.id, { onDelete: "set null" }),
+    variantRevision: integer("variant_revision"),
+    publishedVersionId: uuid("published_version_id").notNull().references(() => siteVersions.id, { onDelete: "cascade" }),
+    type: trackingEventTypeEnum("type").notNull(),
+    source: trackingEventSourceEnum("source").notNull(),
+    eventName: varchar("event_name", { length: 160 }).notNull(),
+    elementId: varchar("element_id", { length: 160 }),
+    targetLabel: varchar("target_label", { length: 180 }),
+    targetUrl: text("target_url"),
+    isBot: boolean("is_bot").notNull().default(false),
+    isPreview: boolean("is_preview").notNull().default(false),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    eventIdIdx: uniqueIndex("tracking_events_event_id_idx").on(table.eventId),
+    workspaceReceivedAtIdx: index("tracking_events_workspace_received_at_idx").on(table.workspaceId, table.receivedAt),
+    siteReceivedAtIdx: index("tracking_events_site_received_at_idx").on(table.siteId, table.receivedAt),
+    variantReceivedAtIdx: index("tracking_events_variant_received_at_idx").on(table.variantId, table.receivedAt),
+    sessionReceivedAtIdx: index("tracking_events_session_received_at_idx").on(table.visitorSessionId, table.receivedAt),
+  }),
+);
+
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
   members: many(workspaceMembers),
   sites: many(sites),
@@ -426,6 +740,8 @@ export const sitesRelations = relations(sites, ({ one, many }) => ({
   versions: many(siteVersions),
   access: many(siteAccess),
   analyticsEvents: many(analyticsEvents),
+  trackingSessions: many(trackingSessions),
+  trackingEvents: many(trackingEvents),
 }));
 
 export const siteVersionsRelations = relations(siteVersions, ({ one }) => ({
@@ -447,5 +763,48 @@ export const siteVariantsRelations = relations(siteVariants, ({ one }) => ({
   site: one(sites, {
     fields: [siteVariants.siteId],
     references: [sites.id],
+  }),
+}));
+
+export const trackingSessionsRelations = relations(trackingSessions, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [trackingSessions.workspaceId],
+    references: [workspaces.id],
+  }),
+  site: one(sites, {
+    fields: [trackingSessions.siteId],
+    references: [sites.id],
+  }),
+  variant: one(siteVariants, {
+    fields: [trackingSessions.variantId],
+    references: [siteVariants.id],
+  }),
+  publishedVersion: one(siteVersions, {
+    fields: [trackingSessions.publishedVersionId],
+    references: [siteVersions.id],
+  }),
+  events: many(trackingEvents),
+}));
+
+export const trackingEventsRelations = relations(trackingEvents, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [trackingEvents.workspaceId],
+    references: [workspaces.id],
+  }),
+  site: one(sites, {
+    fields: [trackingEvents.siteId],
+    references: [sites.id],
+  }),
+  variant: one(siteVariants, {
+    fields: [trackingEvents.variantId],
+    references: [siteVariants.id],
+  }),
+  publishedVersion: one(siteVersions, {
+    fields: [trackingEvents.publishedVersionId],
+    references: [siteVersions.id],
+  }),
+  session: one(trackingSessions, {
+    fields: [trackingEvents.visitorSessionId],
+    references: [trackingSessions.id],
   }),
 }));

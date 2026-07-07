@@ -35,22 +35,45 @@ describe("public site rendering", () => {
     expect(cache.tags).toContain("variant:variant-acme-mira");
   });
 
+  it("renders hero avatars from hero chrome JSON", () => {
+    const payload = clonePayload(requireDemoPayload("mira"));
+    payload.chrome.siteHeader.logoUrl = null;
+    payload.chrome.hero.avatarMode = "duo";
+    payload.chrome.hero.avatarImageUrl = "/workspace-logo.svg";
+    payload.chrome.hero.avatarImageAlt = "Workspace avatar";
+    payload.chrome.hero.avatarImageSecondaryUrl = "/recipient-logo.svg";
+    payload.chrome.hero.avatarImageSecondaryAlt = "Recipient avatar";
+
+    const html = renderPublicSite(payload);
+
+    expect(html).toContain('src="/workspace-logo.svg"');
+    expect(html).toContain('alt="Workspace avatar"');
+    expect(html).toContain('src="/recipient-logo.svg"');
+    expect(html).toContain('alt="Recipient avatar"');
+    expect(html).not.toContain("/api/workspaces/logo-preview/image");
+  });
+
+  it("omits the hero avatars when both sources are unavailable", () => {
+    const payload = clonePayload(requireDemoPayload(null));
+    payload.chrome.siteHeader.logoUrl = null;
+    payload.chrome.hero.avatarImageUrl = null;
+    payload.chrome.hero.avatarImageSecondaryUrl = null;
+    payload.selectedVariant = null;
+
+    const html = renderPublicSite(payload);
+
+    expect(html).not.toContain("/api/workspaces/logo-preview/image");
+    expect(html).not.toContain("Recipient logo");
+  });
+
   it("fails closed for unknown variant slugs", () => {
     expect(getDemoPublishedSite("unknown")).toBeNull();
   });
 
   it("omits invalid public media and unsafe URLs without crashing", () => {
     const payload = clonePayload(requireDemoPayload("mira"));
-    payload.header.avatarAssets = [
-      {
-        id: "bad-avatar",
-        kind: "avatar",
-        src: "javascript:alert(1)",
-        alt: "Bad",
-        width: 96,
-        height: 96,
-      },
-    ];
+    payload.chrome.hero.avatarImageUrl = "javascript:alert(1)";
+    payload.chrome.hero.avatarImageAlt = "Bad";
     payload.blocks.push({
       id: "bad-image",
       type: "image",
@@ -66,10 +89,10 @@ describe("public site rendering", () => {
     });
     payload.blocks.push({
       id: "bad-cta",
-      type: "cta",
+      type: "button",
       label: "Unsafe CTA",
       href: "javascript:alert(1)",
-      style: "primary",
+      style: "filled",
     });
 
     const html = renderPublicSite(payload);
@@ -77,6 +100,50 @@ describe("public site rendering", () => {
     expect(html).not.toContain("javascript:");
     expect(html).not.toContain("//evil.example/image.png");
     expect(html).not.toContain("Unsafe CTA");
+  });
+
+  it("renders public blocks with editor-aligned list, button, and accordion structure", () => {
+    const payload = clonePayload(requireDemoPayload("mira"));
+    payload.blocks.push(
+      {
+        id: "list-test",
+        type: "bullet-list",
+        items: ["First item", "Second item"],
+      },
+      {
+        id: "button-test",
+        type: "button",
+        label: "Open plan",
+        href: "https://example.com/plan",
+        style: "outline",
+      },
+      {
+        id: "accordion-test",
+        type: "accordion",
+        items: [
+          {
+            id: "accordion-open",
+            title: "Open question",
+            body: "Open answer",
+            expanded: true,
+          },
+          {
+            id: "accordion-closed",
+            title: "Closed question",
+            body: "Closed answer",
+            expanded: false,
+          },
+        ],
+      },
+    );
+
+    const html = renderPublicSite(payload);
+
+    expect(html).toContain("my-1 list-disc pl-8");
+    expect(html).toContain("rounded-lg border border-transparent");
+    expect(html).toContain("<details open");
+    expect(html).toContain("Closed answer");
+    expect(html).toContain("group-open/accordion:rotate-0");
   });
 });
 

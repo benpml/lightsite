@@ -2,10 +2,12 @@ import { Suspense, lazy } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import {
   Outlet,
+  Navigate,
   RouterProvider,
   createRootRoute,
   createRoute,
   createRouter,
+  redirect,
   useLocation,
 } from "@tanstack/react-router"
 
@@ -16,11 +18,6 @@ const queryClient = createLightsiteQueryClient()
 const InternalRouteFrame = lazy(() =>
   import("@/components/layout/internal-route-frame").then((module) => ({
     default: module.InternalRouteFrame,
-  }))
-)
-const DashboardPage = lazy(() =>
-  import("@/features/sites/dashboard-page").then((module) => ({
-    default: module.DashboardPage,
   }))
 )
 const SitesPage = lazy(() =>
@@ -53,6 +50,11 @@ const EditorPage = lazy(() =>
     default: module.EditorPage,
   }))
 )
+const EditorNextPage = lazy(() =>
+  import("@/features/editor-next/editor-next-page").then((module) => ({
+    default: module.EditorNextPage,
+  }))
+)
 const DesignSystemPage = lazy(() =>
   import("@/features/design-system/design-system-page").then((module) => ({
     default: module.DesignSystemPage,
@@ -76,7 +78,9 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: DashboardPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/sites" })
+  },
 })
 
 const sitesRoute = createRoute({
@@ -115,6 +119,23 @@ const editorRoute = createRoute({
   component: EditorPage,
 })
 
+const editorNextIndexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/editor-next",
+  beforeLoad: () => {
+    throw redirect({
+      to: "/editor-next/$siteId",
+      params: { siteId: "delete-key-regression" },
+    })
+  },
+})
+
+const editorNextRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/editor-next/$siteId",
+  component: EditorNextPage,
+})
+
 const designSystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/design-system",
@@ -147,6 +168,8 @@ const routeTree = rootRoute.addChildren([
   settingsRoute,
   onboardingRoute,
   editorRoute,
+  editorNextIndexRoute,
+  editorNextRoute,
   designSystemRoute,
   componentsRoute,
   publicSiteRoute,
@@ -171,9 +194,21 @@ export default function App() {
 
 function RootLayout() {
   const location = useLocation()
+  const isBareEditorNextRoute =
+    location.pathname === "/editor-next" || location.pathname === "/editor-next/"
   const isEditorRoute = location.pathname.startsWith("/editor")
   const isOnboardingRoute = location.pathname.startsWith("/onboarding")
   const isPublicRoute = isPublicSitePath(location.pathname)
+
+  if (isBareEditorNextRoute) {
+    return (
+      <Navigate
+        to="/editor-next/$siteId"
+        params={{ siteId: "delete-key-regression" }}
+        replace
+      />
+    )
+  }
 
   if (isEditorRoute) {
     return (
@@ -213,6 +248,7 @@ const reservedAppSegments = new Set([
   "team",
   "settings",
   "editor",
+  "editor-next",
   "onboarding",
   "design-system",
   "components",

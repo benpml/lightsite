@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  coerceSelectedVariantId,
   createEditorVariant,
   duplicateEditorVariant,
   initialEditorVariables,
   normalizeVariableKey,
+  removeEditorVariant,
 } from "./editor-data"
 
 describe("editor data helpers", () => {
@@ -48,5 +50,25 @@ describe("editor data helpers", () => {
       values: variant.values,
     })
     expect(duplicatedVariant.id).not.toBe(variant.id)
+  })
+
+  it("keeps selected variant ids valid after variant removal", () => {
+    const variants = [
+      { id: "default", name: "Default", slug: "default" },
+      { id: "acme", name: "Acme", slug: "acme" },
+    ]
+    const nextVariants = removeEditorVariant(variants, "acme")
+
+    expect(nextVariants).toEqual([{ id: "default", name: "Default", slug: "default" }])
+    expect(coerceSelectedVariantId(nextVariants, "acme")).toBe("default")
+  })
+
+  it("does not remove the default variant", () => {
+    const variants = [
+      { id: "default", name: "Default", slug: "default" },
+      { id: "acme", name: "Acme", slug: "acme" },
+    ]
+
+    expect(removeEditorVariant(variants, "default")).toEqual(variants)
   })
 })

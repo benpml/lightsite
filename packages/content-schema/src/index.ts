@@ -35,8 +35,22 @@ export type PublicSiteMetadata = {
   robots: "noindex,nofollow" | "index,follow";
 };
 
-export type PublicSiteHeader = {
-  avatarAssets: PublicAsset[];
+export type PublicSiteHeaderChrome = {
+  brandName: string;
+  logoUrl: string | null;
+  primaryButtonText: string | null;
+  primaryButtonHref: string | null;
+  secondaryButtonText: string | null;
+  secondaryButtonHref: string | null;
+  showSecondaryButton: boolean;
+};
+
+export type PublicSiteHeroChrome = {
+  avatarMode: "single" | "duo";
+  avatarImageUrl: string | null;
+  avatarImageSecondaryUrl: string | null;
+  avatarImageAlt: string | null;
+  avatarImageSecondaryAlt: string | null;
   eyebrow: string | null;
   title: string;
   subtitle: string | null;
@@ -45,7 +59,7 @@ export type PublicSiteHeader = {
 export type PublicHeadingBlock = {
   id: string;
   type: "heading";
-  level: 2 | 3;
+  level: 1 | 2 | 3;
   text: string;
 };
 
@@ -69,27 +83,102 @@ export type PublicImageBlock = {
   caption: string | null;
 };
 
-export type PublicCtaBlock = {
+export type PublicButtonBlock = {
   id: string;
-  type: "cta";
+  type: "button";
   label: string;
   href: string;
-  style: "primary" | "secondary";
+  style: "filled" | "outline";
 };
 
-export type PublicQuoteBlock = {
+export type PublicListBlock = {
   id: string;
-  type: "quote";
+  type: "bullet-list" | "number-list";
+  items: string[];
+};
+
+export type PublicIconListBlock = {
+  id: string;
+  type: "icon-list";
+  items: Array<{
+    id: string;
+    icon: string;
+    iconTone: string;
+    text: string;
+  }>;
+};
+
+export type PublicGifBlock = {
+  id: string;
+  type: "gif";
+  asset: PublicAsset;
+  caption: string | null;
+};
+
+export type PublicImageCardBlock = {
+  id: string;
+  type: "image-card";
+  alt: string;
+  body: string;
+  buttonText: string;
+  buttonUrl: string;
+  includeButton: boolean;
+  src: string | null;
+  title: string;
+};
+
+export type PublicIconCardBlock = {
+  id: string;
+  type: "icon-card";
+  body: string;
+  icon: string;
+  iconTone: string;
+  includeIcon: boolean;
+  title: string;
+};
+
+export type PublicCalendarBlock = {
+  id: string;
+  type: "calendar";
+  label: string;
+  href: string;
+};
+
+export type PublicAccordionBlock = {
+  id: string;
+  type: "accordion";
+  items: Array<{
+    id: string;
+    title: string;
+    body: string;
+    expanded: boolean;
+  }>;
+};
+
+export type PublicVideoBlock = {
+  id: string;
+  type: "video";
+  thumbnail: string | null;
+  url: string | null;
+};
+
+export type PublicTestimonialBlock = {
+  id: string;
+  type: "testimonial";
+  avatar: string | null;
+  name: string;
   quote: string;
-  personName: string;
-  personTitle: string | null;
-  company: string | null;
+  role: string;
 };
 
-export type PublicLogoStripBlock = {
+export type PublicLogoGridBlock = {
   id: string;
-  type: "logo_strip";
-  logos: PublicAsset[];
+  type: "logo-grid";
+  logos: Array<{
+    id: string;
+    image: string | null;
+    name: string;
+  }>;
 };
 
 export type PublicBlock =
@@ -97,9 +186,17 @@ export type PublicBlock =
   | PublicTextBlock
   | PublicDividerBlock
   | PublicImageBlock
-  | PublicCtaBlock
-  | PublicQuoteBlock
-  | PublicLogoStripBlock;
+  | PublicButtonBlock
+  | PublicListBlock
+  | PublicIconListBlock
+  | PublicGifBlock
+  | PublicImageCardBlock
+  | PublicIconCardBlock
+  | PublicCalendarBlock
+  | PublicAccordionBlock
+  | PublicVideoBlock
+  | PublicTestimonialBlock
+  | PublicLogoGridBlock;
 
 export type PublishedSitePayload = {
   schemaVersion: 1;
@@ -108,6 +205,7 @@ export type PublishedSitePayload = {
     slug: string;
     name: string;
     websiteDomain: string;
+    logoUrl: string | null;
   };
   site: {
     id: string;
@@ -117,7 +215,10 @@ export type PublishedSitePayload = {
     publishedAt: string;
   };
   metadata: PublicSiteMetadata;
-  header: PublicSiteHeader;
+  chrome: {
+    siteHeader: PublicSiteHeaderChrome;
+    hero: PublicSiteHeroChrome;
+  };
   variables: PublicVariable[];
   selectedVariant: PublicVariant | null;
   blocks: PublicBlock[];
@@ -145,14 +246,14 @@ export function normalizePublishedSitePayload(value: unknown): PublishedSitePayl
   const variables = parseArray(input.variables).map(parseVariable).filter(isPresent);
   const selectedVariant = parseVariant(input.selectedVariant);
   const metadata = parseMetadata(input.metadata, site.name);
-  const header = parseHeader(input.header, site.name);
+  const chrome = parseChrome(input, site.name);
 
   return {
     schemaVersion: CURRENT_PUBLIC_PAYLOAD_SCHEMA_VERSION,
     workspace,
     site,
     metadata,
-    header,
+    chrome,
     variables,
     selectedVariant,
     blocks: parseArray(input.blocks).map(parseBlock).filter(isPresent),
@@ -172,6 +273,7 @@ function parseWorkspace(value: unknown): PublishedSitePayload["workspace"] | nul
     slug: input.slug.toLowerCase(),
     name: input.name,
     websiteDomain: isString(input.websiteDomain) ? input.websiteDomain : "",
+    logoUrl: nullableString(input.logoUrl),
   };
 }
 
@@ -208,14 +310,36 @@ function parseMetadata(value: unknown, fallbackTitle: string): PublishedSitePayl
   };
 }
 
-function parseHeader(value: unknown, fallbackTitle: string): PublishedSitePayload["header"] {
-  const input = asRecord(value);
+function parseChrome(
+  input: Record<string, unknown>,
+  fallbackTitle: string,
+): PublishedSitePayload["chrome"] {
+  const chrome = asRecord(input.chrome);
+  const legacyHeader = asRecord(input.header);
+  const siteHeader = asRecord(chrome?.siteHeader);
+  const hero = asRecord(chrome?.hero);
+  const legacyAvatars = parseArray(legacyHeader?.avatarAssets).map(parseAsset).filter(isPresent);
 
   return {
-    avatarAssets: parseArray(input?.avatarAssets).map(parseAsset).filter(isPresent),
-    eyebrow: nullableString(input?.eyebrow),
-    title: isString(input?.title) ? input.title : fallbackTitle,
-    subtitle: nullableString(input?.subtitle),
+    siteHeader: {
+      brandName: isString(siteHeader?.brandName) ? siteHeader.brandName : "",
+      logoUrl: nullableString(siteHeader?.logoUrl),
+      primaryButtonText: nullableString(siteHeader?.primaryButtonText),
+      primaryButtonHref: nullableString(siteHeader?.primaryButtonHref),
+      secondaryButtonText: nullableString(siteHeader?.secondaryButtonText),
+      secondaryButtonHref: nullableString(siteHeader?.secondaryButtonHref),
+      showSecondaryButton: siteHeader?.showSecondaryButton === true,
+    },
+    hero: {
+      avatarMode: hero?.avatarMode === "duo" ? "duo" : (legacyHeader?.avatarMode === "duo" ? "duo" : "single"),
+      avatarImageUrl: nullableString(hero?.avatarImageUrl) ?? legacyAvatars[0]?.src ?? null,
+      avatarImageSecondaryUrl: nullableString(hero?.avatarImageSecondaryUrl) ?? legacyAvatars[1]?.src ?? null,
+      avatarImageAlt: nullableString(hero?.avatarImageAlt) ?? legacyAvatars[0]?.alt ?? null,
+      avatarImageSecondaryAlt: nullableString(hero?.avatarImageSecondaryAlt) ?? legacyAvatars[1]?.alt ?? null,
+      eyebrow: nullableString(hero?.eyebrow) ?? nullableString(legacyHeader?.eyebrow),
+      title: isString(hero?.title) ? hero.title : (isString(legacyHeader?.title) ? legacyHeader.title : fallbackTitle),
+      subtitle: nullableString(hero?.subtitle) ?? nullableString(legacyHeader?.subtitle),
+    },
   };
 }
 
@@ -269,7 +393,7 @@ function parseBlock(value: unknown): PublicBlock | null {
         ? {
             id: input.id,
             type: "heading",
-            level: input.level === 3 ? 3 : 2,
+            level: input.level === 1 || input.level === 3 ? input.level : 2,
             text: input.text,
           }
         : null;
@@ -291,13 +415,14 @@ function parseBlock(value: unknown): PublicBlock | null {
     }
 
     case "cta":
+    case "button":
       return isString(input.label) && isString(input.href)
         ? {
             id: input.id,
-            type: "cta",
+            type: "button",
             label: input.label,
             href: input.href,
-            style: input.style === "secondary" ? "secondary" : "primary",
+            style: input.style === "filled" || input.style === "primary" || input.type === "cta" ? "filled" : "outline",
           }
         : null;
 
@@ -305,22 +430,142 @@ function parseBlock(value: unknown): PublicBlock | null {
       return isString(input.quote)
         ? {
             id: input.id,
-            type: "quote",
+            type: "testimonial",
             quote: input.quote,
-            personName: isString(input.personName) ? input.personName : "",
-            personTitle: nullableString(input.personTitle),
-            company: nullableString(input.company),
+            name: isString(input.personName) ? input.personName : "",
+            role: [nullableString(input.personTitle), nullableString(input.company)].filter(Boolean).join(", "),
+            avatar: null,
           }
         : null;
 
-    case "logo_strip": {
-      const logos = parseArray(input.logos).map(parseAsset).filter(isPresent);
-      return logos.length > 0 ? { id: input.id, type: "logo_strip", logos } : null;
+    case "bullet-list":
+    case "number-list": {
+      const items = parseArray(input.items).filter(isString);
+      return items.length > 0 ? { id: input.id, type: input.type, items } : null;
+    }
+
+    case "icon-list": {
+      const items = parseArray(input.items).map(parseIconListItem).filter(isPresent);
+      return items.length > 0 ? { id: input.id, type: "icon-list", items } : null;
+    }
+
+    case "gif": {
+      const asset = parseAsset(input.asset);
+      return asset ? { id: input.id, type: "gif", asset, caption: nullableString(input.caption) } : null;
+    }
+
+    case "image-card":
+      return isString(input.title)
+        ? {
+            id: input.id,
+            type: "image-card",
+            alt: isString(input.alt) ? input.alt : "",
+            body: isString(input.body) ? input.body : "",
+            buttonText: isString(input.buttonText) ? input.buttonText : "",
+            buttonUrl: isString(input.buttonUrl) ? input.buttonUrl : "",
+            includeButton: input.includeButton === true,
+            src: nullableString(input.src),
+            title: input.title,
+          }
+        : null;
+
+    case "icon-card":
+      return isString(input.title)
+        ? {
+            id: input.id,
+            type: "icon-card",
+            body: isString(input.body) ? input.body : "",
+            icon: isString(input.icon) ? input.icon : "box",
+            iconTone: isString(input.iconTone) ? input.iconTone : "default",
+            includeIcon: input.includeIcon !== false,
+            title: input.title,
+          }
+        : null;
+
+    case "calendar":
+      return isString(input.label) && isString(input.href)
+        ? { id: input.id, type: "calendar", label: input.label, href: input.href }
+        : null;
+
+    case "accordion": {
+      const items = parseArray(input.items).map(parseAccordionItem).filter(isPresent);
+      return items.length > 0 ? { id: input.id, type: "accordion", items } : null;
+    }
+
+    case "video":
+      return {
+        id: input.id,
+        type: "video",
+        thumbnail: nullableString(input.thumbnail),
+        url: nullableString(input.url),
+      };
+
+    case "testimonial":
+      return isString(input.quote)
+        ? {
+            id: input.id,
+            type: "testimonial",
+            avatar: nullableString(input.avatar),
+            name: isString(input.name) ? input.name : "",
+            quote: input.quote,
+            role: isString(input.role) ? input.role : "",
+          }
+        : null;
+
+    case "logo_strip":
+    case "logo-grid": {
+      const logos = parseArray(input.logos).map(parseLogoGridItem).filter(isPresent);
+      return logos.length > 0 ? { id: input.id, type: "logo-grid", logos } : null;
     }
 
     default:
       return null;
   }
+}
+
+function parseIconListItem(value: unknown): PublicIconListBlock["items"][number] | null {
+  const input = asRecord(value);
+
+  if (!input || !isString(input.text)) {
+    return null;
+  }
+
+  return {
+    id: isString(input.id) ? input.id : input.text,
+    icon: isString(input.icon) ? input.icon : "box",
+    iconTone: isString(input.iconTone) ? input.iconTone : "default",
+    text: input.text,
+  };
+}
+
+function parseAccordionItem(value: unknown): PublicAccordionBlock["items"][number] | null {
+  const input = asRecord(value);
+
+  if (!input || !isString(input.title)) {
+    return null;
+  }
+
+  return {
+    id: isString(input.id) ? input.id : input.title,
+    title: input.title,
+    body: isString(input.body) ? input.body : "",
+    expanded: input.expanded !== false,
+  };
+}
+
+function parseLogoGridItem(value: unknown): PublicLogoGridBlock["logos"][number] | null {
+  const input = asRecord(value);
+
+  if (!input || !isString(input.name)) {
+    const asset = parseAsset(value);
+    return asset ? { id: asset.id, image: asset.src, name: asset.alt || asset.id } : null;
+  }
+
+  return {
+    id: isString(input.id) ? input.id : input.name,
+    image: nullableString(input.image) ?? nullableString(input.src),
+    name: input.name,
+  };
 }
 
 function parseAsset(value: unknown): PublicAsset | null {

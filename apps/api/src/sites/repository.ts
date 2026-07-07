@@ -3,6 +3,7 @@ import { and, count, desc, eq, ne, or, sql } from "drizzle-orm";
 import {
   db as defaultDb,
   defaultSiteContent,
+  siteVariants,
   siteVersions,
   sites,
   type Database,
@@ -63,6 +64,14 @@ export type DuplicateSiteInput = {
   draftContent: SiteContent;
 };
 
+export type UpdateSiteContentInput = {
+  workspaceId: string;
+  siteId: string;
+  updatedByUserId: string;
+  draftContent: SiteContent;
+  expectedDraftRevision?: number;
+};
+
 export type SiteVersionKind = "initial" | "autosave" | "publish" | "rollback" | "migration";
 
 export type SiteVersionRecord = {
@@ -80,6 +89,31 @@ export type SiteVersionRecord = {
   createdAt: Date;
 };
 
+export type SiteVariantRecord = {
+  id: string;
+  workspaceId: string;
+  siteId: string;
+  name: string;
+  slug: string;
+  recipientName: string | null;
+  recipientCompany: string | null;
+  variableValues: Record<string, unknown>;
+  revisionNumber: number;
+  status: "active" | "deleted";
+  deletedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type UpsertSiteVariantInput = {
+  id?: string;
+  slug: string;
+  name: string;
+  recipientName?: string | null;
+  recipientCompany?: string | null;
+  variableValues: Record<string, unknown>;
+};
+
 export interface SiteRepository {
   listAccessibleSites(input: ListSitesInput): Promise<SiteRecord[]>;
   countWorkspaceSites(workspaceId: string): Promise<number>;
@@ -93,7 +127,19 @@ export interface SiteRepository {
   }): Promise<SiteRecord | null>;
   createSite(input: CreateSiteInput): Promise<SiteRecord>;
   updateSite(input: UpdateSiteInput): Promise<SiteRecord>;
+  updateSiteContent(input: UpdateSiteContentInput): Promise<SiteRecord | null>;
   duplicateSite(input: DuplicateSiteInput): Promise<SiteRecord>;
+  listVariants(input: {
+    workspaceId: string;
+    siteId: string;
+    limit: number;
+  }): Promise<SiteVariantRecord[]>;
+  batchUpsertVariants(input: {
+    workspaceId: string;
+    siteId: string;
+    variants: UpsertSiteVariantInput[];
+    matchBy: "id" | "slug";
+  }): Promise<SiteVariantRecord[]>;
   publishSite(input: {
     workspaceId: string;
     siteId: string;
@@ -274,6 +320,29 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
       return site;
     },
 
+    async updateSiteContent(input) {
+      const now = new Date();
+      const conditions = [
+        eq(sites.workspaceId, input.workspaceId),
+        eq(sites.id, input.siteId),
+        ...(input.expectedDraftRevision
+          ? [eq(sites.draftRevision, input.expectedDraftRevision)]
+          : []),
+      ];
+      const [site] = await database
+        .update(sites)
+        .set({
+          draftContent: input.draftContent,
+          draftRevision: sql`${sites.draftRevision} + 1`,
+          updatedByUserId: input.updatedByUserId,
+          updatedAt: now,
+        })
+        .where(and(...conditions))
+        .returning();
+
+      return site ?? null;
+    },
+
     async duplicateSite(input) {
       try {
         return await database.transaction(async (transaction) => {
@@ -315,6 +384,99 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
       } catch (error) {
         if (isUniqueViolation(error)) {
           throw new SiteSlugConflictError(input.slug);
+        }
+
+        throw error;
+      }
+    },
+
+    async listVariants(input) {
+      return database
+        .select()
+        .from(siteVariants)
+        .where(and(
+          eq(siteVariants.workspaceId, input.workspaceId),
+          eq(siteVariants.siteId, input.siteId),
+          eq(siteVariants.status, "active"),
+        ))
+        .orderBy(desc(siteVariants.updatedAt))
+        .limit(input.limit);
+    },
+
+    async batchUpsertVariants(input) {
+      try {
+        return await database.transaction(async (transaction) => {
+          const changedVariants: SiteVariantRecord[] = [];
+
+          for (const variant of input.variants) {
+            const matchCondition = input.matchBy === "id" && variant.id
+              ? eq(siteVariants.id, variant.id)
+              : eq(siteVariants.slug, variant.slug);
+            const [existingVariant] = await transaction
+              .select()
+              .from(siteVariants)
+              .where(and(
+                eq(siteVariants.workspaceId, input.workspaceId),
+                eq(siteVariants.siteId, input.siteId),
+                eq(siteVariants.status, "active"),
+                matchCondition,
+              ))
+              .limit(1);
+            const now = new Date();
+
+            if (existingVariant) {
+              const [updatedVariant] = await transaction
+                .update(siteVariants)
+                .set({
+                  name: variant.name,
+                  slug: variant.slug,
+                  recipientName: variant.recipientName ?? null,
+                  recipientCompany: variant.recipientCompany ?? null,
+                  variableValues: variant.variableValues,
+                  revisionNumber: sql`${siteVariants.revisionNumber} + 1`,
+                  updatedAt: now,
+                })
+                .where(and(
+                  eq(siteVariants.workspaceId, input.workspaceId),
+                  eq(siteVariants.siteId, input.siteId),
+                  eq(siteVariants.id, existingVariant.id),
+                ))
+                .returning();
+
+              if (!updatedVariant) {
+                throw new Error("Variant update did not return a row.");
+              }
+
+              changedVariants.push(updatedVariant);
+              continue;
+            }
+
+            const [createdVariant] = await transaction
+              .insert(siteVariants)
+              .values({
+                workspaceId: input.workspaceId,
+                siteId: input.siteId,
+                name: variant.name,
+                slug: variant.slug,
+                recipientName: variant.recipientName ?? null,
+                recipientCompany: variant.recipientCompany ?? null,
+                variableValues: variant.variableValues,
+                updatedAt: now,
+              })
+              .returning();
+
+            if (!createdVariant) {
+              throw new Error("Variant insert did not return a row.");
+            }
+
+            changedVariants.push(createdVariant);
+          }
+
+          return changedVariants;
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new SiteSlugConflictError("variant");
         }
 
         throw error;
@@ -586,9 +748,11 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
 export function createMemorySiteRepository(
   initialSites: SiteRecord[] = [],
   initialVersions: SiteVersionRecord[] = [],
+  initialVariants: SiteVariantRecord[] = [],
 ): SiteRepository {
   const siteById = new Map(initialSites.map((site) => [site.id, site]));
   const versionById = new Map(initialVersions.map((version) => [version.id, version]));
+  const variantById = new Map(initialVariants.map((variant) => [variant.id, variant]));
 
   for (const site of siteById.values()) {
     const hasVersion = Array.from(versionById.values()).some((version) => version.siteId === site.id);
@@ -726,6 +890,28 @@ export function createMemorySiteRepository(
       return updatedSite;
     },
 
+    async updateSiteContent(input) {
+      const site = findByWorkspaceAndId({
+        workspaceId: input.workspaceId,
+        siteId: input.siteId,
+      });
+
+      if (!site || (input.expectedDraftRevision && site.draftRevision !== input.expectedDraftRevision)) {
+        return null;
+      }
+
+      const updatedSite: SiteRecord = {
+        ...site,
+        draftContent: input.draftContent,
+        draftRevision: site.draftRevision + 1,
+        updatedByUserId: input.updatedByUserId,
+        updatedAt: new Date(),
+      };
+
+      siteById.set(updatedSite.id, updatedSite);
+      return updatedSite;
+    },
+
     async duplicateSite(input) {
       const existingSite = findByWorkspaceAndSlug({
         workspaceId: input.workspaceId,
@@ -772,6 +958,80 @@ export function createMemorySiteRepository(
       });
       versionById.set(version.id, version);
       return site;
+    },
+
+    async listVariants(input) {
+      return Array.from(variantById.values())
+        .filter((variant) =>
+          variant.workspaceId === input.workspaceId &&
+          variant.siteId === input.siteId &&
+          variant.status === "active"
+        )
+        .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
+        .slice(0, input.limit);
+    },
+
+    async batchUpsertVariants(input) {
+      const changedVariants: SiteVariantRecord[] = [];
+
+      for (const variant of input.variants) {
+        const existingVariant = Array.from(variantById.values()).find((entry) =>
+          entry.workspaceId === input.workspaceId &&
+          entry.siteId === input.siteId &&
+          entry.status === "active" &&
+          (input.matchBy === "id" && variant.id ? entry.id === variant.id : entry.slug === variant.slug)
+        );
+        const slugOwner = Array.from(variantById.values()).find((entry) =>
+          entry.workspaceId === input.workspaceId &&
+          entry.siteId === input.siteId &&
+          entry.status === "active" &&
+          entry.slug === variant.slug
+        );
+
+        if (slugOwner && slugOwner.id !== existingVariant?.id) {
+          throw new SiteSlugConflictError(variant.slug);
+        }
+
+        const now = new Date();
+
+        if (existingVariant) {
+          const updatedVariant: SiteVariantRecord = {
+            ...existingVariant,
+            name: variant.name,
+            slug: variant.slug,
+            recipientName: variant.recipientName ?? null,
+            recipientCompany: variant.recipientCompany ?? null,
+            variableValues: variant.variableValues,
+            revisionNumber: existingVariant.revisionNumber + 1,
+            updatedAt: now,
+          };
+
+          variantById.set(updatedVariant.id, updatedVariant);
+          changedVariants.push(updatedVariant);
+          continue;
+        }
+
+        const createdVariant: SiteVariantRecord = {
+          id: randomUUID(),
+          workspaceId: input.workspaceId,
+          siteId: input.siteId,
+          name: variant.name,
+          slug: variant.slug,
+          recipientName: variant.recipientName ?? null,
+          recipientCompany: variant.recipientCompany ?? null,
+          variableValues: variant.variableValues,
+          revisionNumber: 1,
+          status: "active",
+          deletedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        variantById.set(createdVariant.id, createdVariant);
+        changedVariants.push(createdVariant);
+      }
+
+      return changedVariants;
     },
 
     async publishSite(input) {

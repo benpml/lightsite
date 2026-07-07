@@ -18,6 +18,7 @@ describe("public site HTML rendering", () => {
           slug: "acme",
           name: "Acme <Sales>",
           websiteDomain: "acme.com",
+          logoUrl: null,
         },
         site: {
           id: "site_test_123",
@@ -38,13 +39,32 @@ describe("public site HTML rendering", () => {
             height: 630,
           },
         },
-        header: {
-          avatarAssets: [],
-          eyebrow: "July",
-          title: "A focused rollout plan for {{company_name}}",
-          subtitle: "A short page for the buying team.",
+        chrome: {
+          siteHeader: {
+            brandName: "Lightsite",
+            logoUrl: null,
+            primaryButtonText: "Book review",
+            primaryButtonHref: "{{primary_url}}",
+            secondaryButtonText: null,
+            secondaryButtonHref: null,
+            showSecondaryButton: false,
+          },
+          hero: {
+            avatarMode: "single",
+            avatarImageUrl: null,
+            avatarImageSecondaryUrl: null,
+            avatarImageAlt: null,
+            avatarImageSecondaryAlt: null,
+            eyebrow: "July",
+            title: "A focused rollout plan for {{company_name}}",
+            subtitle: "A short page for the buying team.",
+          },
         },
         variables: [
+          {
+            id: "recipient_website",
+            defaultValue: "",
+          },
           {
             id: "company_name",
             defaultValue: "your team",
@@ -72,6 +92,37 @@ describe("public site HTML rendering", () => {
             text: "Hello {{company_name}} <script>alert(1)</script>",
           },
           {
+            id: "list_1",
+            type: "bullet-list",
+            items: ["First item", "Second item"],
+          },
+          {
+            id: "accordion_1",
+            type: "accordion",
+            items: [
+              {
+                id: "accordion_item_1",
+                title: "Open question",
+                body: "Open answer",
+                expanded: true,
+              },
+              {
+                id: "accordion_item_2",
+                title: "Closed question",
+                body: "Closed answer",
+                expanded: false,
+              },
+            ],
+          },
+          {
+            id: "quote_1",
+            type: "quote",
+            quote: "A fast path for {{company_name}}",
+            personName: "Mira",
+            personTitle: "RevOps",
+            company: "{{company_name}}",
+          },
+          {
             id: "cta_1",
             type: "cta",
             label: "Book review",
@@ -96,6 +147,13 @@ describe("public site HTML rendering", () => {
     expect(html).toContain('content="https://pages.lightsite.test/acme/rollout-brief/mira"');
     expect(html).toContain('content="https://pages.lightsite.test/assets/og.webp"');
     expect(html).toContain("Acme &amp; Co &lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).toContain('<ul class="list list-bullet-list"><li>First item</li><li>Second item</li></ul>');
+    expect(html).toContain('<details class="accordion-item" open>');
+    expect(html).toContain('<summary class="accordion-row">');
+    expect(html).toContain("Closed answer");
+    expect(html).not.toContain("accordion-chevron-collapsed");
+    expect(html).toContain('<span class="testimonial-name">Mira</span>');
+    expect(html).toContain('<span class="testimonial-role">RevOps, Acme &amp; Co</span>');
     expect(html).toContain('rel="noopener noreferrer"');
     expect(html).toContain(`src="${TRACKING_SCRIPT_ENDPOINT}"`);
     expect(html).toContain(`data-lightsite-ingest="${TRACKING_INGEST_ENDPOINT}"`);

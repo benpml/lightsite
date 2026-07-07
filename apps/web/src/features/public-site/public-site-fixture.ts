@@ -9,6 +9,7 @@ const acmeVariant: PublicVariant = {
   revisionNumber: 3,
   variableValues: {
     company_name: "Acme",
+    recipient_website: "acme.com",
     rollout_window: "July launch window",
     primary_cta_url: "https://cal.com/lightsite/implementation-review",
   },
@@ -23,6 +24,7 @@ const northstarVariant: PublicVariant = {
   revisionNumber: 2,
   variableValues: {
     company_name: "Northstar",
+    recipient_website: "northstar.com",
     rollout_window: "Q3 expansion",
     primary_cta_url: "https://cal.com/lightsite/expansion-review",
   },
@@ -35,6 +37,7 @@ export const demoPublishedSite: PublishedSitePayload = {
     slug: "lightsite",
     name: "Lightsite",
     websiteDomain: "lightsite.app",
+    logoUrl: "/lightsite-logo.svg",
   },
   site: {
     id: "site-rollout-brief",
@@ -49,23 +52,35 @@ export const demoPublishedSite: PublishedSitePayload = {
     ogImage: null,
     robots: "noindex,nofollow",
   },
-  header: {
-    avatarAssets: [
-      {
-        id: "asset-lightsite-mark",
-        kind: "avatar",
-        src: "/lightsite-logo.svg",
-        alt: "Lightsite",
-        width: 96,
-        height: 96,
-      },
-    ],
-    eyebrow: "{{rollout_window}}",
-    title: "A focused rollout plan for {{company_name}}",
-    subtitle:
-      "A lightweight page your team can scan quickly: what changes, why it matters, and the cleanest next step.",
+  chrome: {
+    siteHeader: {
+      brandName: "Lightsite",
+      logoUrl: "/lightsite-logo.svg",
+      primaryButtonText: "Book implementation review",
+      primaryButtonHref: "{{primary_cta_url}}",
+      secondaryButtonText: "View workspace",
+      secondaryButtonHref: "https://lightsite.app",
+      showSecondaryButton: true,
+    },
+    hero: {
+      avatarMode: "single",
+      avatarImageUrl: "/lightsite-logo.svg",
+      avatarImageSecondaryUrl: null,
+      avatarImageAlt: "Lightsite",
+      avatarImageSecondaryAlt: null,
+      eyebrow: "{{rollout_window}}",
+      title: "A focused rollout plan for {{company_name}}",
+      subtitle:
+        "A lightweight page your team can scan quickly: what changes, why it matters, and the cleanest next step.",
+    },
   },
   variables: [
+    {
+      id: "recipient_website",
+      name: "Recipient website",
+      type: "url",
+      defaultValue: "",
+    },
     {
       id: "company_name",
       name: "Company name",
@@ -119,40 +134,31 @@ export const demoPublishedSite: PublishedSitePayload = {
     },
     {
       id: "quote-proof",
-      type: "quote",
+      type: "testimonial",
       quote:
         "The biggest win was getting every stakeholder onto the same short page before procurement started asking detailed questions.",
-      personName: "Maya Patel",
-      personTitle: "Revenue Operations",
-      company: "Pilot customer",
+      name: "Maya Patel",
+      role: "Revenue Operations, Pilot customer",
+      avatar: null,
     },
     {
       id: "logos-proof",
-      type: "logo_strip",
+      type: "logo-grid",
       logos: [
         {
           id: "asset-logo-acme",
-          kind: "logo",
-          src: "/favicon.svg",
-          alt: "Acme",
-          width: 64,
-          height: 64,
+          image: "/favicon.svg",
+          name: "Acme",
         },
         {
           id: "asset-logo-northstar",
-          kind: "logo",
-          src: "/favicon.svg",
-          alt: "Northstar",
-          width: 64,
-          height: 64,
+          image: "/favicon.svg",
+          name: "Northstar",
         },
         {
           id: "asset-logo-apex",
-          kind: "logo",
-          src: "/favicon.svg",
-          alt: "Apex",
-          width: 64,
-          height: 64,
+          image: "/favicon.svg",
+          name: "Apex",
         },
       ],
     },
@@ -176,10 +182,10 @@ export const demoPublishedSite: PublishedSitePayload = {
     },
     {
       id: "cta-primary",
-      type: "cta",
+      type: "button",
       label: "Book implementation review",
       href: "{{primary_cta_url}}",
-      style: "primary",
+      style: "filled",
     },
   ],
   tracking: {

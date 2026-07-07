@@ -91,8 +91,18 @@ export function AppShell({ children }: AppShellProps) {
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
-        <div className="min-h-0 flex-1 overflow-auto bg-background">{children}</div>
+      <SidebarInset className="bg-page-background">
+        <div
+          data-app-main-pane-frame
+          className="flex h-svh min-w-0 flex-1 flex-col py-1.5 pr-1.5"
+        >
+          <div
+            data-app-main-pane
+            className="min-h-0 flex-1 overflow-auto rounded-xl border bg-background"
+          >
+            {children}
+          </div>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )

@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "pnpm -r --parallel --if-present dev",
     "dev:web": "pnpm --filter @lightsite/web dev",
     "dev:api": "pnpm --filter @lightsite/api dev",
+    "dev:public-worker": "pnpm --filter @lightsite/public-worker dev",
     "build": "pnpm -r build",
     "check:public-boundary": "pnpm --filter @lightsite/web check:public-boundary",
     "check:public-bundle": "pnpm --filter @lightsite/web check:public-bundle",
@@ -15,13 +16,24 @@
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r typecheck",
     "db:up": "docker compose up -d postgres",
+    "db:setup": "pnpm db:up && pnpm db:wait && pnpm db:migrate",
+    "db:setup:local": "pnpm --filter @lightsite/db db:local setup && pnpm db:wait && pnpm db:migrate",
+    "db:local:start": "pnpm --filter @lightsite/db db:local start",
+    "db:local:stop": "pnpm --filter @lightsite/db db:local stop",
+    "db:local:status": "pnpm --filter @lightsite/db db:local status",
+    "db:local:createdb": "pnpm --filter @lightsite/db db:local createdb",
+    "db:wait": "pnpm --filter @lightsite/db db:wait",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
     "db:generate": "pnpm --filter @lightsite/db db:generate",
     "db:migrate": "pnpm --filter @lightsite/db db:migrate",
-    "db:studio": "pnpm --filter @lightsite/db db:studio"
+    "db:studio": "pnpm --filter @lightsite/db db:studio",
+    "deploy:public-worker": "pnpm --filter @lightsite/public-worker deploy",
+    "smoke:tracking": "pnpm --filter @lightsite/api smoke:tracking"
   },
   "devDependencies": {
-    "typescript": "~6.0.2"
+    "@cloudflare/workers-types": "^5.20260706.1",
+    "typescript": "~6.0.2",
+    "wrangler": "^4.107.0"
   }
 }

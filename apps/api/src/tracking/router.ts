@@ -22,6 +22,7 @@ import { logger } from "../lib/logger";
 import type { TrackingContextTokenService } from "./context-token";
 import { createNoopTrackingEventSink, type TrackingEventSink } from "./event-sink";
 import type { TrackingRateLimiter } from "./rate-limit";
+import { TrackingUnavailableError } from "./service";
 
 const trackingContextSchema = z.object({
   workspaceId: z.string().min(1).max(TRACKING_MAX_ID_LENGTH),
@@ -101,6 +102,7 @@ const trackingBatchSchema = z.object({
 
 export type CreateTrackingRouterOptions = {
   contextTokens: TrackingContextTokenService;
+  contextIsCurrentlyAcceptable: (context: TrackingBatch["events"][number]["context"]) => Promise<boolean>;
   eventSink?: TrackingEventSink;
   rateLimiter: TrackingRateLimiter;
 };
@@ -125,9 +127,34 @@ export function createTrackingRouter(options: CreateTrackingRouterOptions) {
 
     if (
       !hasSingleTrackingScope(batch) ||
+      !hasCoherentVariantContext(batch) ||
       !hasAllowedTrackingModeEvents(batch) ||
       !batch.events.every((event) => options.contextTokens.verify(event.context))
     ) {
+      throw new AppError({
+        code: "tracking.invalid_context",
+        message: "Invalid tracking context.",
+        status: 400,
+      });
+    }
+
+    let contextIsCurrentlyAcceptable;
+
+    try {
+      contextIsCurrentlyAcceptable = await options.contextIsCurrentlyAcceptable(batch.events[0]!.context);
+    } catch (error) {
+      if (error instanceof TrackingUnavailableError) {
+        throw new AppError({
+          code: "tracking.unavailable",
+          message: "Tracking data is temporarily unavailable.",
+          status: 503,
+        });
+      }
+
+      throw error;
+    }
+
+    if (!contextIsCurrentlyAcceptable) {
       throw new AppError({
         code: "tracking.invalid_context",
         message: "Invalid tracking context.",
@@ -220,4 +247,10 @@ function hasAllowedTrackingModeEvents(batch: TrackingBatch) {
   }
 
   return true;
+}
+
+function hasCoherentVariantContext(batch: TrackingBatch) {
+  return batch.events.every((event) =>
+    (event.context.variantId === null) === (event.context.variantRevision === null)
+  );
 }

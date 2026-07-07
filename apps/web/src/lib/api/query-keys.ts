@@ -6,6 +6,12 @@ type SiteListFilters = {
 type TrackingFilters = {
   query?: string
   type?: string
+  siteId?: string
+  variantId?: string
+  classification?: string
+  from?: string
+  to?: string
+  cursor?: string
 }
 
 export const queryKeys = {
@@ -20,6 +26,8 @@ export const queryKeys = {
   site: (workspaceId: string, siteId: string) => ["site", workspaceId, siteId] as const,
   trackingEvents: (workspaceId: string, filters: TrackingFilters = {}) =>
     ["trackingEvents", workspaceId, normalizeFilter(filters)] as const,
+  trackingSummary: (workspaceId: string, filters: Omit<TrackingFilters, "query" | "type" | "classification" | "cursor"> = {}) =>
+    ["trackingSummary", workspaceId, normalizeFilter(filters)] as const,
   publicSite: (workspaceSlug: string, siteSlug: string, variantSlug: string | null = null) =>
     ["publicSite", workspaceSlug, siteSlug, variantSlug] as const,
 }

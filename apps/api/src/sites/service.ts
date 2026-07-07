@@ -1,8 +1,10 @@
 import { slugifyName, validateSiteSlug } from "@lightsite/domain";
+import { normalizeSiteContent } from "@lightsite/db";
 import {
   SiteSlugConflictError,
   type SiteRecord,
   type SiteRepository,
+  type SiteVariantRecord,
   type SiteVersionKind,
   type SiteVersionRecord,
 } from "./repository";
@@ -31,6 +33,11 @@ export type SitePermissions = {
 
 export type SiteDetail = SiteListItem & {
   permissions: SitePermissions;
+};
+
+export type SiteContentPayload = {
+  draftRevision: number;
+  draftContent: SiteRecord["draftContent"];
 };
 
 export type SiteVersionSummary = {
@@ -68,6 +75,11 @@ export type SiteMutationInput = {
   siteId: string;
 };
 
+export type UpdateSiteContentInput = SiteMutationInput & {
+  draftContent: SiteRecord["draftContent"];
+  expectedDraftRevision?: number;
+};
+
 export type UpdateSiteInput = SiteMutationInput & {
   name?: string;
   slug?: string;
@@ -78,6 +90,31 @@ export type CreateSiteResult = {
   site: Pick<SiteListItem, "id" | "name" | "slug" | "status">;
 };
 
+export type SiteVariant = {
+  id: string;
+  siteId: string;
+  name: string;
+  slug: string;
+  recipientName: string | null;
+  recipientCompany: string | null;
+  variableValues: Record<string, unknown>;
+  revisionNumber: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BatchUpsertSiteVariantsInput = SiteMutationInput & {
+  matchBy: "id" | "slug";
+  variants: Array<{
+    id?: string;
+    slug: string;
+    name: string;
+    recipientName?: string | null;
+    recipientCompany?: string | null;
+    variableValues: Record<string, unknown>;
+  }>;
+};
+
 export interface SiteService {
   listSites(input: ListSitesInput): Promise<{
     sites: SiteListItem[];
@@ -86,7 +123,24 @@ export interface SiteService {
   createSite(input: CreateSiteInput): Promise<CreateSiteResult>;
   getSite(input: SiteMutationInput): Promise<{ site: SiteDetail }>;
   updateSite(input: UpdateSiteInput): Promise<{ site: SiteDetail }>;
+  getSiteContent(input: SiteMutationInput): Promise<SiteContentPayload>;
+  updateSiteContent(input: UpdateSiteContentInput): Promise<{
+    site: SiteListItem;
+    draftRevision: number;
+    draftContent: SiteRecord["draftContent"];
+  }>;
+  validateSiteContent(input: { draftContent: SiteRecord["draftContent"] }): Promise<{
+    valid: boolean;
+    issues: SitePublishValidationIssue[];
+  }>;
   duplicateSite(input: SiteMutationInput): Promise<CreateSiteResult>;
+  listSiteVariants(input: SiteMutationInput): Promise<{
+    variants: SiteVariant[];
+    nextCursor: string | null;
+  }>;
+  batchUpsertSiteVariants(input: BatchUpsertSiteVariantsInput): Promise<{
+    variants: SiteVariant[];
+  }>;
   publishSite(input: SiteMutationInput): Promise<{
     site: SiteDetail;
     version: SiteVersionSummary;
@@ -159,8 +213,22 @@ export class SiteArchivedError extends Error {
 
 export class SitePublishedSlugChangeError extends Error {
   constructor() {
-    super("Published site slugs cannot be changed in v1.");
+    super("Published site slugs cannot be changed while the site is published.");
     this.name = "SitePublishedSlugChangeError";
+  }
+}
+
+export class SiteDraftRevisionConflictError extends Error {
+  constructor() {
+    super("The site draft changed before this update was applied.");
+    this.name = "SiteDraftRevisionConflictError";
+  }
+}
+
+export class SiteVariantConflictError extends Error {
+  constructor(message = "A site variant with this slug already exists.") {
+    super(message);
+    this.name = "SiteVariantConflictError";
   }
 }
 
@@ -188,10 +256,33 @@ export class SitePublishValidationError extends Error {
 
 const LIST_SITES_LIMIT = 50;
 const LIST_SITE_VERSIONS_LIMIT = 100;
+const LIST_SITE_VARIANTS_LIMIT = 100;
 const SITE_PLAN_LIMITS = {
   basic: 1,
   pro: 100,
 } as const;
+const SUPPORTED_DRAFT_BLOCK_TYPES = new Set([
+  "title",
+  "heading",
+  "text",
+  "divider",
+  "bullet-list",
+  "number-list",
+  "icon-list",
+  "image",
+  "gif",
+  "image-card",
+  "icon-card",
+  "button",
+  "calendar",
+  "accordion",
+  "video",
+  "testimonial",
+  "logo-grid",
+  "cta",
+  "quote",
+  "logo_strip",
+]);
 
 export function createSiteService(repository: SiteRepository): SiteService {
   return {
@@ -312,6 +403,58 @@ export function createSiteService(repository: SiteRepository): SiteService {
       };
     },
 
+    async getSiteContent(input) {
+      const site = await requireViewableSite(repository, input);
+      const draftContent = normalizeSiteContent(site.draftContent);
+
+      return {
+        draftRevision: site.draftRevision,
+        draftContent,
+      };
+    },
+
+    async updateSiteContent(input) {
+      const site = await requireViewableSite(repository, input);
+      const permissions = resolvePermissions(site, input);
+
+      if (site.status === "archived") {
+        throw new SiteArchivedError();
+      }
+
+      if (!permissions.canEdit) {
+        throw new SitePermissionError();
+      }
+
+      const draftContent = normalizeSiteContent(input.draftContent);
+
+      const updatedSite = await repository.updateSiteContent({
+        workspaceId: input.workspace.id,
+        siteId: input.siteId,
+        updatedByUserId: input.userId,
+        draftContent,
+        ...(input.expectedDraftRevision ? { expectedDraftRevision: input.expectedDraftRevision } : {}),
+      });
+
+      if (!updatedSite) {
+        throw new SiteDraftRevisionConflictError();
+      }
+
+      return {
+        site: serializeSite(updatedSite),
+        draftRevision: updatedSite.draftRevision,
+        draftContent: normalizeSiteContent(updatedSite.draftContent),
+      };
+    },
+
+    async validateSiteContent(input) {
+      const issues = validateDraftContent(normalizeSiteContent(input.draftContent));
+
+      return {
+        valid: issues.length === 0,
+        issues,
+      };
+    },
+
     async duplicateSite(input) {
       const site = await requireViewableSite(repository, input);
       const permissions = resolvePermissions(site, input);
@@ -336,7 +479,7 @@ export function createSiteService(repository: SiteRepository): SiteService {
           createdByUserId: input.userId,
           name,
           slug,
-          draftContent: site.draftContent,
+          draftContent: normalizeSiteContent(site.draftContent),
         });
 
         return {
@@ -350,6 +493,78 @@ export function createSiteService(repository: SiteRepository): SiteService {
       } catch (error) {
         if (error instanceof SiteSlugConflictError) {
           throw new SiteConflictError(error.slug);
+        }
+
+        throw error;
+      }
+    },
+
+    async listSiteVariants(input) {
+      const site = await requireViewableSite(repository, input);
+      const permissions = resolvePermissions(site, input);
+
+      if (!permissions.canView) {
+        throw new SiteNotFoundError();
+      }
+
+      const variants = await repository.listVariants({
+        workspaceId: input.workspace.id,
+        siteId: input.siteId,
+        limit: LIST_SITE_VARIANTS_LIMIT,
+      });
+
+      return {
+        variants: variants.map(serializeVariant),
+        nextCursor: null,
+      };
+    },
+
+    async batchUpsertSiteVariants(input) {
+      const site = await requireViewableSite(repository, input);
+      const permissions = resolvePermissions(site, input);
+
+      if (site.status === "archived") {
+        throw new SiteArchivedError();
+      }
+
+      if (!permissions.canEdit) {
+        throw new SitePermissionError();
+      }
+
+      const seenSlugs = new Set<string>();
+      const variants = input.variants.map((variant) => {
+        const slugResult = validateSiteSlug(variant.slug);
+
+        if (!slugResult.ok) {
+          throw new SiteValidationError(slugResult.message);
+        }
+
+        if (seenSlugs.has(slugResult.slug)) {
+          throw new SiteVariantConflictError(`Variant slug appears more than once in the request: ${slugResult.slug}`);
+        }
+
+        seenSlugs.add(slugResult.slug);
+
+        return {
+          ...variant,
+          slug: slugResult.slug,
+        };
+      });
+
+      try {
+        const changedVariants = await repository.batchUpsertVariants({
+          workspaceId: input.workspace.id,
+          siteId: input.siteId,
+          matchBy: input.matchBy,
+          variants,
+        });
+
+        return {
+          variants: changedVariants.map(serializeVariant),
+        };
+      } catch (error) {
+        if (error instanceof SiteSlugConflictError) {
+          throw new SiteVariantConflictError();
         }
 
         throw error;
@@ -562,6 +777,21 @@ function serializeVersion(version: SiteVersionRecord): SiteVersionSummary {
   };
 }
 
+function serializeVariant(variant: SiteVariantRecord): SiteVariant {
+  return {
+    id: variant.id,
+    siteId: variant.siteId,
+    name: variant.name,
+    slug: variant.slug,
+    recipientName: variant.recipientName,
+    recipientCompany: variant.recipientCompany,
+    variableValues: variant.variableValues,
+    revisionNumber: variant.revisionNumber,
+    createdAt: variant.createdAt.toISOString(),
+    updatedAt: variant.updatedAt.toISOString(),
+  };
+}
+
 async function requireViewableSite(
   repository: SiteRepository,
   input: SiteMutationInput,
@@ -623,28 +853,142 @@ function validatePublishableSite(site: SiteRecord): SitePublishValidationIssue[]
     });
   }
 
-  if (site.draftContent.schemaVersion !== 1) {
+  issues.push(...validateDraftContent(normalizeSiteContent(site.draftContent), ["draftContent"]));
+
+  return issues;
+}
+
+function validateDraftContent(
+  draftContent: SiteRecord["draftContent"],
+  pathPrefix: Array<string | number> = [],
+): SitePublishValidationIssue[] {
+  const issues: SitePublishValidationIssue[] = [];
+
+  if (draftContent.schemaVersion !== 2) {
     issues.push({
-      path: ["draftContent", "schemaVersion"],
+      path: [...pathPrefix, "schemaVersion"],
       message: "Draft content schema is not supported for publishing.",
     });
   }
 
-  if (!site.draftContent.header.title.trim()) {
+  if (!draftContent.chrome.hero.title.trim()) {
     issues.push({
-      path: ["draftContent", "header", "title"],
+      path: [...pathPrefix, "chrome", "hero", "title"],
       message: "Site title is required before publishing.",
     });
   }
 
-  if (!Array.isArray(site.draftContent.blocks)) {
+  const variableKeys = new Set<string>();
+
+  draftContent.variables.forEach((variable, index) => {
+    if (variableKeys.has(variable.key)) {
+      issues.push({
+        path: [...pathPrefix, "variables", index, "key"],
+        message: `Variable key must be unique: ${variable.key}`,
+      });
+    }
+
+    variableKeys.add(variable.key);
+  });
+
+  const blockIds = new Set<string>();
+
+  draftContent.blocks.forEach((block, index) => {
+    if (blockIds.has(block.id)) {
+      issues.push({
+        path: [...pathPrefix, "blocks", index, "id"],
+        message: `Block id must be unique: ${block.id}`,
+      });
+    }
+
+    blockIds.add(block.id);
+    issues.push(...validateDraftBlock(block, [...pathPrefix, "blocks", index]));
+  });
+
+  return issues;
+}
+
+function validateDraftBlock(
+  block: SiteRecord["draftContent"]["blocks"][number],
+  pathPrefix: Array<string | number>,
+): SitePublishValidationIssue[] {
+  const issues: SitePublishValidationIssue[] = [];
+
+  if (!SUPPORTED_DRAFT_BLOCK_TYPES.has(block.type)) {
+    return [
+      {
+        path: [...pathPrefix, "type"],
+        message: `Unsupported block type: ${block.type}`,
+      },
+    ];
+  }
+
+  if (block.type === "title" || block.type === "heading") {
+    const text = getNonEmptyStringField(block.fields, "text") ?? getNonEmptyStringField(block.fields, "title");
+
+    if (!text) {
+      issues.push({
+        path: [...pathPrefix, "fields", "text"],
+        message: "Heading blocks require text.",
+      });
+    }
+  }
+
+  if (block.type === "text") {
+    const text = getNonEmptyStringField(block.fields, "text") ?? getNonEmptyStringField(block.fields, "body");
+
+    if (!text) {
+      issues.push({
+        path: [...pathPrefix, "fields", "text"],
+        message: "Text blocks require text.",
+      });
+    }
+  }
+
+  if (block.type === "cta" || block.type === "button" || block.type === "calendar") {
+    if (!getNonEmptyStringField(block.fields, "label") && !getNonEmptyStringField(block.fields, "text")) {
+      issues.push({
+        path: [...pathPrefix, "fields", "label"],
+        message: "Button blocks require a label.",
+      });
+    }
+
+    if (!getNonEmptyStringField(block.fields, "href") && !getNonEmptyStringField(block.fields, "url")) {
+      issues.push({
+        path: [...pathPrefix, "fields", "href"],
+        message: "Button blocks require an href.",
+      });
+    }
+  }
+
+  if ((block.type === "quote" || block.type === "testimonial") && !getNonEmptyStringField(block.fields, "quote")) {
     issues.push({
-      path: ["draftContent", "blocks"],
-      message: "Draft content blocks are invalid.",
+      path: [...pathPrefix, "fields", "quote"],
+      message: "Quote blocks require quote text.",
+    });
+  }
+
+  if ((block.type === "bullet-list" || block.type === "number-list") && !Array.isArray(block.fields.items)) {
+    issues.push({
+      path: [...pathPrefix, "fields", "items"],
+      message: "List blocks require items.",
+    });
+  }
+
+  if ((block.type === "accordion" || block.type === "icon-list" || block.type === "logo-grid") && !Array.isArray(block.fields.items) && !Array.isArray(block.fields.logos)) {
+    issues.push({
+      path: [...pathPrefix, "fields"],
+      message: "This block requires an item array.",
     });
   }
 
   return issues;
+}
+
+function getNonEmptyStringField(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 async function getAvailableCopyIdentity(

@@ -1,6 +1,7 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import {
   db as defaultDb,
+  normalizeSiteContent,
   siteVersions,
   siteVariants,
   sites,
@@ -152,7 +153,7 @@ function buildPublicSitePayload(
   if (!record.site.publishedAt || !record.site.publishedVersionId) {
     throw new Error("Published site payload requires a published timestamp.");
   }
-  const content = record.version.content;
+  const content = normalizeSiteContent(record.version.content);
   const trackingMode: TrackingMode = "engagement";
 
   return {
@@ -162,6 +163,7 @@ function buildPublicSitePayload(
       slug: record.workspace.slug,
       name: record.workspace.name,
       websiteDomain: record.workspace.websiteDomain ?? "",
+      logoUrl: null,
     },
     site: {
       id: record.site.id,
@@ -171,16 +173,31 @@ function buildPublicSitePayload(
       publishedAt: record.site.publishedAt.toISOString(),
     },
     metadata: {
-      title: content.header.title || record.site.name,
-      description: content.header.subtitle ?? "",
+      title: content.chrome.hero.title || record.site.name,
+      description: content.chrome.hero.subtitle ?? "",
       ogImage: null,
       robots: "noindex,nofollow",
     },
-    header: {
-      avatarAssets: [],
-      eyebrow: null,
-      title: content.header.title || record.site.name,
-      subtitle: content.header.subtitle ?? null,
+    chrome: {
+      siteHeader: {
+        brandName: content.chrome.siteHeader.brandName,
+        logoUrl: content.chrome.siteHeader.logoUrl || null,
+        primaryButtonText: content.chrome.siteHeader.primaryButtonText || null,
+        primaryButtonHref: content.chrome.siteHeader.primaryButtonHref || null,
+        secondaryButtonText: content.chrome.siteHeader.secondaryButtonText || null,
+        secondaryButtonHref: content.chrome.siteHeader.secondaryButtonHref || null,
+        showSecondaryButton: content.chrome.siteHeader.showSecondaryButton,
+      },
+      hero: {
+        avatarMode: content.chrome.hero.avatarMode,
+        avatarImageUrl: content.chrome.hero.avatarImageUrl || null,
+        avatarImageSecondaryUrl: content.chrome.hero.avatarImageSecondaryUrl || null,
+        avatarImageAlt: content.chrome.hero.avatarImageAlt || null,
+        avatarImageSecondaryAlt: content.chrome.hero.avatarImageSecondaryAlt || null,
+        eyebrow: content.chrome.hero.eyebrow || null,
+        title: content.chrome.hero.title || record.site.name,
+        subtitle: content.chrome.hero.subtitle || null,
+      },
     },
     variables: content.variables.map((variable) => ({
       id: variable.key,
@@ -216,13 +233,14 @@ function toPublicBlock(block: SiteContentBlock): Record<string, unknown> | null 
   const fields = block.fields;
 
   switch (block.type) {
+    case "title":
     case "heading": {
       const text = getString(fields, "text") ?? getString(fields, "title");
       return text
         ? {
             id: block.id,
             type: "heading",
-            level: fields.level === 3 ? 3 : 2,
+            level: block.type === "title" || fields.level === 1 ? 1 : (fields.level === 3 ? 3 : 2),
             text,
           }
         : null;
@@ -247,10 +265,24 @@ function toPublicBlock(block: SiteContentBlock): Record<string, unknown> | null 
       return label && href
         ? {
             id: block.id,
-            type: "cta",
+            type: "button",
             label,
             href,
-            style: fields.style === "secondary" ? "secondary" : "primary",
+            style: fields.style === "secondary" || fields.style === "outline" ? "outline" : "filled",
+          }
+        : null;
+    }
+
+    case "button": {
+      const label = getString(fields, "label") ?? getString(fields, "text");
+      const href = getString(fields, "href") ?? getString(fields, "url");
+      return label && href
+        ? {
+            id: block.id,
+            type: "button",
+            label,
+            href,
+            style: fields.style === "filled" || fields.style === "primary" ? "filled" : "outline",
           }
         : null;
     }
@@ -260,13 +292,144 @@ function toPublicBlock(block: SiteContentBlock): Record<string, unknown> | null 
       return quote
         ? {
             id: block.id,
-            type: "quote",
+            type: "testimonial",
+            avatar: getString(fields, "avatar"),
+            name: getString(fields, "personName") ?? getString(fields, "name") ?? "",
             quote,
-            personName: getString(fields, "personName") ?? "",
-            personTitle: getString(fields, "personTitle"),
-            company: getString(fields, "company"),
+            role: [getString(fields, "personTitle"), getString(fields, "company")].filter(Boolean).join(", "),
           }
         : null;
+    }
+
+    case "bullet-list":
+    case "number-list": {
+      const items = getStringArray(fields, "items");
+      return items.length > 0 ? { id: block.id, type: block.type, items } : null;
+    }
+
+    case "icon-list": {
+      const items = getRecordArray(fields, "items")
+        .map((item, index) => ({
+          id: getString(item, "id") ?? `${block.id}-${index + 1}`,
+          icon: getString(item, "icon") ?? "box",
+          iconTone: getString(item, "iconTone") ?? "default",
+          text: getString(item, "text") ?? "",
+        }))
+        .filter((item) => item.text);
+
+      return items.length > 0 ? { id: block.id, type: "icon-list", items } : null;
+    }
+
+    case "image": {
+      const src = getString(fields, "src");
+      return src
+        ? {
+            id: block.id,
+            type: "image",
+            asset: toPublicAsset({
+              id: `${block.id}-asset`,
+              kind: "image",
+              src,
+              alt: getString(fields, "alt") ?? "",
+            }),
+            caption: getString(fields, "caption"),
+          }
+        : null;
+    }
+
+    case "gif": {
+      const src = getString(fields, "src");
+      return src
+        ? {
+            id: block.id,
+            type: "gif",
+            asset: toPublicAsset({
+              id: `${block.id}-asset`,
+              kind: "image",
+              src,
+              alt: getString(fields, "alt") ?? "",
+            }),
+            caption: getString(fields, "caption"),
+          }
+        : null;
+    }
+
+    case "image-card":
+      return {
+        id: block.id,
+        type: "image-card",
+        alt: getString(fields, "alt") ?? "",
+        body: getString(fields, "body") ?? "",
+        buttonText: getString(fields, "buttonText") ?? "",
+        buttonUrl: getString(fields, "buttonUrl") ?? "",
+        includeButton: fields.includeButton !== false,
+        src: getString(fields, "src"),
+        title: getString(fields, "title") ?? "",
+      };
+
+    case "icon-card":
+      return {
+        id: block.id,
+        type: "icon-card",
+        body: getString(fields, "body") ?? "",
+        icon: getString(fields, "icon") ?? "box",
+        iconTone: getString(fields, "iconTone") ?? "default",
+        includeIcon: fields.includeIcon !== false,
+        title: getString(fields, "title") ?? "",
+      };
+
+    case "calendar": {
+      const label = getString(fields, "label") ?? getString(fields, "text");
+      const href = getString(fields, "href") ?? getString(fields, "url");
+      return label && href ? { id: block.id, type: "calendar", label, href } : null;
+    }
+
+    case "accordion": {
+      const items = getRecordArray(fields, "items")
+        .map((item, index) => ({
+          id: getString(item, "id") ?? `${block.id}-${index + 1}`,
+          title: getString(item, "title") ?? "",
+          body: getString(item, "body") ?? "",
+          expanded: item.expanded !== false,
+        }))
+        .filter((item) => item.title);
+
+      return items.length > 0 ? { id: block.id, type: "accordion", items } : null;
+    }
+
+    case "video":
+      return {
+        id: block.id,
+        type: "video",
+        thumbnail: getString(fields, "thumbnail"),
+        url: getString(fields, "url"),
+      };
+
+    case "testimonial": {
+      const quote = getString(fields, "quote");
+      return quote
+        ? {
+            id: block.id,
+            type: "testimonial",
+            avatar: getString(fields, "avatar"),
+            name: getString(fields, "name") ?? "",
+            quote,
+            role: getString(fields, "role") ?? "",
+          }
+        : null;
+    }
+
+    case "logo-grid":
+    case "logo_strip": {
+      const logos = getRecordArray(fields, "logos")
+        .map((logo, index) => ({
+          id: getString(logo, "id") ?? `${block.id}-${index + 1}`,
+          image: getString(logo, "image") ?? getString(logo, "src"),
+          name: getString(logo, "name") ?? getString(logo, "alt") ?? "",
+        }))
+        .filter((logo) => logo.name);
+
+      return logos.length > 0 ? { id: block.id, type: "logo-grid", logos } : null;
     }
 
     default:
@@ -274,9 +437,34 @@ function toPublicBlock(block: SiteContentBlock): Record<string, unknown> | null 
   }
 }
 
+function toPublicAsset(input: {
+  alt: string;
+  id: string;
+  kind: "image" | "logo" | "avatar" | "og_image";
+  src: string;
+}) {
+  return {
+    ...input,
+    width: 1200,
+    height: 675,
+  };
+}
+
 function getString(record: Record<string, unknown>, key: string) {
   const value = record[key];
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function getStringArray(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+}
+
+function getRecordArray(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item))
+    : [];
 }
 
 function toPublicString(value: unknown) {

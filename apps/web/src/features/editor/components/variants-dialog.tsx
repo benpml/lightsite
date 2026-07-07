@@ -61,7 +61,7 @@ import {
   type EditorVariable,
   type VariantRecord,
 } from "../editor-data"
-import { VariableInputCard } from "./editor-inspector"
+import { VariableInputCard } from "./variable-input-card"
 
 type VariantDraft = {
   id: string | null
@@ -75,10 +75,8 @@ type VariantsDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   variants: VariantRecord[]
-  selectedVariantId: string
   onCreateVariant: (variant: VariantRecord) => void
   onDeleteVariant: (variantId: string) => void
-  onSelectVariant: (variantId: string) => void
   onUpdateVariant: (variant: VariantRecord) => void
   siteSlug: string
   variables: EditorVariable[]
@@ -89,10 +87,8 @@ export function VariantsDialog({
   open,
   onOpenChange,
   variants,
-  selectedVariantId,
   onCreateVariant,
   onDeleteVariant,
-  onSelectVariant,
   onUpdateVariant,
   siteSlug,
   variables,
@@ -101,11 +97,11 @@ export function VariantsDialog({
   const [mode, setMode] = useState<"list" | "edit">("list")
   const [query, setQuery] = useState("")
   const [draft, setDraft] = useState<VariantDraft>(() =>
-    createDraftFromVariant(variants.find((variant) => variant.id === selectedVariantId), variables)
+    createDraftFromVariant(variants.find((variant) => !isDefaultVariant(variant)), variables)
   )
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
-  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) ?? variants[0]
   const editableVariants = variants.filter((variant) => !isDefaultVariant(variant))
+  const firstEditableVariant = editableVariants[0]
   const normalizedQuery = query.trim().toLowerCase()
   const filteredVariants = normalizedQuery
     ? editableVariants.filter((variant) =>
@@ -129,8 +125,12 @@ export function VariantsDialog({
     : slugValidation.message
   const canSaveDraft = !nameError && !slugError
 
+  function showVariantList() {
+    setDraft(createDraftFromVariant(firstEditableVariant, variables))
+    setMode("list")
+  }
+
   function openVariantEditor(variant: VariantRecord) {
-    onSelectVariant(variant.id)
     setDraft(createDraftFromVariant(variant, variables))
     setMode("edit")
   }
@@ -155,7 +155,6 @@ export function VariantsDialog({
     })
 
     onCreateVariant(duplicatedVariant)
-    onSelectVariant(duplicatedVariant.id)
     setDraft(createDraftFromVariant(duplicatedVariant, variables))
     setMode("edit")
     toast.success("Variant duplicated.")
@@ -183,7 +182,6 @@ export function VariantsDialog({
       }
 
       onUpdateVariant(nextVariant)
-      onSelectVariant(nextVariant.id)
       setDraft(createDraftFromVariant(nextVariant, variables))
       toast.success("Variant saved.")
       return
@@ -200,7 +198,6 @@ export function VariantsDialog({
     }
 
     onCreateVariant(nextVariant)
-    onSelectVariant(nextVariant.id)
     setDraft(createDraftFromVariant(nextVariant, variables))
     toast.success("Variant created.")
   }
@@ -214,10 +211,8 @@ export function VariantsDialog({
 
     onDeleteVariant(deleteTarget)
 
-    if (selectedVariantId === deleteTarget) {
-      onSelectVariant("default")
-      setDraft(createDraftFromVariant(variants.find((variant) => isDefaultVariant(variant)), variables))
-      setMode("list")
+    if (draft.id === deleteTarget) {
+      showVariantList()
     }
 
     setDeleteTargetId(null)
@@ -245,13 +240,13 @@ export function VariantsDialog({
         onOpenChange={(nextOpen) => {
           onOpenChange(nextOpen)
           if (!nextOpen) {
-            setMode("list")
+            showVariantList()
             setQuery("")
           }
         }}
       >
         {mode === "list" ? (
-          <DialogContent showCloseButton={false} className="h-[416px] w-[439px] gap-0 overflow-hidden p-0 sm:max-w-[439px]">
+          <DialogContent showCloseButton={false} className="h-[min(520px,calc(100dvh-2rem))] w-[min(640px,calc(100vw-2rem))] gap-0 overflow-hidden p-0 sm:max-w-[640px]">
             <DialogHeader className="gap-0 px-3.5 pt-1.5 pb-2">
               <div className="flex items-start gap-3">
                 <div className="flex min-h-[57px] min-w-0 flex-1 flex-col justify-center">
@@ -282,17 +277,17 @@ export function VariantsDialog({
                 filteredVariants.map((variant) => (
                   <div
                     key={variant.id}
-                    className="group flex h-[34px] w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted"
+                    className="group flex h-10 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted focus-within:bg-muted"
                   >
                     <button
                       type="button"
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      className="flex h-full min-w-0 flex-1 items-center gap-2 text-left"
                       onClick={() => openVariantEditor(variant)}
                     >
                       <IconCards />
                       <span className="min-w-0 flex-1 truncate">{variant.name}</span>
                     </button>
-                    <span className="hidden items-center gap-1 group-hover:flex">
+                    <span className="flex shrink-0 items-center gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                       <Button
                         variant="ghost"
                         size="icon-field"
@@ -344,9 +339,9 @@ export function VariantsDialog({
             </DialogFooter>
           </DialogContent>
         ) : (
-          <DialogContent showCloseButton={false} className="h-[560px] w-[439px] gap-0 overflow-hidden p-0 sm:max-w-[439px]">
+          <DialogContent showCloseButton={false} className="h-[min(680px,calc(100dvh-2rem))] w-[min(640px,calc(100vw-2rem))] gap-0 overflow-hidden p-0 sm:max-w-[640px]">
             <div className="flex h-[52px] items-center gap-2 px-3.5">
-              <Button variant="ghost" size="icon-compact" aria-label="Back to variants" onClick={() => setMode("list")}>
+              <Button variant="ghost" size="icon-compact" aria-label="Back to variants" onClick={showVariantList}>
                 <IconChevronLeft />
               </Button>
               <DialogTitle className="min-w-0 flex-1 text-base leading-6 font-semibold">
@@ -365,8 +360,8 @@ export function VariantsDialog({
                         <IconClipboard />
                         Copy Variant Link
                       </DropdownMenuItem>
-                      {selectedVariant && !isDefaultVariant(selectedVariant) ? (
-                        <DropdownMenuItem onClick={() => handleDuplicateVariant(selectedVariant)}>
+                      {savedDraftVariant && !isDefaultVariant(savedDraftVariant) ? (
+                        <DropdownMenuItem onClick={() => handleDuplicateVariant(savedDraftVariant)}>
                           <IconCopy />
                           Duplicate Variant
                         </DropdownMenuItem>
@@ -385,7 +380,7 @@ export function VariantsDialog({
                 </Button>
               </DialogClose>
             </div>
-            <div className="h-[430px] overflow-auto px-3.5 pb-4">
+            <div className="min-h-0 flex-1 overflow-auto px-3.5 pb-4">
               <FieldSet>
                 <FieldGroup className="gap-5">
                   <Field data-invalid={Boolean(nameError) || undefined}>

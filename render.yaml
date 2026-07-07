@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: lightsite-api
+    runtime: node
+    plan: free
+    region: oregon
+    autoDeploy: true
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @lightsite/api build
+    preDeployCommand: pnpm db:migrate
+    startCommand: pnpm --filter @lightsite/api start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: NODE_ENV
+        value: production
+      - key: API_PORT
+        value: 10000
+      - key: API_JSON_BODY_LIMIT
+        value: 256kb
+      - key: DATABASE_POOL_MAX
+        value: 5
+      - key: TRUST_PROXY
+        value: true
+      - key: WEB_ORIGIN
+        value: https://lightsite.pages.dev
+      - key: WEB_ORIGINS
+        value: https://lightsite.pages.dev,https://lightsite.io
+      - key: PUBLIC_SITE_ORIGIN
+        value: https://lightsite.io
+      - key: BETTER_AUTH_URL
+        value: https://lightsite.pages.dev
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: TRACKING_SIGNING_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: LOGO_DEV_TOKEN
+        sync: false

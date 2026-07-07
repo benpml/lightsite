@@ -29,7 +29,22 @@ type InternalRouteFrameProps = {
 export function InternalRouteFrame({ children, chrome = "app" }: InternalRouteFrameProps) {
   const bootstrapQuery = useQuery({
     queryKey: queryKeys.me(),
-    queryFn: ({ signal }) => getAppBootstrap(signal),
+    queryFn: async ({ signal }) => {
+      try {
+        return await getAppBootstrap(signal)
+      } catch (error) {
+        if (
+          isApiClientError(error) &&
+          error.status === 401 &&
+          isDevAuthBypassAvailable() &&
+          !isDevAuthBypassActive()
+        ) {
+          return enableAndProvisionDevAuthBypass(signal)
+        }
+
+        throw error
+      }
+    },
   })
 
   if (bootstrapQuery.isLoading) {
@@ -108,16 +123,18 @@ function InternalLoadingState({ chrome }: { chrome: InternalRouteFrameProps["chr
           ))}
         </div>
       </aside>
-      <main className="min-w-0 flex-1 bg-background p-6">
-        <div className="flex max-w-5xl flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-80 max-w-full" />
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
+      <main className="flex min-w-0 flex-1 bg-page-background py-1.5 pr-1.5">
+        <div className="min-h-0 flex-1 overflow-hidden rounded-xl border bg-background p-6">
+          <div className="flex max-w-5xl flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-80 max-w-full" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </div>
           </div>
         </div>
       </main>

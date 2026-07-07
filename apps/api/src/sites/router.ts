@@ -1,16 +1,25 @@
 import {
+  batchUpsertSiteVariantsRequestSchema,
+  batchUpsertSiteVariantsResponseSchema,
   createSiteRequestSchema,
   createSiteResponseSchema,
   duplicateSiteResponseSchema,
+  listSiteVariantsResponseSchema,
   listSiteVersionsResponseSchema,
   listSitesResponseSchema,
   publishSiteResponseSchema,
   restoreSiteVersionResponseSchema,
+  siteContentResponseSchema,
   siteDetailResponseSchema,
   unpublishSiteResponseSchema,
+  updateSiteContentRequestSchema,
+  updateSiteContentResponseSchema,
   updateSiteRequestSchema,
+  validateSiteContentRequestSchema,
+  validateSiteContentResponseSchema,
 } from "@lightsite/contracts";
 import { Router, type Request } from "express";
+import { getAgentAuthContext } from "../auth/agent-auth";
 import type { CurrentActor, CurrentActorProvider } from "../auth/current-actor";
 import { devActor, getDevAppBootstrap, isDevAuthBypassRequest } from "../auth/dev-auth";
 import { requireAuthenticatedActor } from "../auth/require-authenticated-actor";
@@ -24,11 +33,13 @@ import { AppError, issuesFromZodError } from "../http/errors";
 import {
   SiteConflictError,
   SiteArchivedError,
+  SiteDraftRevisionConflictError,
   SiteNotFoundError,
   SitePlanLimitError,
   SitePermissionError,
   SitePublishValidationError,
   SitePublishedSlugChangeError,
+  SiteVariantConflictError,
   SiteVersionNotFoundError,
   SiteValidationError,
   type SiteService,
@@ -131,6 +142,90 @@ export function createSiteRouter(options: SiteRouterOptions) {
     }
   }));
 
+  router.get("/:siteId/content", asyncHandler(async (request, response) => {
+    const context = await resolveSiteRequestContext(request, options);
+
+    try {
+      const result = await context.siteService.getSiteContent({
+        workspace: context.workspace,
+        userId: context.actor.userId,
+        siteId: request.params.siteId ?? "",
+      });
+
+      response.json(siteContentResponseSchema.parse({
+        ...result,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      throw mapSiteServiceError(error);
+    }
+  }));
+
+  router.put("/:siteId/content", asyncHandler(async (request, response) => {
+    const context = await resolveSiteRequestContext(request, options);
+    const result = updateSiteContentRequestSchema.safeParse(request.body ?? {});
+
+    if (!result.success) {
+      throw new AppError({
+        code: "site.invalid_payload",
+        message: "Invalid site content payload.",
+        status: 400,
+        issues: issuesFromZodError(result.error),
+      });
+    }
+
+    try {
+      const updated = await context.siteService.updateSiteContent({
+        workspace: context.workspace,
+        userId: context.actor.userId,
+        siteId: request.params.siteId ?? "",
+        draftContent: result.data.draftContent,
+        ...(result.data.expectedDraftRevision
+          ? { expectedDraftRevision: result.data.expectedDraftRevision }
+          : {}),
+      });
+
+      response.json(updateSiteContentResponseSchema.parse({
+        ...updated,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      throw mapSiteServiceError(error);
+    }
+  }));
+
+  router.post("/:siteId/content/validate", asyncHandler(async (request, response) => {
+    const context = await resolveSiteRequestContext(request, options);
+    const result = validateSiteContentRequestSchema.safeParse(request.body ?? {});
+
+    if (!result.success) {
+      throw new AppError({
+        code: "site.invalid_payload",
+        message: "Invalid site content payload.",
+        status: 400,
+        issues: issuesFromZodError(result.error),
+      });
+    }
+
+    try {
+      await context.siteService.getSite({
+        workspace: context.workspace,
+        userId: context.actor.userId,
+        siteId: request.params.siteId ?? "",
+      });
+      const validation = await context.siteService.validateSiteContent({
+        draftContent: result.data.draftContent,
+      });
+
+      response.json(validateSiteContentResponseSchema.parse({
+        ...validation,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      throw mapSiteServiceError(error);
+    }
+  }));
+
   router.patch("/:siteId", asyncHandler(async (request, response) => {
     const context = await resolveSiteRequestContext(request, options);
     const result = updateSiteRequestSchema.safeParse(request.body ?? {});
@@ -156,6 +251,56 @@ export function createSiteRouter(options: SiteRouterOptions) {
 
       response.json(siteDetailResponseSchema.parse({
         ...updated,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      throw mapSiteServiceError(error);
+    }
+  }));
+
+  router.get("/:siteId/variants", asyncHandler(async (request, response) => {
+    const context = await resolveSiteRequestContext(request, options);
+
+    try {
+      const variants = await context.siteService.listSiteVariants({
+        workspace: context.workspace,
+        userId: context.actor.userId,
+        siteId: request.params.siteId ?? "",
+      });
+
+      response.json(listSiteVariantsResponseSchema.parse({
+        ...variants,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      throw mapSiteServiceError(error);
+    }
+  }));
+
+  router.post("/:siteId/variants/batch", asyncHandler(async (request, response) => {
+    const context = await resolveSiteRequestContext(request, options);
+    const result = batchUpsertSiteVariantsRequestSchema.safeParse(request.body ?? {});
+
+    if (!result.success) {
+      throw new AppError({
+        code: "site.invalid_payload",
+        message: "Invalid site variants payload.",
+        status: 400,
+        issues: issuesFromZodError(result.error),
+      });
+    }
+
+    try {
+      const variants = await context.siteService.batchUpsertSiteVariants({
+        workspace: context.workspace,
+        userId: context.actor.userId,
+        siteId: request.params.siteId ?? "",
+        matchBy: result.data.matchBy,
+        variants: result.data.variants,
+      });
+
+      response.json(batchUpsertSiteVariantsResponseSchema.parse({
+        ...variants,
         requestId: request.context.requestId,
       }));
     } catch (error) {
@@ -308,6 +453,16 @@ async function resolveSiteRequestContext(
   siteService: SiteService;
   workspace: SiteWorkspaceContext;
 }> {
+  const agentContext = getAgentAuthContext(request);
+
+  if (agentContext) {
+    return {
+      actor: agentContext.actor,
+      siteService: options.siteService,
+      workspace: agentContext.workspace,
+    };
+  }
+
   const isDevRequest = isDevAuthBypassRequest(request);
   const actor = isDevRequest
     ? devActor
@@ -411,6 +566,22 @@ function mapSiteServiceError(error: unknown): AppError {
   if (error instanceof SitePublishedSlugChangeError) {
     return new AppError({
       code: "site.published_slug_locked",
+      message: error.message,
+      status: 409,
+    });
+  }
+
+  if (error instanceof SiteDraftRevisionConflictError) {
+    return new AppError({
+      code: "site.draft_revision_conflict",
+      message: error.message,
+      status: 409,
+    });
+  }
+
+  if (error instanceof SiteVariantConflictError) {
+    return new AppError({
+      code: "site.variant_conflict",
       message: error.message,
       status: 409,
     });

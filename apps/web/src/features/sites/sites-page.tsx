@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import {
   IconArchive,
   IconCirclePlus,
@@ -137,6 +137,8 @@ export function SitesPage() {
 }
 
 function SitesTable({ sites, workspaceSlug }: { sites: SiteListItem[]; workspaceSlug: string }) {
+  const navigate = useNavigate()
+
   return (
     <div className="min-w-0 overflow-x-auto">
       <Table className="min-w-[720px] border-separate border-spacing-y-0.5">
@@ -144,7 +146,7 @@ function SitesTable({ sites, workspaceSlug }: { sites: SiteListItem[]; workspace
           <col />
           <col className="w-[140px]" />
           <col className="w-[140px]" />
-          <col className="w-[34px]" />
+          <col className="w-[48px]" />
         </colgroup>
         <TableHeader>
           <TableRow className="border-b hover:bg-transparent">
@@ -162,31 +164,63 @@ function SitesTable({ sites, workspaceSlug }: { sites: SiteListItem[]; workspace
         </TableHeader>
         <TableBody className="[&:before]:block [&:before]:h-0.5 [&:before]:content-[''] [&_tr:last-child]:border-0">
           {sites.map((site) => (
-            <TableRow key={site.id} className="h-16 border-0 hover:bg-secondary">
-              <TableCell className="rounded-l-lg py-2 pr-2 pl-2">
+            <TableRow
+              key={site.id}
+              tabIndex={0}
+              role="link"
+              onClick={(event) => {
+                if (
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                ) {
+                  return
+                }
+
+                void navigate({
+                  to: "/editor/$siteId",
+                  params: { siteId: site.id },
+                })
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") {
+                  return
+                }
+
+                event.preventDefault()
+                void navigate({
+                  to: "/editor/$siteId",
+                  params: { siteId: site.id },
+                })
+              }}
+              className="group h-16 border-0 cursor-pointer hover:bg-transparent focus-visible:outline-none"
+            >
+              <TableCell className="rounded-l-lg bg-background py-2 pr-2 pl-2 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
                 <div className="flex min-w-0 items-center gap-4">
                   <SiteThumbnail status={site.status} />
                   <div className="flex min-w-0 flex-col justify-center gap-0.5 text-sm leading-5">
-                    <Link
-                      to="/editor/$siteId"
-                      params={{ siteId: site.id }}
-                      className="max-w-[280px] truncate font-medium text-foreground hover:underline"
-                    >
+                    <div className="max-w-[280px] truncate font-medium text-foreground">
                       {site.name}
-                    </Link>
+                    </div>
                     <div className="max-w-[320px] truncate text-muted-foreground">
                       /{workspaceSlug}/{site.slug}
                     </div>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="px-2 py-2">
+              <TableCell className="bg-background px-2 py-2 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
                 <SiteStatusBadge status={site.status} />
               </TableCell>
-              <TableCell className="px-2 py-2 text-sm leading-5 text-tertiary-foreground">
+              <TableCell className="bg-background px-2 py-2 text-sm leading-5 text-tertiary-foreground transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
                 {formatSiteDate(site)}
               </TableCell>
-              <TableCell className="rounded-r-lg py-2 pr-3 pl-0">
+              <TableCell
+                className="rounded-r-lg bg-background py-2 pr-2 pl-0 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
                 <SiteActions site={site} />
               </TableCell>
             </TableRow>

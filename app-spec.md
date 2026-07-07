@@ -4,6 +4,8 @@ Lightsite is a lightweight sales one-page site builder. It gives sales teams a p
 
 This document is the living product and architecture spec for the app. It will include feature behavior, user flows, data models, database table structure, backend API architecture, frontend architecture, editor behavior, permissions, publishing, hosting, analytics, and implementation notes.
 
+Note: The prospect-specific sharing model is now defined as **Recipient Sharing** in [recipient-sharing-spec.md](recipient-sharing-spec.md). That model supersedes the older user-facing "variants", "site copies", and detached-copy terminology in this document for new product and implementation work.
+
 ## Product And Architecture Principles
 
 Lightsite is greenfield, so the foundation should optimize for correctness, clarity, maintainability, and low operating cost from the beginning.
@@ -11,7 +13,7 @@ Lightsite is greenfield, so the foundation should optimize for correctness, clar
 ### Product Principles
 
 - The app should help sales teams move quickly without creating duplicated, unmanaged content.
-- The site is the source of truth. Variants personalize the site; they do not fork it.
+- The site is the source of truth. Recipients personalize variables and tracking; they do not fork site content.
 - Every prospect-facing link should be reliable, fast, trackable, and easy to reason about.
 - Every internal workflow should have clear ownership, permissions, and failure states.
 - V1 should be deliberately simple where simplicity protects the product: one site design, flat content blocks, and no separate section entity.
@@ -22743,15 +22745,15 @@ Check that implementation covers:
 - Collaboration persistence through debounced/batched operations with server authority.
 - Reconnect, stale revision, conflict, and permission-change behavior.
 
-### Variables, Variants, And Sharing Audit
+### Variables, Recipients, And Sharing Audit
 
 Check that implementation covers:
 
-- Variable creation, insertion, renaming, deletion, defaults, usage checks, and variant overrides.
+- Variable creation, insertion, renaming, deletion, defaults, usage checks, and recipient values.
 - Text, image, and URL variable types in V1.
-- Safe variable resolution for editor preview, variant preview, publish validation, and public rendering.
-- Variant create, edit, duplicate, delete, custom slug, reservation, search, preview, and analytics identity.
-- Share modal for default links and variant links.
+- Safe variable resolution for editor preview, recipient preview, publish validation, and public rendering.
+- Recipient create, edit, delete, generated stable link, slug reservation, search, preview, email embed, and analytics identity.
+- Share modal for default site links and recipient links.
 - Copy-link behavior, unpublished warnings, public availability checks, and link change/delete confirmations.
 - Slack/link preview detection through bot/OG request signals without treating preview loads as human visits.
 
@@ -22759,7 +22761,7 @@ Check that implementation covers:
 
 Check that implementation covers:
 
-- Public route resolution for default workspace/site links and variant links.
+- Public route resolution for default site links and recipient links.
 - Lean public bundle with no app shell, editor, or internal admin imports.
 - Published snapshot rendering independent of mutable drafts.
 - Public metadata, configurable OG image, default OG image, robots behavior, and privacy-safe previews.

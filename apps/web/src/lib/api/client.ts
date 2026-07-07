@@ -16,7 +16,7 @@ export async function apiRequest<TResponse = void>(
   path: string,
   options: ApiRequestOptions<TResponse> = {},
 ): Promise<TResponse> {
-  const response = await fetch(path, {
+  const response = await fetch(buildApiUrl(path), {
     method: options.method ?? "GET",
     credentials: "include",
     signal: options.signal,
@@ -48,6 +48,20 @@ export async function apiRequest<TResponse = void>(
       requestId,
     })
   }
+}
+
+function buildApiUrl(path: string) {
+  if (/^https?:\/\//.test(path)) {
+    return path
+  }
+
+  const apiOrigin = import.meta.env.VITE_API_ORIGIN?.trim()
+
+  if (!apiOrigin) {
+    return path
+  }
+
+  return new URL(path, apiOrigin).toString()
 }
 
 function buildRequestHeaders(body: unknown) {

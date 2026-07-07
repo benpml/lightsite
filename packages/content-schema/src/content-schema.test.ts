@@ -91,8 +91,8 @@ describe("published site payload normalization", () => {
       blocks: [
         {
           id: "cta_123",
-          type: "cta",
-          style: "primary",
+          type: "button",
+          style: "filled",
         },
       ],
       tracking: {

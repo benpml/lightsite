@@ -31,10 +31,13 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LiveBadge } from "./editor-atoms"
+import { type VariantRecord } from "../editor-data"
 
 type EditorHeaderProps = {
   canRedo: boolean
@@ -46,7 +49,10 @@ type EditorHeaderProps = {
   onPreviewChange: (preview: boolean) => void
   onOpenVariants: () => void
   onUndo: () => void
+  onSelectVariant: (variantId: string) => void
+  selectedVariantId: string
   selectedVariantName: string
+  variants: VariantRecord[]
 }
 
 export function EditorHeader({
@@ -58,11 +64,14 @@ export function EditorHeader({
   onRedo,
   onPreviewChange,
   onOpenVariants,
+  onSelectVariant,
   onUndo,
+  selectedVariantId,
   selectedVariantName,
+  variants,
 }: EditorHeaderProps) {
   return (
-    <header className="flex h-[46px] shrink-0 items-center bg-transparent">
+    <header className="sticky top-0 z-20 flex h-[46px] shrink-0 items-center bg-page-background">
       <div className="flex h-[30px] w-full items-center px-2.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Button
@@ -83,14 +92,13 @@ export function EditorHeader({
         </div>
 
         {preview ? (
-          <div className="hidden min-w-0 flex-1 justify-center md:flex">
-            <Button variant="outline" size="compact" className="w-[151px] justify-between">
-              <span className="flex min-w-0 items-center gap-1.5">
-                <IconVariable data-icon="inline-start" />
-                <span className="truncate">{selectedVariantName}</span>
-              </span>
-              <IconChevronDown data-icon="inline-end" />
-            </Button>
+          <div className="flex min-w-0 flex-1 justify-center px-1.5">
+            <PreviewVariantMenu
+              selectedVariantId={selectedVariantId}
+              selectedVariantName={selectedVariantName}
+              variants={variants}
+              onSelectVariant={onSelectVariant}
+            />
           </div>
         ) : null}
 
@@ -127,6 +135,47 @@ export function EditorHeader({
         </div>
       </div>
     </header>
+  )
+}
+
+function PreviewVariantMenu({
+  onSelectVariant,
+  selectedVariantId,
+  selectedVariantName,
+  variants,
+}: {
+  onSelectVariant: (variantId: string) => void
+  selectedVariantId: string
+  selectedVariantName: string
+  variants: VariantRecord[]
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="compact"
+          className="w-[220px] max-w-full justify-between"
+          aria-label="Preview variant"
+        >
+          <span className="flex min-w-0 items-center gap-1.5">
+            <IconVariable data-icon="inline-start" />
+            <span className="truncate">{selectedVariantName}</span>
+          </span>
+          <IconChevronDown data-icon="inline-end" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" className="w-56">
+        <DropdownMenuLabel>Preview as</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={selectedVariantId} onValueChange={onSelectVariant}>
+          {variants.map((variant) => (
+            <DropdownMenuRadioItem key={variant.id} value={variant.id}>
+              <span className="min-w-0 flex-1 truncate">{variant.name}</span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

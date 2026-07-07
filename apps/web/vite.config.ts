@@ -5,6 +5,7 @@ import path from 'node:path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  envDir: path.resolve(__dirname, '../..'),
   plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
@@ -15,10 +16,6 @@ export default defineConfig({
             id.includes('node_modules/prosemirror-')
           ) {
             return 'vendor-editor-tiptap'
-          }
-
-          if (id.includes('node_modules/@dnd-kit')) {
-            return 'vendor-editor-dnd'
           }
 
           if (id.includes('node_modules/recharts')) {
@@ -53,9 +50,10 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/api': 'http://localhost:3011',
     },
   },
 })

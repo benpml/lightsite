@@ -3,10 +3,10 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const { DATABASE_URL } = parseDatabaseEnv(process.env);
+const { DATABASE_POOL_MAX, DATABASE_URL } = parseDatabaseEnv(process.env);
 
 export const queryClient = postgres(DATABASE_URL, {
-  max: 10,
+  max: DATABASE_POOL_MAX,
   prepare: false,
 });
 

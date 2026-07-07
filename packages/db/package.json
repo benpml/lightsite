@@ -12,7 +12,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
     "db:generate": "drizzle-kit generate",
+    "db:local": "node scripts/local-postgres.mjs",
     "db:migrate": "drizzle-kit migrate",
+    "db:wait": "node scripts/wait-for-db.mjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

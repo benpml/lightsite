@@ -6,7 +6,6 @@ import {
   IconClock,
   IconCopy,
   IconEye,
-  IconLayoutDashboard,
   IconMouse,
   IconPalette,
   IconScanPosition,
@@ -127,7 +126,6 @@ export const workspaces: WorkspaceSummary[] = [
 export const activeWorkspace = workspaces[0]
 
 export const primaryNavItems: NavItem[] = [
-  { title: "Dashboard", href: "/", icon: IconLayoutDashboard },
   { title: "Sites", href: "/sites", icon: IconWorldLongitude },
   { title: "Tracking", href: "/tracking", icon: IconScanPosition },
   { title: "Team", href: "/team", icon: IconUsersGroup },
@@ -380,7 +378,6 @@ export const launchStats = [
 
 export const quickLinks: NavItem[] = [
   { title: "Brief", href: "/", icon: IconBook },
-  { title: "Dashboard", href: "/sites", icon: IconLayoutDashboard },
 ]
 
 export function getEventIcon(type: TrackingEventType) {

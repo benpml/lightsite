@@ -71,3 +71,16 @@ When implementing from Figma:
 - If a Figma value is not tokenized, use the closest existing token and only add a semantic token when the value has product meaning.
 - Update base primitives when the design requires a reusable primitive-level change.
 - Avoid one-off style overrides that should be variants or token changes.
+
+## Editor Architecture
+
+The site editor must be Tiptap/ProseMirror-first. Do not rebuild page-builder state beside Tiptap.
+
+- Tiptap schema, commands, transactions, selections, history, and input rules own document editing.
+- React node views render nodes and expose configuration controls; they must not become a second editor model.
+- Editable content belongs in Tiptap node content via `NodeViewContent`, not in React attrs or controlled inputs.
+- Node attrs are only for configuration such as URLs, image sources, icon choices, layout flags, and CTA settings.
+- Slash commands and variable insertion should be Tiptap-aware command/suggestion behavior: typed triggers stay in the document, query text filters the menu, and selection replaces the typed trigger range through a transaction.
+- Markdown shortcuts such as `- ` and `1. ` should be Tiptap input rules, not React key handlers.
+- Undo, redo, multi-select, delete, drag/reorder, and click-away selection cleanup must operate through ProseMirror state.
+- Keep editor behavior in `features/editor/tiptap/*`; keep `editor-canvas.tsx` as the shell/composition layer.

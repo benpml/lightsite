@@ -60,7 +60,8 @@
     --radius-4xl: 26px;
 }
 
-:root {
+:root,
+.light {
     --background: var(--color-white);
     --foreground: var(--color-neutral-950);
     --card: var(--color-white);
@@ -99,12 +100,22 @@
     --border-width: 1px;
     --page-background: var(--color-neutral-50);
     --tertiary-foreground: var(--color-neutral-600);
-    --editing-background: color-mix(in oklab, var(--color-neutral-950) 4%, transparent);
+    --editing-background: #f7f9ff;
     --editing-foreground: var(--color-neutral-300);
     --editing-foreground-hover: var(--color-neutral-500);
     --variable-background-secondary: #f9feff;
     --variable-background: #e1f6fd;
     --variable-foreground: #00749e;
+    --lightsite-editor-color-neutral: #737373;
+    --lightsite-editor-color-indigo: #4f46e5;
+    --lightsite-editor-color-blue: #2563eb;
+    --lightsite-editor-color-sky: #0284c7;
+    --lightsite-editor-color-cyan: #0891b2;
+    --lightsite-editor-color-teal: #0f766e;
+    --lightsite-editor-color-emerald: #059669;
+    --lightsite-editor-color-amber: #b45309;
+    --lightsite-editor-color-rose: #e11d48;
+    --lightsite-editor-color-pink: #db2777;
     --sidebar: var(--color-neutral-50);
     --sidebar-foreground: var(--color-neutral-950);
     --sidebar-primary: var(--color-neutral-900);
@@ -116,46 +127,56 @@
 }
 
 .dark {
-    --background: var(--color-neutral-950);
-    --foreground: var(--color-neutral-50);
-    --card: var(--color-neutral-900);
-    --card-foreground: var(--color-neutral-50);
-    --popover: var(--color-neutral-800);
-    --popover-foreground: var(--color-neutral-50);
-    --primary: var(--color-neutral-200);
-    --primary-foreground: var(--color-neutral-900);
-    --secondary: var(--color-neutral-800);
-    --secondary-foreground: var(--color-neutral-50);
-    --muted: var(--color-neutral-800);
-    --muted-foreground: var(--color-neutral-400);
-    --accent: var(--color-neutral-700);
-    --accent-foreground: var(--color-neutral-50);
-    --destructive: var(--color-red-400);
-    --border: var(--color-neutral-700);
-    --border-subtle: var(--color-neutral-900);
-    --input: var(--color-neutral-900);
-    --ring: var(--color-neutral-500);
+    --background: #191919;
+    --foreground: #f5f5f5;
+    --card: #252525;
+    --card-foreground: #f5f5f5;
+    --popover: #252525;
+    --popover-foreground: #f5f5f5;
+    --primary: #f5f5f5;
+    --primary-foreground: #191919;
+    --secondary: #252525;
+    --secondary-foreground: #f5f5f5;
+    --muted: #252525;
+    --muted-foreground: #999999;
+    --accent: #2d2d2d;
+    --accent-foreground: #ffffff;
+    --destructive: #fca5a5;
+    --border: #333333;
+    --border-subtle: #222222;
+    --input: #252525;
+    --ring: #a5b4fc;
     --chart-1: #8da4ef;
     --chart-2: #3e63dd;
     --chart-3: #3358d4;
     --chart-4: #3a5bc7;
     --chart-5: #1f2d5c;
-    --page-background: var(--color-neutral-950);
-    --tertiary-foreground: var(--color-neutral-300);
+    --page-background: #191919;
+    --tertiary-foreground: #999999;
     --editing-background: color-mix(in oklab, var(--color-neutral-50) 8%, transparent);
     --editing-foreground: var(--color-neutral-700);
     --editing-foreground-hover: var(--color-neutral-500);
     --variable-background-secondary: #1d3e56;
     --variable-background: #00749e;
     --variable-foreground: #e1f6fd;
-    --sidebar: var(--color-neutral-900);
-    --sidebar-foreground: var(--color-neutral-50);
-    --sidebar-primary: var(--color-neutral-50);
-    --sidebar-primary-foreground: var(--color-neutral-800);
-    --sidebar-accent: var(--color-neutral-800);
-    --sidebar-accent-foreground: var(--color-neutral-50);
-    --sidebar-border: var(--color-neutral-700);
-    --sidebar-ring: var(--color-neutral-500);
+    --lightsite-editor-color-neutral: #999999;
+    --lightsite-editor-color-indigo: #a5b4fc;
+    --lightsite-editor-color-blue: #60a5fa;
+    --lightsite-editor-color-sky: #7dd3fc;
+    --lightsite-editor-color-cyan: #22d3ee;
+    --lightsite-editor-color-teal: #2dd4bf;
+    --lightsite-editor-color-emerald: #86efac;
+    --lightsite-editor-color-amber: #fcd34d;
+    --lightsite-editor-color-rose: #fda4af;
+    --lightsite-editor-color-pink: #f472b6;
+    --sidebar: #252525;
+    --sidebar-foreground: #f5f5f5;
+    --sidebar-primary: #f5f5f5;
+    --sidebar-primary-foreground: #191919;
+    --sidebar-accent: #2d2d2d;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #333333;
+    --sidebar-ring: #a5b4fc;
 }
 
 @layer base {
@@ -215,5 +236,2793 @@
   .lightsite-tiptap .is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     @apply pointer-events-none float-left h-0 text-muted-foreground;
+  }
+
+  .lightsite-document-editor {
+    @apply min-h-full w-full flex-1 bg-background font-site text-foreground outline-none;
+  }
+
+  .lightsite-document-editor > .react-renderer,
+  .lightsite-document-editor > ul,
+  .lightsite-document-editor > ol {
+    @apply mx-auto w-[600px] max-w-full;
+  }
+
+  .lightsite-document-editor .ProseMirror-selectednode,
+  .lightsite-document-editor .ProseMirror-selectednoderange {
+    @apply rounded-[10px] bg-transparent outline-none;
+    box-shadow: none;
+  }
+
+  .lightsite-document-editor .ProseMirror-selectednode > [data-block-wrapper-type],
+  .lightsite-document-editor .ProseMirror-selectednoderange > [data-block-wrapper-type] {
+    @apply relative isolate bg-transparent;
+  }
+
+  .lightsite-document-editor .ProseMirror-selectednode > [data-block-wrapper-type]::before,
+  .lightsite-document-editor .ProseMirror-selectednoderange > [data-block-wrapper-type]::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-[10px];
+    background-color: var(--editing-background);
+    z-index: 0;
+  }
+
+  .lightsite-document-editor .ProseMirror-selectednode > [data-block-wrapper-type] > *,
+  .lightsite-document-editor .ProseMirror-selectednoderange > [data-block-wrapper-type] > * {
+    @apply relative z-10;
+  }
+
+  .lightsite-document-editor
+    .ProseMirror-selectednode
+    > [data-block-wrapper-type="divider"]::before,
+  .lightsite-document-editor
+    .ProseMirror-selectednoderange
+    > [data-block-wrapper-type="divider"]::before {
+    @apply inset-y-2.5;
+  }
+
+  .lightsite-document-editor ul.ProseMirror-selectednoderange,
+  .lightsite-document-editor ol.ProseMirror-selectednoderange {
+    background-color: var(--editing-background);
+  }
+
+  .lightsite-document-editor .ProseMirror-dropcursor {
+    border-color: var(--color-indigo-500);
+    border-width: 1px;
+  }
+
+  .lightsite-editor-marquee {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 60;
+    pointer-events: none;
+    border: 1px solid var(--color-indigo-700);
+    border-radius: var(--radius-sm);
+    background-color: color-mix(in oklab, var(--color-indigo-700) 8%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-indigo-700) 12%, transparent);
+  }
+
+  .lightsite-editor-marquee-active {
+    user-select: none;
+  }
+
+  .lightsite-editor-drop-line {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 61;
+    height: 1px;
+    pointer-events: none;
+    border-radius: var(--radius-full);
+    background-color: var(--color-indigo-500);
+  }
+
+  .lightsite-editor-block-drag-active {
+    user-select: none;
+    cursor: grabbing;
+  }
+
+  .lightsite-document-editor [data-node-view-content] {
+    @apply min-w-0 outline-none;
+    font: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+    white-space: pre-wrap;
+  }
+
+  .lightsite-document-editor
+    [data-block-wrapper-type="icon-list"]
+    > [data-node-view-content]
+    > [data-node-view-content-react] {
+    @apply flex flex-col gap-1.5;
+  }
+
+  .lightsite-document-editor [data-node-view-content] p,
+  .lightsite-document-editor [data-node-view-content] div,
+  .lightsite-document-editor [data-node-view-content] span {
+    @apply m-0;
+    font: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+  }
+
+  .lightsite-document-editor ul,
+  .lightsite-document-editor ol {
+    @apply my-1 pl-8 text-base leading-6 text-secondary-foreground;
+  }
+
+  .lightsite-document-editor ul {
+    @apply list-disc;
+  }
+
+  .lightsite-document-editor ol {
+    @apply list-decimal;
+  }
+
+  .lightsite-document-editor li {
+    @apply pl-1;
+  }
+
+  .lightsite-document-editor li p {
+    @apply m-0;
+  }
+
+  .lightsite-document-editor .react-renderer.is-editor-empty {
+    @apply relative;
+  }
+
+  .lightsite-document-editor .react-renderer.is-editor-empty::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none absolute text-muted-foreground;
+    left: 0.375rem;
+    top: 0.25rem;
+    font: inherit;
+    line-height: inherit;
+    white-space: pre-wrap;
+  }
+
+  .lightsite-document-editor .react-renderer.node-headingBlock.is-editor-empty::before {
+    top: 0.125rem;
+    font-weight: 500;
+    line-height: 1.75rem;
+  }
+
+  .lightsite-document-editor
+    .react-renderer.node-headingBlock.is-editor-empty[data-placeholder="Heading 1"]::before {
+    font-size: 1.25rem;
+  }
+
+  .lightsite-document-editor
+    .react-renderer.node-headingBlock.is-editor-empty[data-placeholder="Heading 2"]::before {
+    font-size: 1rem;
+  }
+
+  [data-editor-next-page] {
+    --lightsite-editor-fg-strong: color-mix(in oklab, var(--foreground) 96%, var(--background));
+    --lightsite-editor-fg: color-mix(in oklab, var(--foreground) 80%, var(--background));
+    --lightsite-editor-fg-soft: color-mix(in oklab, var(--foreground) 64%, var(--background));
+    --lightsite-editor-fg-muted: color-mix(in oklab, var(--foreground) 46%, var(--background));
+    --lightsite-editor-fg-faint: color-mix(in oklab, var(--foreground) 30%, var(--background));
+    --lightsite-editor-surface: var(--popover);
+    --lightsite-editor-surface-muted: color-mix(in oklab, var(--foreground) 4%, var(--background));
+    --lightsite-editor-surface-hover: color-mix(in oklab, var(--foreground) 8%, var(--background));
+    --lightsite-editor-border: color-mix(in oklab, var(--foreground) 11%, var(--background));
+    --lightsite-editor-border-strong: color-mix(in oklab, var(--foreground) 18%, var(--background));
+    --lightsite-editor-popover-hover: color-mix(in oklab, var(--popover-foreground) 8%, var(--popover));
+    --lightsite-editor-popover-border: color-mix(in oklab, var(--popover-foreground) 12%, var(--popover));
+    --lightsite-editor-popover-separator: color-mix(in oklab, var(--popover-foreground) 7%, var(--popover));
+    --lightsite-editor-popover-muted: color-mix(in oklab, var(--popover-foreground) 45%, var(--popover));
+    --lightsite-editor-popover-faint: color-mix(in oklab, var(--popover-foreground) 34%, var(--popover));
+    --lightsite-editor-selection: var(--editing-background);
+    --lightsite-editor-danger: var(--destructive);
+    --lightsite-editor-link: var(--chart-1);
+    --lightsite-editor-drop: var(--chart-2);
+  }
+
+  .lightsite-editor-next {
+    @apply min-h-full font-site;
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  .lightsite-editor-next-prosemirror {
+    @apply min-h-full cursor-default px-0 pt-[54px] pb-32 outline-none;
+  }
+
+  .lightsite-editor-next .ProseMirror-focused {
+    @apply outline-none;
+  }
+
+  .lightsite-next-page-empty-state {
+    position: absolute;
+    top: var(--lightsite-empty-top, 220px);
+    left: var(--lightsite-empty-left, 50%);
+    width: var(--lightsite-empty-width, 612px);
+    max-width: calc(100% - 104px);
+    pointer-events: auto;
+    user-select: none;
+    color: var(--muted-foreground);
+    z-index: 1;
+  }
+
+  .lightsite-next-page-empty-state-inner {
+    display: flex;
+    width: min(334px, 100%);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    font-size: 16px;
+    letter-spacing: -0.32px;
+    line-height: 24px;
+  }
+
+  .lightsite-next-page-empty-state-instructions {
+    width: min(334px, 100%);
+  }
+
+  .lightsite-next-page-empty-state-instructions ul {
+    margin: 0;
+    padding-left: 24px;
+    list-style: disc;
+    line-height: 2;
+  }
+
+  .lightsite-next-page-empty-state-instructions li {
+    padding-left: 0;
+  }
+
+  .lightsite-next-page-empty-state-heading {
+    margin: 0;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .lightsite-next-page-empty-state-instructions .lightsite-next-page-empty-state-heading {
+    line-height: 2;
+  }
+
+  .lightsite-next-page-empty-state strong {
+    color: var(--chart-3);
+    font-weight: 700;
+  }
+
+  .lightsite-next-page-empty-state-section,
+  .lightsite-next-page-empty-state-items {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lightsite-next-page-empty-state-section {
+    gap: 12px;
+  }
+
+  .lightsite-next-page-empty-state-items {
+    gap: 12px;
+  }
+
+  .lightsite-next-page-empty-state-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: 24px;
+    letter-spacing: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 120ms ease;
+  }
+
+  .lightsite-next-page-empty-state-item:hover,
+  .lightsite-next-page-empty-state-item:focus-visible {
+    color: var(--secondary-foreground);
+    outline: none;
+  }
+
+  .lightsite-next-page-empty-state-item svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    stroke-width: 1.75;
+  }
+
+  .lightsite-next-gif-picker[data-slot="dialog-content"] {
+    background: var(--popover) !important;
+    border-color: var(--lightsite-editor-popover-border) !important;
+    color: var(--popover-foreground) !important;
+    box-shadow:
+      0 24px 80px color-mix(in oklab, var(--foreground) 20%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--foreground) 3%, transparent) inset;
+  }
+
+  .lightsite-next-gif-picker [data-slot="dialog-close"] {
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-gif-picker [data-slot="dialog-close"]:hover,
+  .lightsite-next-gif-picker [data-slot="dialog-close"]:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-gif-picker-header {
+    border-bottom: 1px solid var(--lightsite-editor-popover-border);
+    background: linear-gradient(180deg, var(--lightsite-editor-popover-hover), var(--popover));
+  }
+
+  .lightsite-next-gif-picker [data-slot="dialog-title"] {
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-gif-picker [data-slot="dialog-description"] {
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-gif-picker-header svg {
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-gif-picker-search[data-slot="input"] {
+    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover)) !important;
+    border-color: var(--lightsite-editor-popover-border) !important;
+    color: var(--lightsite-editor-fg-strong) !important;
+    box-shadow: none !important;
+  }
+
+  .lightsite-next-gif-picker-search[data-slot="input"]::placeholder {
+    color: var(--lightsite-editor-fg-faint);
+  }
+
+  .lightsite-next-gif-picker-search[data-slot="input"]:focus-visible {
+    border-color: color-mix(in oklab, var(--ring) 64%, transparent) !important;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent) !important;
+  }
+
+  .lightsite-next-gif-picker-results {
+    background: var(--background);
+  }
+
+  .lightsite-next-gif-picker-results [data-giphy-gif],
+  .lightsite-next-gif-picker-results img {
+    border-radius: 10px;
+  }
+
+  .lightsite-next-gif-picker-empty {
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border-strong);
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-gif-picker-footer {
+    border-top: 1px solid var(--lightsite-editor-popover-border);
+    background: color-mix(in oklab, var(--popover-foreground) 3%, var(--popover));
+  }
+
+  .lightsite-editor-next .lightsite-next-emoji {
+    display: inline-flex;
+    line-height: 1;
+    vertical-align: -0.08em;
+  }
+
+  .lightsite-editor-next .lightsite-next-emoji img {
+    height: 1em;
+    width: 1em;
+  }
+
+  .lightsite-editor-next .lightsite-next-width,
+  .lightsite-editor-next .react-renderer.node-buttonBlock,
+  .lightsite-editor-next .react-renderer.node-calendarEmbed,
+  .lightsite-editor-next .react-renderer.node-videoEmbed,
+  .lightsite-editor-next .react-renderer.node-gifBlock,
+  .lightsite-editor-next .react-renderer.node-iconCard,
+  .lightsite-editor-next .react-renderer.node-imageCard,
+  .lightsite-editor-next .react-renderer.node-pageTitleSection,
+  .lightsite-editor-next .react-renderer.node-testimonialCard,
+  .lightsite-editor-next .ProseMirror > [data-lightsite-grid],
+  .lightsite-editor-next .ProseMirror > .tableWrapper,
+  .lightsite-editor-next .ProseMirror > table,
+  .lightsite-editor-next .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor-next .ProseMirror > [data-lightsite-image-empty],
+  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="gifBlock"],
+  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="image"],
+  .lightsite-editor-next .ProseMirror > p,
+  .lightsite-editor-next .ProseMirror > h1,
+  .lightsite-editor-next .ProseMirror > h2,
+  .lightsite-editor-next .ProseMirror > h3,
+  .lightsite-editor-next .ProseMirror > ul,
+  .lightsite-editor-next .ProseMirror > ol,
+  .lightsite-editor-next .ProseMirror > blockquote,
+  .lightsite-editor-next .ProseMirror > pre,
+  .lightsite-editor-next .ProseMirror > hr {
+    @apply mx-auto w-[612px] max-w-[calc(100%-104px)];
+  }
+
+  .lightsite-editor-next .ProseMirror > p,
+  .lightsite-editor-next .ProseMirror > h1,
+  .lightsite-editor-next .ProseMirror > h2,
+  .lightsite-editor-next .ProseMirror > h3,
+  .lightsite-editor-next .ProseMirror > ul,
+  .lightsite-editor-next .ProseMirror > ol,
+  .lightsite-editor-next .ProseMirror > blockquote,
+  .lightsite-editor-next .ProseMirror > pre,
+  .lightsite-editor-next .ProseMirror > .tableWrapper,
+  .lightsite-editor-next .ProseMirror > table,
+  .lightsite-editor-next .ProseMirror > [data-lightsite-grid],
+  .lightsite-editor-next .lightsite-next-card-content,
+  .lightsite-editor-next .lightsite-next-page-title-content,
+  .lightsite-editor-next .lightsite-next-testimonial-content,
+  .lightsite-editor-next [data-lightsite-next-block-type="icon-list-item"],
+  .lightsite-editor-next [data-lightsite-next-block-type="button"] {
+    cursor: text;
+  }
+
+  .lightsite-editor-next .ProseMirror > hr,
+  .lightsite-editor-next .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor-next .ProseMirror > [data-lightsite-image-empty],
+  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="gifBlock"],
+  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="image"],
+  .lightsite-editor-next .react-renderer.node-gifBlock {
+    cursor: default;
+  }
+
+  .lightsite-editor-next .react-renderer.node-calendarEmbed,
+  .lightsite-editor-next .react-renderer.node-videoEmbed {
+    cursor: default;
+  }
+
+  .lightsite-editor-next .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor-next .ProseMirror > [data-lightsite-image-empty] {
+    @apply rounded-xl border border-dashed p-0;
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border-strong);
+  }
+
+  .lightsite-editor-next
+    .ProseMirror
+    > [data-lightsite-image-empty][data-drag-active="true"] {
+    background: color-mix(in oklab, var(--ring) 14%, transparent);
+    border-color: color-mix(in oklab, var(--ring) 78%, transparent);
+  }
+
+  .lightsite-next-image-empty-input {
+    @apply sr-only;
+  }
+
+  .lightsite-next-gif-empty-button,
+  .lightsite-next-image-empty-button {
+    @apply flex min-h-[188px] w-full flex-col items-center justify-center rounded-xl border-0 bg-transparent px-6 py-8 text-center outline-none transition;
+    color: var(--lightsite-editor-fg-soft);
+  }
+
+  .lightsite-next-gif-empty-button:hover,
+  .lightsite-next-gif-empty-button:focus-visible,
+  .lightsite-next-image-empty-button:hover,
+  .lightsite-next-image-empty-button:focus-visible {
+    background: var(--lightsite-editor-surface-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-gif-empty-title,
+  .lightsite-next-image-empty-title {
+    @apply text-sm font-medium leading-5;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-gif-empty-description,
+  .lightsite-next-image-empty-description {
+    @apply mt-1 text-xs leading-4;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-calendar-embed-shell {
+    @apply block;
+  }
+
+  .lightsite-next-video-embed-shell {
+    @apply block;
+  }
+
+  .lightsite-editor-next
+    .ProseMirror
+    > .react-renderer.node-calendarEmbed
+    > .lightsite-next-calendar-embed-shell,
+  .lightsite-editor-next
+    .ProseMirror
+    > .react-renderer.node-videoEmbed
+    > .lightsite-next-video-embed-shell {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .lightsite-next-calendar-embed-empty,
+  .lightsite-next-video-embed-empty {
+    @apply flex min-h-[220px] w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center outline-none transition;
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border-strong);
+    color: var(--lightsite-editor-fg-soft);
+  }
+
+  .lightsite-next-calendar-embed-empty:hover,
+  .lightsite-next-calendar-embed-empty:focus-visible,
+  .lightsite-next-video-embed-empty:hover,
+  .lightsite-next-video-embed-empty:focus-visible {
+    background: var(--lightsite-editor-surface-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-calendar-embed-empty svg,
+  .lightsite-next-video-embed-empty svg {
+    @apply mb-3 size-5;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-calendar-embed-empty-title,
+  .lightsite-next-video-embed-empty-title {
+    @apply text-sm font-medium leading-5;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-calendar-embed-empty-description,
+  .lightsite-next-video-embed-empty-description {
+    @apply mt-1 text-xs leading-4;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-calendar-embed,
+  .lightsite-next-video-embed {
+    @apply relative overflow-hidden rounded-xl border;
+    background: var(--lightsite-editor-surface);
+    border-color: var(--lightsite-editor-border);
+  }
+
+  .lightsite-next-calendar-embed-toolbar,
+  .lightsite-next-video-embed-toolbar {
+    @apply flex min-h-10 items-center justify-between gap-3 border-b px-3 py-2;
+    border-color: var(--lightsite-editor-border);
+    background: var(--lightsite-editor-surface-muted);
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-next-calendar-embed-meta,
+  .lightsite-next-video-embed-meta {
+    @apply flex min-w-0 items-center gap-2 text-xs font-medium;
+  }
+
+  .lightsite-next-calendar-embed-meta svg,
+  .lightsite-next-video-embed-meta svg {
+    @apply size-3.5 shrink-0;
+  }
+
+  .lightsite-next-calendar-embed-meta span,
+  .lightsite-next-video-embed-meta span {
+    @apply truncate;
+  }
+
+  .lightsite-next-calendar-embed-edit,
+  .lightsite-next-video-embed-edit {
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium outline-none transition;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-calendar-embed-edit:hover,
+  .lightsite-next-calendar-embed-edit:focus-visible,
+  .lightsite-next-video-embed-edit:hover,
+  .lightsite-next-video-embed-edit:focus-visible {
+    background: var(--lightsite-editor-surface-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-calendar-embed-edit svg,
+  .lightsite-next-video-embed-edit svg {
+    @apply size-3.5;
+  }
+
+  .lightsite-next-calendar-embed-frame {
+    @apply block w-full border-0 bg-background;
+    height: var(--lightsite-calendar-embed-height, 420px);
+  }
+
+  .lightsite-next-video-embed-frame {
+    @apply block aspect-video w-full border-0 bg-background;
+  }
+
+  .lightsite-next-calendar-embed-resize {
+    @apply absolute right-3 bottom-1 left-3 h-3 rounded-full border-0 bg-transparent opacity-0 outline-none transition-opacity;
+    cursor: ns-resize;
+  }
+
+  .lightsite-next-calendar-embed-resize::before {
+    content: "";
+    @apply absolute left-1/2 top-1/2 h-1 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full;
+    background: var(--ring);
+    box-shadow: 0 1px 4px color-mix(in oklab, var(--foreground) 24%, transparent);
+  }
+
+  .lightsite-next-calendar-embed:hover .lightsite-next-calendar-embed-resize,
+  .lightsite-next-calendar-embed:focus-within .lightsite-next-calendar-embed-resize,
+  .lightsite-next-calendar-embed[data-resizing="true"] .lightsite-next-calendar-embed-resize {
+    opacity: 1;
+  }
+
+  .lightsite-next-calendar-settings-menu,
+  .lightsite-next-video-settings-menu {
+    @apply fixed z-50 w-[320px] rounded-lg border p-3 shadow-xl;
+    background: var(--popover);
+    border-color: var(--lightsite-editor-popover-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-calendar-settings-preview,
+  .lightsite-next-video-settings-preview {
+    @apply mt-2 flex items-center gap-1.5 text-xs leading-4;
+    color: var(--lightsite-editor-popover-muted);
+  }
+
+  .lightsite-next-calendar-settings-preview svg,
+  .lightsite-next-video-settings-preview svg {
+    @apply size-3.5 shrink-0;
+  }
+
+  .lightsite-editor-next
+    .ProseMirror
+    > [data-lightsite-image-empty][data-upload-error="true"]
+    .lightsite-next-image-empty-description {
+    color: var(--lightsite-editor-danger);
+  }
+
+  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="gifBlock"],
+  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="image"] {
+    @apply justify-start;
+  }
+
+  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-wrapper],
+  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-wrapper] {
+    @apply max-w-full rounded-xl leading-none;
+  }
+
+  .lightsite-editor-next .lightsite-next-gif,
+  .lightsite-editor-next .lightsite-next-image {
+    @apply block h-auto max-w-full rounded-xl border object-contain align-top;
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border);
+  }
+
+  .lightsite-editor-next
+    [data-resize-container][data-node="gifBlock"]:hover
+    [data-resize-wrapper],
+  .lightsite-editor-next
+    [data-resize-container][data-node="gifBlock"].ProseMirror-selectednode
+    [data-resize-wrapper],
+  .lightsite-editor-next
+    [data-resize-container][data-node="gifBlock"][data-resize-state="true"]
+    [data-resize-wrapper],
+  .lightsite-editor-next
+    [data-resize-container][data-node="image"]:hover
+    [data-resize-wrapper],
+  .lightsite-editor-next
+    [data-resize-container][data-node="image"].ProseMirror-selectednode
+    [data-resize-wrapper],
+  .lightsite-editor-next
+    [data-resize-container][data-node="image"][data-resize-state="true"]
+    [data-resize-wrapper] {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--ring) 56%, transparent);
+  }
+
+  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle],
+  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle] {
+    @apply rounded-full border opacity-0 transition-opacity duration-150;
+    background: var(--ring);
+    border-color: var(--background);
+    box-shadow: 0 1px 4px color-mix(in oklab, var(--foreground) 24%, transparent);
+    height: 10px;
+    width: 10px;
+    z-index: 2;
+  }
+
+  .lightsite-editor-next [data-resize-container][data-node="gifBlock"]:hover [data-resize-handle],
+  .lightsite-editor-next
+    [data-resize-container][data-node="gifBlock"].ProseMirror-selectednode
+    [data-resize-handle],
+  .lightsite-editor-next
+    [data-resize-container][data-node="gifBlock"][data-resize-state="true"]
+    [data-resize-handle],
+  .lightsite-editor-next [data-resize-container][data-node="image"]:hover [data-resize-handle],
+  .lightsite-editor-next
+    [data-resize-container][data-node="image"].ProseMirror-selectednode
+    [data-resize-handle],
+  .lightsite-editor-next
+    [data-resize-container][data-node="image"][data-resize-state="true"]
+    [data-resize-handle] {
+    opacity: 1;
+  }
+
+  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="left"],
+  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="right"],
+  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="left"],
+  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="right"] {
+    height: 28px;
+    width: 8px;
+    cursor: ew-resize;
+    top: 50% !important;
+    bottom: auto !important;
+    transform: translateY(-50%);
+  }
+
+  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="left"],
+  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="left"] {
+    left: -4px !important;
+  }
+
+  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="right"],
+  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="right"] {
+    right: -4px !important;
+  }
+
+  .lightsite-editor-next .ProseMirror > * + * {
+    margin-top: 20px;
+  }
+
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-iconCard,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-imageCard,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-testimonialCard,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-iconCard,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-imageCard,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-testimonialCard,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-testimonialCard + .react-renderer.node-iconCard,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-testimonialCard + .react-renderer.node-imageCard,
+  .lightsite-editor-next
+    .ProseMirror
+    > .react-renderer.node-testimonialCard
+    + .react-renderer.node-testimonialCard {
+    margin-top: 0;
+  }
+
+  .lightsite-editor-next .ProseMirror > blockquote,
+  .lightsite-editor-next .ProseMirror > pre,
+  .lightsite-editor-next .ProseMirror > ul,
+  .lightsite-editor-next .ProseMirror > ol {
+    margin-top: 24px;
+  }
+
+  .lightsite-editor-next
+    .ProseMirror
+    > :is(p, h1, h2, h3, blockquote, ul, ol)
+    + :is(
+      .react-renderer.node-iconCard,
+      .react-renderer.node-imageCard,
+      .react-renderer.node-testimonialCard
+    ),
+  .lightsite-editor-next
+    .ProseMirror
+    > :is(
+      .react-renderer.node-iconCard,
+      .react-renderer.node-imageCard,
+      .react-renderer.node-testimonialCard
+    )
+    + :is(p, blockquote, ul, ol) {
+    margin-top: 12px;
+  }
+
+  .lightsite-editor-next .ProseMirror > h1 + blockquote,
+  .lightsite-editor-next .ProseMirror > h1 + pre,
+  .lightsite-editor-next .ProseMirror > h1 + ul,
+  .lightsite-editor-next .ProseMirror > h1 + ol {
+    margin-top: 24px;
+  }
+
+  .lightsite-editor-next .ProseMirror > h1:not(:first-child) {
+    margin-top: 72px;
+  }
+
+  .lightsite-editor-next .ProseMirror > h2:not(:first-child) {
+    margin-top: 50px;
+  }
+
+  .lightsite-editor-next .ProseMirror > h3:not(:first-child) {
+    margin-top: 36px;
+  }
+
+  .lightsite-editor-next .ProseMirror > p {
+    @apply px-0 py-0 text-base leading-[26px];
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-editor-next .ProseMirror > h1 {
+    @apply px-0 py-0 text-2xl leading-9 font-semibold tracking-normal;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-editor-next .ProseMirror > h2 {
+    @apply px-0 py-0 text-xl leading-8 font-semibold tracking-normal;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-editor-next .ProseMirror > h3 {
+    @apply px-0 py-0 text-base leading-[26px] font-semibold tracking-normal;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-editor-next .ProseMirror > ul,
+  .lightsite-editor-next .ProseMirror > ol {
+    @apply py-0 pl-6 text-base leading-[26px];
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-editor-next .ProseMirror > ul[data-type="taskList"] {
+    @apply list-none pl-0;
+  }
+
+  .lightsite-editor-next .ProseMirror > ul {
+    @apply list-disc;
+  }
+
+  .lightsite-editor-next .ProseMirror > ul[data-lightsite-icon-list] {
+    @apply list-none pl-0;
+  }
+
+  .lightsite-editor-next .ProseMirror > ol {
+    @apply list-decimal;
+  }
+
+  .lightsite-editor-next .ProseMirror li p {
+    @apply m-0;
+  }
+
+  .lightsite-editor-next .ProseMirror > ul[data-lightsite-icon-list] > li {
+    @apply relative py-0 pl-0;
+  }
+
+  .lightsite-editor-next .ProseMirror > ul[data-lightsite-icon-list] > li + li {
+    margin-top: 6px;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid] {
+    @apply flex flex-col gap-3;
+    container-type: inline-size;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-row] {
+    display: grid;
+    grid-template-columns: repeat(var(--lightsite-grid-columns, 2), minmax(0, 1fr));
+    column-gap: 12px;
+    row-gap: 12px;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] {
+    @apply min-w-0 rounded-lg border border-dashed p-2 transition;
+    background: transparent;
+    border-color: transparent;
+    cursor: text;
+    min-height: 38px;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell]:hover,
+  .lightsite-editor-next [data-lightsite-grid-cell]:focus-within {
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border);
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > .react-renderer {
+    @apply m-0 w-full max-w-full min-w-0;
+  }
+
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    > .react-renderer
+    > [data-lightsite-next-block] {
+    margin: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > p.lightsite-next-placeholder-hidden {
+    display: none;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > :not(:last-child) {
+    margin-bottom: 12px;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > p.lightsite-next-placeholder-hidden {
+    margin-bottom: 0;
+  }
+
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    > .react-renderer.node-imageCard
+    > .lightsite-next-image-card-shell,
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    > .react-renderer.node-testimonialCard
+    > .lightsite-next-testimonial-card-shell,
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    > .react-renderer.node-calendarEmbed
+    > .lightsite-next-calendar-embed-shell,
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    > .react-renderer.node-videoEmbed
+    > .lightsite-next-video-embed-shell,
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    > .react-renderer.node-iconCard
+    > [data-lightsite-next-block-type="icon-card"] {
+    @apply py-0;
+    margin: 0;
+  }
+
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    > .react-renderer.node-iconCard
+    > [data-lightsite-next-block-type="icon-card"]
+    > div {
+    @apply p-3;
+  }
+
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    .lightsite-next-testimonial-card {
+    @apply p-3;
+  }
+
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    .lightsite-next-image-card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .lightsite-editor-next
+    [data-lightsite-grid-cell]
+    .lightsite-next-image-card-copy {
+    min-height: 80px;
+    padding: 14px;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > p {
+    @apply m-0 px-0 py-0 text-base leading-[26px];
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > h1 {
+    @apply m-0 px-0 py-0 text-2xl leading-9 font-semibold tracking-normal;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > h2 {
+    @apply m-0 px-0 py-0 text-xl leading-8 font-semibold tracking-normal;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > h3 {
+    @apply m-0 px-0 py-0 text-base leading-[26px] font-semibold tracking-normal;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > ul,
+  .lightsite-editor-next [data-lightsite-grid-cell] > ol {
+    @apply my-0 py-0 pl-6 text-base leading-[26px];
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > ul {
+    @apply list-disc;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > ol {
+    @apply list-decimal;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > ul[data-lightsite-icon-list],
+  .lightsite-editor-next [data-lightsite-grid-cell] > ul[data-type="taskList"] {
+    @apply list-none pl-0;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > blockquote {
+    @apply m-0 border-l-4 py-1.5 pr-0 pl-4 text-base leading-[26px];
+    border-color: var(--lightsite-editor-border-strong);
+    color: var(--lightsite-editor-fg-soft);
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > pre {
+    @apply m-0 overflow-x-auto rounded-md border px-4 py-4 text-sm leading-6;
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border);
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-editor-next .tableWrapper {
+    @apply overflow-x-auto rounded-xl border;
+    background: var(--card);
+    border-color: var(--border);
+  }
+
+  .lightsite-editor-next .lightsite-next-table,
+  .lightsite-editor-next .tableWrapper > table {
+    @apply w-full border-separate border-spacing-0 text-sm leading-5;
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-editor-next .lightsite-next-table :where(th, td),
+  .lightsite-editor-next .tableWrapper > table :where(th, td) {
+    @apply min-w-28 border-0 border-r border-b px-3 py-2 text-left align-top;
+    border-color: var(--border);
+  }
+
+  .lightsite-editor-next .lightsite-next-table tr > :last-child,
+  .lightsite-editor-next .tableWrapper > table tr > :last-child {
+    border-right-width: 0;
+  }
+
+  .lightsite-editor-next .lightsite-next-table tr:last-child > :where(th, td),
+  .lightsite-editor-next .tableWrapper > table tr:last-child > :where(th, td) {
+    border-bottom-width: 0;
+  }
+
+  .lightsite-editor-next .lightsite-next-table th,
+  .lightsite-editor-next .tableWrapper > table th {
+    @apply font-semibold;
+    background: var(--lightsite-editor-surface-muted);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-editor-next .lightsite-next-table td,
+  .lightsite-editor-next .tableWrapper > table td {
+    background: var(--card);
+  }
+
+  .lightsite-editor-next .lightsite-next-table :where(th, td) > *,
+  .lightsite-editor-next .tableWrapper > table :where(th, td) > * {
+    @apply m-0;
+  }
+
+  .lightsite-editor-next .lightsite-next-table :where(th, td).selectedCell,
+  .lightsite-editor-next .tableWrapper > table :where(th, td).selectedCell {
+    background: var(--lightsite-editor-selection);
+  }
+
+  .lightsite-editor-next .column-resize-handle {
+    @apply pointer-events-none absolute top-0 bottom-0 w-1;
+    background: var(--ring);
+    right: -2px;
+  }
+
+  .lightsite-editor-next.resize-cursor,
+  .lightsite-editor-next .resize-cursor {
+    cursor: col-resize;
+  }
+
+  .lightsite-editor-next [data-lightsite-grid-cell] > .tableWrapper {
+    @apply m-0 w-full max-w-full;
+  }
+
+  @container (max-width: 520px) {
+    .lightsite-editor-next [data-lightsite-grid-row] {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .lightsite-next-icon-list-item {
+    cursor: text;
+  }
+
+  .lightsite-next-icon-list-inner {
+    @apply grid grid-cols-[24px_minmax(0,1fr)] items-start gap-2;
+  }
+
+  .lightsite-next-icon-bullet {
+    @apply mt-[3px] flex size-5 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent p-0 outline-none transition;
+  }
+
+  .lightsite-next-icon-bullet:hover,
+  .lightsite-next-icon-bullet:focus-visible,
+  .lightsite-next-icon-list-item.has-focus .lightsite-next-icon-bullet {
+    border-color: color-mix(in oklab, var(--lightsite-next-icon-color) 32%, transparent);
+    background: color-mix(in oklab, var(--lightsite-next-icon-color) 14%, transparent);
+    color: color-mix(in oklab, var(--lightsite-next-icon-color) 86%, white);
+  }
+
+  .lightsite-next-icon-bullet svg {
+    @apply size-3.5;
+  }
+
+  .lightsite-next-icon-list-content {
+    @apply min-w-0 text-base leading-[26px] outline-none;
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-next-icon-list-content > p {
+    @apply m-0;
+  }
+
+  .lightsite-next-icon-card-picker-anchor {
+    @apply relative mb-3 w-fit;
+  }
+
+  .lightsite-next-icon-card-button {
+    @apply flex size-8 items-center justify-center rounded-lg border border-transparent p-0 outline-none transition;
+    background: var(--lightsite-editor-surface-hover);
+    color: color-mix(in oklab, var(--lightsite-next-icon-color) 86%, white);
+  }
+
+  .lightsite-next-icon-card-button:hover,
+  .lightsite-next-icon-card-button:focus-visible,
+  .lightsite-next-icon-card-button[aria-expanded="true"] {
+    border-color: color-mix(in oklab, var(--lightsite-next-icon-color) 32%, transparent);
+    background: color-mix(in oklab, var(--lightsite-next-icon-color) 14%, var(--lightsite-editor-surface-hover));
+  }
+
+  .lightsite-next-icon-picker {
+    --lightsite-next-icon-picker-height: 278px;
+    @apply absolute left-0 top-7 z-50 flex h-auto w-[256px] items-stretch overflow-hidden rounded-lg border p-0 shadow-xl;
+    background: var(--popover);
+    border-color: var(--lightsite-editor-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-icon-color-rail {
+    @apply flex w-[38px] shrink-0 flex-col items-center gap-1.5 overflow-hidden py-3;
+    border-right: 1px solid var(--lightsite-editor-border);
+  }
+
+  .lightsite-next-icon-scroll {
+    @apply min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-3;
+    max-height: var(--lightsite-next-icon-picker-height);
+    scrollbar-width: thin;
+    scrollbar-color: var(--lightsite-editor-border-strong) transparent;
+  }
+
+  .lightsite-next-icon-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .lightsite-next-icon-scroll::-webkit-scrollbar-thumb {
+    background: var(--lightsite-editor-border-strong);
+    border-radius: 999px;
+  }
+
+  .lightsite-next-icon-picker-grid {
+    @apply grid gap-1;
+    grid-template-columns: repeat(7, 26px);
+  }
+
+  .lightsite-next-icon-picker-button {
+    @apply flex size-[26px] items-center justify-center rounded-md border border-transparent bg-transparent p-0 outline-none transition;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-icon-picker-button:hover,
+  .lightsite-next-icon-picker-button:focus-visible,
+  .lightsite-next-icon-picker-button-active {
+    background: var(--lightsite-editor-surface-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-icon-picker-button-active {
+    border-color: color-mix(in oklab, var(--ring) 34%, transparent);
+  }
+
+  .lightsite-next-icon-picker-button svg,
+  .lightsite-next-icon-bullet svg,
+  .lightsite-next-icon-card-button svg {
+    display: block;
+    flex: none;
+    overflow: visible;
+    shape-rendering: auto;
+  }
+
+  .lightsite-next-icon-picker-card {
+    @apply top-10;
+  }
+
+  .lightsite-next-icon-color-button {
+    @apply flex size-5 shrink-0 items-center justify-center rounded-full border border-transparent p-0 outline-none transition;
+    background: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-button:hover,
+  .lightsite-next-icon-color-button:focus-visible,
+  .lightsite-next-icon-color-button-active {
+    border-color: color-mix(in oklab, var(--foreground) 78%, transparent);
+    box-shadow:
+      0 0 0 2px var(--popover),
+      0 0 0 3px color-mix(in oklab, var(--lightsite-next-icon-color) 68%, white);
+  }
+
+  .lightsite-next-icon-color-neutral {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-neutral);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-indigo {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-indigo);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-blue {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-blue);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-sky {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-sky);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-cyan {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-cyan);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-teal {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-teal);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-emerald {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-emerald);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-amber {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-amber);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-rose {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-rose);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-icon-color-pink {
+    --lightsite-next-icon-color: var(--lightsite-editor-color-pink);
+    color: var(--lightsite-next-icon-color);
+  }
+
+  .lightsite-next-testimonial-card-shell {
+    container-type: inline-size;
+    cursor: default;
+  }
+
+  .lightsite-next-testimonial-card {
+    @apply grid overflow-hidden border;
+    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-rows: 20px 20px minmax(40px, auto);
+    column-gap: 12px;
+    align-items: center;
+    background: var(--card);
+    border-color: var(--lightsite-editor-border);
+    border-radius: 14px;
+    color: var(--card-foreground);
+    padding: 16px 20px 20px 16px;
+  }
+
+  .lightsite-next-testimonial-card[data-drag-active="true"] {
+    background: color-mix(in oklab, var(--ring) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--lightsite-editor-border));
+  }
+
+  .lightsite-next-testimonial-avatar {
+    @apply relative flex size-10 items-center justify-center overflow-hidden border p-0 outline-none transition;
+    align-self: start;
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border);
+    border-radius: 10px;
+    color: var(--lightsite-editor-fg-muted);
+    cursor: pointer;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .lightsite-next-testimonial-avatar:not([data-has-image="true"]) {
+    border-style: dashed;
+  }
+
+  .lightsite-next-testimonial-avatar:hover,
+  .lightsite-next-testimonial-avatar:focus-visible {
+    background: var(--lightsite-editor-surface-hover);
+    border-color: var(--lightsite-editor-border-strong);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-testimonial-avatar[data-has-image="true"] {
+    border-style: solid;
+    background: transparent;
+  }
+
+  .lightsite-next-testimonial-avatar-img {
+    @apply block size-full object-cover;
+  }
+
+  .lightsite-next-testimonial-content {
+    display: contents;
+    cursor: text;
+  }
+
+  .lightsite-next-testimonial-content > [data-node-view-content-react] {
+    display: contents;
+  }
+
+  .lightsite-next-testimonial-content [data-lightsite-testimonial-author-name] {
+    @apply m-0 min-w-0 truncate text-base leading-5 font-medium tracking-normal outline-none;
+    color: var(--lightsite-editor-fg-strong);
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 20px;
+  }
+
+  .lightsite-next-testimonial-content [data-lightsite-testimonial-author-role] {
+    @apply m-0 min-w-0 truncate text-sm leading-5 font-normal tracking-normal outline-none;
+    color: var(--tertiary-foreground);
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 20px;
+  }
+
+  .lightsite-next-testimonial-content [data-lightsite-testimonial-quote] {
+    @apply m-0 min-w-0 text-lg leading-6 font-medium tracking-normal outline-none;
+    color: var(--lightsite-editor-fg-strong);
+    grid-column: 1 / -1;
+    grid-row: 3;
+    min-height: 40px;
+    padding-top: 16px;
+  }
+
+  .lightsite-next-testimonial-content [data-lightsite-testimonial-quote]:not(.is-empty)::before {
+    content: "“";
+  }
+
+  .lightsite-next-testimonial-content [data-lightsite-testimonial-quote]:not(.is-empty)::after {
+    content: "”";
+  }
+
+  .lightsite-next-testimonial-card[data-upload-error="true"]
+    .lightsite-next-testimonial-avatar {
+    color: var(--lightsite-editor-danger);
+    border-color: color-mix(in oklab, var(--lightsite-editor-danger) 58%, transparent);
+  }
+
+  .lightsite-next-image-card-shell {
+    container-type: inline-size;
+    cursor: default;
+  }
+
+  .lightsite-next-page-title-shell {
+    cursor: default;
+  }
+
+  .lightsite-editor-next
+    .ProseMirror
+    > .react-renderer.node-pageTitleSection
+    > .lightsite-next-page-title-shell {
+    border-bottom: 1px solid var(--lightsite-editor-border);
+    padding-top: 52px;
+    padding-bottom: 36px;
+  }
+
+  .lightsite-next-page-title {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 24px;
+    color: var(--foreground);
+  }
+
+  .lightsite-next-page-title-shell[data-align="center"] .lightsite-next-page-title {
+    align-items: center;
+    text-align: center;
+  }
+
+  .lightsite-next-page-title-shell[data-align="left"] .lightsite-next-page-title {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .lightsite-next-page-title-logos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .lightsite-next-page-title-shell[data-align="center"] .lightsite-next-page-title-logos {
+    justify-content: center;
+  }
+
+  .lightsite-next-page-title-shell[data-align="left"] .lightsite-next-page-title-logos {
+    justify-content: flex-start;
+  }
+
+  .lightsite-next-page-title-logo-tile {
+    display: flex;
+    height: 52px;
+    width: 52px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 14px;
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  .lightsite-next-page-title-logo-img {
+    display: block;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+    padding: 8px;
+  }
+
+  .lightsite-next-page-title-logo-fallback {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .lightsite-next-page-title-content {
+    width: 100%;
+    cursor: text;
+  }
+
+  .lightsite-next-page-title-content > [data-node-view-content-react] {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .lightsite-next-page-title-shell[data-align="center"]
+    .lightsite-next-page-title-content
+    > [data-node-view-content-react] {
+    align-items: center;
+  }
+
+  .lightsite-next-page-title-shell[data-align="left"]
+    .lightsite-next-page-title-content
+    > [data-node-view-content-react] {
+    align-items: flex-start;
+  }
+
+  .lightsite-next-page-title-content [data-lightsite-page-title-heading] {
+    max-width: 100%;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1;
+    color: var(--foreground);
+  }
+
+  .lightsite-next-page-title-content [data-lightsite-page-title-subtitle] {
+    max-width: 100%;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+    color: var(--secondary-foreground);
+  }
+
+  .lightsite-editor-next
+    .ProseMirror
+    > .react-renderer.node-imageCard
+    > .lightsite-next-image-card-shell {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard > [data-lightsite-next-block],
+  .lightsite-editor-next
+    .ProseMirror
+    > .react-renderer.node-testimonialCard
+    > .lightsite-next-testimonial-card-shell,
+  .lightsite-editor-next
+    .ProseMirror
+    > .react-renderer.node-logoGrid
+    > .lightsite-next-logo-grid-shell,
+  .lightsite-editor-next .ProseMirror > .react-renderer.node-buttonBlock > [data-lightsite-next-block] {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .lightsite-next-logo-grid-shell {
+    container-type: inline-size;
+    cursor: default;
+  }
+
+  .lightsite-next-logo-grid {
+    display: block;
+    border-radius: 18px;
+    padding: 6px;
+  }
+
+  .lightsite-next-logo-grid > [data-node-view-content-react] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+
+  .lightsite-next-logo-grid-item {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 16px 12px 12px;
+  }
+
+  .lightsite-next-logo-grid-item[data-drag-active="true"] {
+    background: color-mix(in oklab, var(--ring) 10%, var(--background));
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--border));
+  }
+
+  .lightsite-next-logo-grid-logo-button {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 10px;
+    outline: none;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      box-shadow 120ms ease,
+      color 120ms ease;
+  }
+
+  .lightsite-next-logo-grid-item:not([data-has-logo="true"])
+    .lightsite-next-logo-grid-logo-button {
+    border: 1px dashed var(--border);
+    background: var(--secondary);
+    color: var(--muted-foreground);
+  }
+
+  .lightsite-next-logo-grid-item[data-has-logo="true"] .lightsite-next-logo-grid-logo-button {
+    border: 0;
+    background: transparent;
+  }
+
+  .lightsite-next-logo-grid-logo-button:hover,
+  .lightsite-next-logo-grid-logo-button:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 62%, transparent);
+  }
+
+  .lightsite-next-logo-grid-menu {
+    position: absolute;
+    top: 58px;
+    left: 50%;
+    z-index: 50;
+    display: grid;
+    width: 272px;
+    transform: translateX(-50%);
+    gap: 1px;
+    border: 1px solid var(--lightsite-editor-popover-border);
+    border-radius: var(--radius-lg);
+    background: var(--popover);
+    color: var(--popover-foreground);
+    padding: 4px;
+    text-align: left;
+    box-shadow:
+      0 18px 48px color-mix(in oklab, var(--foreground) 16%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--foreground) 3%, transparent) inset;
+  }
+
+  .lightsite-next-logo-grid-menu-item {
+    display: flex;
+    min-height: 34px;
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    padding: 7px 8px;
+    color: var(--lightsite-editor-fg);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    outline: none;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .lightsite-next-logo-grid-menu-item:hover,
+  .lightsite-next-logo-grid-menu-item:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-logo-grid-menu-item svg {
+    flex-shrink: 0;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-logo-grid-menu-separator {
+    height: 1px;
+    margin: 4px;
+    background: var(--lightsite-editor-popover-separator);
+  }
+
+  .lightsite-next-logo-grid-domain-form {
+    display: grid;
+    gap: 8px;
+    padding: 6px 4px 4px;
+  }
+
+  .lightsite-next-logo-grid-domain-label {
+    padding: 0 4px;
+    color: var(--lightsite-editor-fg-muted);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+  }
+
+  .lightsite-next-logo-grid-domain-control {
+    display: flex;
+    height: 36px;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--lightsite-editor-popover-border);
+    border-radius: var(--radius-md);
+    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover));
+    padding: 0 9px;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-logo-grid-domain-control:focus-within {
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--popover));
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent);
+  }
+
+  .lightsite-next-logo-grid-domain-input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: var(--popover-foreground);
+    font-size: 14px;
+    line-height: 20px;
+    outline: none;
+  }
+
+  .lightsite-next-logo-grid-domain-input::placeholder {
+    color: var(--lightsite-editor-popover-faint);
+  }
+
+  .lightsite-next-logo-grid-domain-input:disabled {
+    cursor: progress;
+    opacity: 0.72;
+  }
+
+  .lightsite-next-logo-grid-domain-error {
+    margin: -2px 4px 0;
+    color: var(--destructive);
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .lightsite-next-logo-grid-domain-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    padding-top: 2px;
+  }
+
+  .lightsite-next-logo-grid-domain-cancel,
+  .lightsite-next-logo-grid-domain-submit {
+    height: 32px;
+    border: 0;
+    border-radius: var(--radius-md);
+    padding: 0 10px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 18px;
+    outline: none;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease,
+      opacity 120ms ease;
+  }
+
+  .lightsite-next-logo-grid-domain-cancel {
+    background: transparent;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-logo-grid-domain-cancel:hover,
+  .lightsite-next-logo-grid-domain-cancel:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-logo-grid-domain-submit {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .lightsite-next-logo-grid-domain-submit:hover,
+  .lightsite-next-logo-grid-domain-submit:focus-visible {
+    opacity: 0.9;
+  }
+
+  .lightsite-next-logo-grid-domain-cancel:disabled,
+  .lightsite-next-logo-grid-domain-submit:disabled {
+    cursor: progress;
+    opacity: 0.62;
+  }
+
+  .lightsite-next-logo-grid-img {
+    display: block;
+    max-width: 40px;
+    max-height: 40px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .lightsite-next-logo-grid-title-content {
+    width: 100%;
+    min-width: 0;
+    cursor: text;
+  }
+
+  .lightsite-next-logo-grid-title-content > [data-node-view-content-react] {
+    display: block;
+  }
+
+  .lightsite-next-logo-grid-title-content [data-lightsite-logo-grid-title] {
+    margin: 0;
+    min-height: 24px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 24px;
+    color: var(--foreground);
+    outline: none;
+  }
+
+  .lightsite-next-logo-grid-title-content [data-lightsite-logo-grid-title].is-empty::before {
+    color: var(--muted-foreground);
+  }
+
+  .lightsite-next-logo-grid-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    width: 22px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--muted-foreground);
+    opacity: 0;
+    box-shadow: 0 0 0 1px var(--border);
+    transition:
+      background-color 120ms ease,
+      color 120ms ease,
+      opacity 120ms ease;
+  }
+
+  .lightsite-next-logo-grid-item:hover .lightsite-next-logo-grid-remove,
+  .lightsite-next-logo-grid-remove:focus-visible {
+    opacity: 1;
+  }
+
+  .lightsite-next-logo-grid-remove:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+  }
+
+  @container (max-width: 520px) {
+    .lightsite-next-logo-grid > [data-node-view-content-react] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container (max-width: 340px) {
+    .lightsite-next-logo-grid > [data-node-view-content-react] {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .lightsite-next-image-card {
+    @apply grid overflow-hidden border p-1.5;
+    grid-template-columns: minmax(180px, 41.5%) minmax(0, 1fr);
+    gap: 20px;
+    align-items: center;
+    background: var(--card);
+    border-color: var(--lightsite-editor-border);
+    border-radius: 14px;
+    color: var(--card-foreground);
+  }
+
+  .lightsite-next-image-card-media {
+    @apply relative flex w-full items-center justify-center overflow-hidden border;
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border);
+    border-radius: 10px;
+  }
+
+  .lightsite-next-image-card-media:not([data-has-image="true"]) {
+    aspect-ratio: 14 / 9;
+  }
+
+  .lightsite-next-image-card-media[data-has-image="true"] {
+    align-self: center;
+    background: transparent;
+    border: 0;
+    display: block;
+    line-height: 0;
+    min-height: 0;
+  }
+
+  .lightsite-next-image-card-media[data-has-image-ratio="true"] {
+    display: grid;
+  }
+
+  .lightsite-next-image-card-media[data-drag-active="true"] {
+    background: color-mix(in oklab, var(--ring) 14%, transparent);
+    border-color: color-mix(in oklab, var(--ring) 78%, transparent);
+  }
+
+  .lightsite-next-image-card-img {
+    @apply block h-auto w-full object-contain;
+    border-radius: 10px;
+    line-height: 0;
+  }
+
+  .lightsite-next-image-card-replace-button {
+    @apply block h-auto w-full border-0 bg-transparent p-0 text-left outline-none;
+    border-radius: 10px;
+    cursor: pointer;
+    line-height: 0;
+  }
+
+  .lightsite-next-image-card-media[data-has-image-ratio="true"]
+    .lightsite-next-image-card-replace-button {
+    @apply h-full;
+  }
+
+  .lightsite-next-image-card-media[data-has-image-ratio="true"]
+    .lightsite-next-image-card-img {
+    @apply h-full object-cover;
+  }
+
+  .lightsite-next-image-card-replace-button:hover,
+  .lightsite-next-image-card-replace-button:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 62%, transparent);
+  }
+
+  .lightsite-next-image-card-empty-button {
+    min-height: 100%;
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .lightsite-next-image-card-media[data-upload-error="true"]
+    .lightsite-next-image-empty-description {
+    color: var(--lightsite-editor-danger);
+  }
+
+  .lightsite-next-image-card-copy {
+    @apply flex min-w-0 flex-col items-start justify-center;
+    padding: 20px;
+  }
+
+  .lightsite-next-image-card-content {
+    @apply w-full;
+    cursor: text;
+  }
+
+  .lightsite-next-image-card-cta {
+    @apply mt-3 inline-flex h-[30px] w-fit items-center rounded-lg border px-2.5 text-sm font-medium whitespace-nowrap no-underline outline-none transition;
+    background: transparent;
+    border-color: var(--lightsite-editor-border-strong);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-image-card-cta:hover,
+  .lightsite-next-image-card-cta:focus-visible {
+    background: var(--lightsite-editor-surface-hover);
+    border-color: color-mix(in oklab, var(--foreground) 28%, var(--background));
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-button-block {
+    @apply inline-flex min-h-8 max-w-full items-center justify-center rounded-lg px-3 text-center text-sm font-medium no-underline outline-none transition;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    cursor: pointer;
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 16%, transparent);
+  }
+
+  .lightsite-next-button-block:hover {
+    background: color-mix(in oklab, var(--primary) 88%, var(--background));
+  }
+
+  .lightsite-next-button-block[data-link-empty="true"] {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--primary) 18%, transparent),
+      0 0 0 3px color-mix(in oklab, var(--ring) 10%, transparent);
+  }
+
+  .lightsite-next-button-block-full {
+    @apply flex min-h-9 w-full;
+  }
+
+  .lightsite-next-button-label {
+    @apply inline-block min-w-5 max-w-full outline-none;
+    cursor: text;
+  }
+
+  .lightsite-next-button-settings {
+    @apply fixed z-50 w-[320px] rounded-lg border p-3 shadow-xl;
+    background: var(--popover);
+    border-color: var(--lightsite-editor-popover-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-button-settings-label {
+    @apply mb-1.5 block text-xs font-medium leading-4;
+    color: color-mix(in oklab, var(--popover-foreground) 62%, var(--popover));
+  }
+
+  .lightsite-next-button-settings-field + .lightsite-next-button-settings-label {
+    @apply mt-3;
+  }
+
+  .lightsite-next-button-settings-error + .lightsite-next-button-settings-label {
+    @apply mt-3;
+  }
+
+  .lightsite-next-button-settings-field {
+    @apply flex h-9 items-center gap-2 rounded-md border px-2;
+    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover));
+    border-color: var(--lightsite-editor-popover-border);
+  }
+
+  .lightsite-next-button-settings-field-textarea {
+    @apply h-auto items-start py-2;
+  }
+
+  .lightsite-next-button-settings-field:focus-within {
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--popover));
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, var(--popover));
+  }
+
+  .lightsite-next-button-settings-field svg {
+    @apply size-4 shrink-0;
+    color: var(--lightsite-editor-popover-muted);
+  }
+
+  .lightsite-next-button-settings-field input {
+    @apply h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none;
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-button-settings-field textarea {
+    @apply min-h-16 min-w-0 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-5 outline-none;
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-button-settings-field input::placeholder,
+  .lightsite-next-button-settings-field textarea::placeholder {
+    color: var(--lightsite-editor-popover-faint);
+  }
+
+  .lightsite-next-button-settings-error {
+    @apply mt-1 text-xs leading-4;
+    color: var(--destructive);
+  }
+
+  .lightsite-next-button-settings-toggle {
+    @apply mt-3 flex w-full items-center gap-2 rounded-md border-0 bg-transparent px-2 py-2 text-left outline-none transition;
+    color: color-mix(in oklab, var(--popover-foreground) 78%, var(--popover));
+  }
+
+  .lightsite-next-button-settings-toggle:hover,
+  .lightsite-next-button-settings-toggle:focus-visible,
+  .lightsite-next-button-settings-toggle[aria-pressed="true"] {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-button-settings-toggle > svg {
+    @apply size-4 shrink-0;
+  }
+
+  .lightsite-next-button-settings-toggle-copy {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+
+  .lightsite-next-button-settings-toggle-copy span:first-child {
+    @apply text-sm font-medium leading-5;
+  }
+
+  .lightsite-next-button-settings-toggle-copy span:last-child {
+    @apply text-xs leading-4;
+    color: var(--lightsite-editor-popover-muted);
+  }
+
+  .lightsite-next-button-settings-switch {
+    @apply relative h-5 w-9 shrink-0 rounded-full transition;
+    background: color-mix(in oklab, var(--popover-foreground) 18%, var(--popover));
+  }
+
+  .lightsite-next-button-settings-switch::after {
+    content: "";
+    @apply absolute top-0.5 left-0.5 size-4 rounded-full transition;
+    background: var(--popover);
+  }
+
+  .lightsite-next-button-settings-switch-on {
+    background: var(--primary);
+  }
+
+  .lightsite-next-button-settings-switch-on::after {
+    transform: translateX(16px);
+  }
+
+  .lightsite-next-button-settings-actions {
+    @apply mt-3 flex justify-end gap-1;
+  }
+
+  .lightsite-next-button-settings-action {
+    @apply h-8 rounded-md border-0 bg-transparent px-2.5 text-sm font-medium outline-none transition;
+    color: color-mix(in oklab, var(--popover-foreground) 62%, var(--popover));
+  }
+
+  .lightsite-next-button-settings-action:hover,
+  .lightsite-next-button-settings-action:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-button-settings-action-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .lightsite-next-button-settings-action-primary:hover,
+  .lightsite-next-button-settings-action-primary:focus-visible {
+    background: color-mix(in oklab, var(--primary) 88%, var(--background));
+    color: var(--primary-foreground);
+  }
+
+  @container (max-width: 520px) {
+    .lightsite-next-image-card {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+
+    .lightsite-next-image-card-copy {
+      min-height: 80px;
+      padding: 16px;
+    }
+  }
+
+  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li {
+    @apply flex items-start gap-2;
+  }
+
+  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li > label {
+    @apply flex h-[26px] shrink-0 items-center;
+  }
+
+  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li > label input {
+    @apply size-4 cursor-pointer rounded border;
+    accent-color: var(--ring);
+  }
+
+  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li > div {
+    @apply min-w-0 flex-1;
+  }
+
+  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div {
+    color: var(--lightsite-editor-fg-muted);
+    text-decoration: line-through;
+  }
+
+  .lightsite-editor-next .ProseMirror a {
+    @apply underline underline-offset-2;
+    color: var(--lightsite-editor-link);
+  }
+
+  .lightsite-editor-next .ProseMirror a.lightsite-next-image-card-cta {
+    color: var(--lightsite-editor-fg-strong);
+    text-decoration-line: none;
+  }
+
+  .lightsite-editor-next .ProseMirror code {
+    @apply inline rounded-md border px-1.5 py-0.5 font-mono text-[0.875em] font-medium tracking-normal;
+    background: color-mix(in oklab, var(--foreground) 8%, transparent);
+    border-color: var(--lightsite-editor-border);
+    color: var(--lightsite-editor-fg-strong);
+    line-height: calc(1em + 4px);
+  }
+
+  .lightsite-editor-next .ProseMirror > blockquote {
+    @apply border-l-4 py-1.5 pr-0 pl-4 text-base leading-[26px];
+    border-color: var(--lightsite-editor-border-strong);
+    color: var(--lightsite-editor-fg-soft);
+  }
+
+  .lightsite-editor-next .ProseMirror > blockquote p {
+    @apply m-0;
+  }
+
+  .lightsite-editor-next .ProseMirror > pre {
+    @apply overflow-x-auto rounded-md border px-4 py-4 text-sm leading-6;
+    background: var(--lightsite-editor-surface-muted);
+    border-color: var(--lightsite-editor-border);
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-editor-next .ProseMirror > pre code {
+    @apply block rounded-none border-0 bg-transparent p-0 text-[inherit] font-normal;
+    color: inherit;
+    line-height: inherit;
+  }
+
+  .lightsite-editor-next .ProseMirror > hr {
+    @apply h-6 border-0 p-0;
+    background: linear-gradient(
+      to bottom,
+      transparent calc(50% - 0.5px),
+      var(--lightsite-editor-border) calc(50% - 0.5px),
+      var(--lightsite-editor-border) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+    margin-top: 36px;
+    margin-bottom: 0;
+  }
+
+  .lightsite-editor-next .ProseMirror > hr.ProseMirror-selectednode,
+  .lightsite-editor-next .ProseMirror > hr.ProseMirror-selectednoderange {
+    background:
+      linear-gradient(
+        to bottom,
+        transparent calc(50% - 0.5px),
+        var(--lightsite-editor-border) calc(50% - 0.5px),
+        var(--lightsite-editor-border) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      ),
+      var(--lightsite-editor-selection);
+  }
+
+  .lightsite-editor-next .is-empty::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-left h-0;
+    color: var(--lightsite-editor-fg-faint);
+  }
+
+  .lightsite-editor-next[data-editor-next-mode="preview"] .is-empty::before,
+  .lightsite-editor-next[data-editor-next-mode="preview"]
+    .lightsite-next-card-placeholder-empty::before,
+  .lightsite-editor-next[data-editor-next-mode="preview"]
+    [data-lightsite-logo-grid-title].is-empty::before {
+    content: none;
+    display: none;
+  }
+
+  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror {
+    cursor: default;
+    user-select: text;
+  }
+
+  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror-selectednode,
+  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror-selectednoderange,
+  .lightsite-editor-next[data-editor-next-mode="preview"] .has-focus {
+    background: transparent;
+  }
+
+  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror > [data-lightsite-image-empty],
+  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-image-card-media:not([data-has-image="true"]),
+  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-calendar-embed-empty,
+  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-video-embed-empty {
+    display: none;
+  }
+
+  .lightsite-editor-next[data-editor-next-mode="preview"] [data-resize-handle],
+  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-image-card-replace-button:hover,
+  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-image-card-replace-button:focus-visible {
+    box-shadow: none;
+  }
+
+  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-button-block,
+  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-button-label {
+    cursor: pointer;
+  }
+
+  .lightsite-editor-next .lightsite-next-card-placeholder-empty::before {
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-editor-next
+    .lightsite-next-logo-grid-title-content
+    [data-lightsite-logo-grid-title].is-empty::before {
+    display: block;
+    float: none;
+    height: 0;
+    text-align: center;
+    color: var(--muted-foreground);
+  }
+
+  .lightsite-editor-next .ProseMirror-selectednode,
+  .lightsite-editor-next .ProseMirror-selectednoderange {
+    @apply rounded-lg outline-none;
+    background: var(--lightsite-editor-selection);
+  }
+
+  .lightsite-editor-next .ProseMirror-noderangeselection::selection {
+    background: transparent;
+  }
+
+  .lightsite-editor-next .has-focus:not(.ProseMirror-selectednode):not(.ProseMirror-selectednoderange) {
+    background: transparent;
+  }
+
+  .lightsite-editor-next .ProseMirror-dropcursor {
+    border-color: var(--lightsite-editor-drop);
+    border-width: 1px;
+  }
+
+  .lightsite-editor-next .lightsite-next-marquee-active {
+    @apply cursor-default select-none;
+  }
+
+  .lightsite-next-marquee-box {
+    @apply pointer-events-none fixed z-40 rounded-sm border;
+    background: rgba(199, 210, 254, 0.22);
+    border-color: rgba(67, 56, 202, 0.95);
+    box-shadow: 0 0 0 1px rgba(199, 210, 254, 0.12);
+  }
+
+  .lightsite-next-hero-content > h1 {
+    @apply m-0 text-[38px] leading-[42px] font-medium tracking-normal;
+  }
+
+  .lightsite-next-hero-content > p {
+    @apply mt-3 text-base leading-6 text-muted-foreground;
+  }
+
+  .lightsite-next-card-content :where(h1, h2) {
+    @apply m-0 text-base leading-6 font-medium tracking-normal;
+  }
+
+  .lightsite-next-card-content :where(h3),
+  .lightsite-next-card-content [data-lightsite-icon-card-title],
+  .lightsite-next-card-content [data-lightsite-image-card-title] {
+    @apply m-0 text-base leading-6 font-semibold tracking-normal;
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-card-content :where(p),
+  .lightsite-next-card-content [data-lightsite-icon-card-body] {
+    @apply m-0 text-sm leading-5;
+    color: var(--lightsite-editor-fg-soft);
+  }
+
+  .lightsite-next-card-content [data-lightsite-image-card-body] {
+    @apply m-0 text-sm leading-6 tracking-normal;
+    color: var(--lightsite-editor-fg-soft);
+  }
+
+  .lightsite-editor-next .lightsite-next-image-card-cta {
+    text-decoration-line: none;
+  }
+
+  .lightsite-next-variable-wrapper {
+    @apply relative inline-flex align-baseline;
+  }
+
+  .lightsite-next-variable-token {
+    @apply inline-flex h-[1.45em] max-w-[280px] items-center gap-1 rounded-md border px-1.5 align-baseline text-[0.92em] font-medium outline-none transition;
+    background: var(--variable-background);
+    border-color: color-mix(in oklab, var(--variable-foreground) 18%, transparent);
+    color: var(--variable-foreground);
+    font: inherit;
+    line-height: inherit;
+  }
+
+  .lightsite-next-variable-token:hover,
+  .lightsite-next-variable-token:focus-visible {
+    background: color-mix(in oklab, var(--variable-background) 78%, var(--variable-foreground));
+  }
+
+  .lightsite-next-variable-token[data-missing="true"] {
+    color: color-mix(in oklab, var(--variable-foreground) 72%, var(--background));
+  }
+
+  .lightsite-next-variable-token svg {
+    @apply size-3.5 shrink-0;
+  }
+
+  .lightsite-next-variable-token span {
+    @apply truncate;
+  }
+
+  .lightsite-next-variable-popover {
+    @apply absolute top-[calc(100%+6px)] left-0 z-50 grid w-[320px] gap-3 rounded-lg border p-3 text-sm shadow-xl;
+    background: var(--popover);
+    border-color: var(--lightsite-editor-popover-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-variable-popover-header {
+    @apply flex min-w-0 items-center justify-between gap-2;
+  }
+
+  .lightsite-next-variable-popover-title {
+    @apply inline-flex min-w-0 items-center gap-1.5 text-sm font-semibold leading-5;
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-variable-popover-title svg {
+    @apply size-4 shrink-0;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-variable-popover-delete {
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-xs font-medium outline-none transition;
+    color: var(--destructive);
+  }
+
+  .lightsite-next-variable-popover-delete:hover,
+  .lightsite-next-variable-popover-delete:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+  }
+
+  .lightsite-next-variable-popover-delete svg {
+    @apply size-3.5;
+  }
+
+  .lightsite-next-variable-field {
+    @apply grid gap-1.5 text-xs font-medium;
+    color: color-mix(in oklab, var(--popover-foreground) 62%, var(--popover));
+  }
+
+  .lightsite-next-variable-control[data-slot] {
+    border-radius: var(--radius-md) !important;
+    border-color: var(--lightsite-editor-popover-border) !important;
+    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover)) !important;
+    color: var(--popover-foreground) !important;
+    box-shadow: none !important;
+    font-size: 0.875rem !important;
+  }
+
+  .lightsite-next-variable-control[data-slot="input"] {
+    height: 36px !important;
+    padding: 0 8px !important;
+  }
+
+  .lightsite-next-variable-control[data-slot="textarea"] {
+    padding: 8px !important;
+  }
+
+  .lightsite-next-variable-control[data-slot]::placeholder {
+    color: var(--lightsite-editor-popover-faint);
+  }
+
+  .lightsite-next-variable-control[data-slot]:focus,
+  .lightsite-next-variable-control[data-slot]:focus-visible {
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--popover)) !important;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, var(--popover)) !important;
+  }
+
+  .lightsite-next-variable-popover-actions {
+    @apply flex justify-end gap-1.5;
+  }
+
+  .lightsite-next-variable-popover-note {
+    @apply text-sm;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-variable-create {
+    @apply fixed z-50 w-[416px] rounded-lg border p-3 text-sm shadow-xl;
+    background: var(--popover);
+    border-color: var(--lightsite-editor-popover-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-variable-cancel[data-slot="button"] {
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-variable-cancel[data-slot="button"]:hover,
+  .lightsite-next-variable-cancel[data-slot="button"]:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-variable-create-header {
+    @apply flex items-center gap-1.5 text-sm font-medium;
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-variable-create-header svg {
+    @apply size-4;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-variable-create-description {
+    @apply -mt-1 text-sm leading-5;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-variable-create-error {
+    @apply text-xs leading-4;
+    color: var(--destructive);
+  }
+
+  .lightsite-next-drag-handle {
+    @apply z-50 flex h-8 w-12 -translate-x-0.5 cursor-grab items-center justify-start rounded-md bg-transparent active:cursor-grabbing;
+    color: var(--lightsite-editor-fg-faint);
+  }
+
+  .lightsite-next-side-button {
+    @apply flex size-6 items-center justify-center rounded-md border-0 bg-transparent p-0 opacity-70 transition-opacity;
+    color: inherit;
+  }
+
+  .lightsite-next-side-button:hover,
+  .lightsite-next-side-button:focus-visible {
+    background: var(--lightsite-editor-surface-hover);
+    color: var(--lightsite-editor-fg);
+    opacity: 1;
+  }
+
+  .lightsite-next-side-button svg {
+    @apply size-3.5;
+  }
+
+  .lightsite-next-block-menu {
+    @apply fixed z-50 max-h-[min(480px,calc(100vh-24px))] w-[278px] overflow-y-auto rounded-lg border p-1 shadow-xl;
+    background: var(--popover);
+    border-color: var(--lightsite-editor-popover-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-block-menu-label {
+    @apply px-2 py-1.5 text-xs font-medium leading-4;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-block-menu-item {
+    @apply flex min-h-8 w-full items-center gap-1.5 rounded-md border-0 bg-transparent px-2 py-1.5 text-left outline-none;
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-next-block-menu-item:hover,
+  .lightsite-next-block-menu-item:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-block-menu-item[data-active="true"] {
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-block-menu-item svg {
+    @apply size-4 shrink-0;
+  }
+
+  .lightsite-next-block-menu-item-copy {
+    @apply flex min-w-0 flex-1 items-center;
+  }
+
+  .lightsite-next-block-menu-item-label {
+    @apply truncate text-sm font-medium leading-5;
+  }
+
+  .lightsite-next-block-menu-item-check {
+    color: var(--ring);
+  }
+
+  .lightsite-next-block-menu-switch {
+    @apply relative h-5 w-9 shrink-0 rounded-full transition;
+    background: var(--lightsite-editor-popover-border);
+  }
+
+  .lightsite-next-block-menu-switch::after {
+    content: "";
+    @apply absolute top-0.5 left-0.5 size-4 rounded-full transition;
+    background: var(--popover);
+    box-shadow: 0 0 0 1px var(--lightsite-editor-popover-border);
+  }
+
+  .lightsite-next-block-menu-switch-on {
+    background: var(--primary);
+  }
+
+  .lightsite-next-block-menu-switch-on::after {
+    transform: translateX(16px);
+  }
+
+  .lightsite-next-block-menu-item-danger {
+    color: var(--destructive);
+  }
+
+  .lightsite-next-block-menu-item-danger:hover,
+  .lightsite-next-block-menu-item-danger:focus-visible {
+    color: var(--destructive);
+  }
+
+  .lightsite-next-block-menu-separator {
+    @apply my-1 h-px;
+    background: var(--lightsite-editor-popover-separator);
+  }
+
+  .lightsite-next-block-menu-url-form {
+    @apply px-2 py-2;
+  }
+
+  .lightsite-next-block-menu-url-input {
+    @apply h-8 w-full rounded-md border bg-transparent px-2 text-sm outline-none;
+    border-color: var(--lightsite-editor-popover-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-block-menu-url-input::placeholder {
+    color: var(--lightsite-editor-fg-faint);
+  }
+
+  .lightsite-next-block-menu-url-input:focus-visible {
+    border-color: color-mix(in oklab, var(--ring) 70%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 20%, transparent);
+  }
+
+  .lightsite-next-block-menu-url-error {
+    @apply mt-1 text-xs leading-4;
+    color: var(--destructive);
+  }
+
+  .lightsite-next-block-menu-url-actions {
+    @apply mt-2 flex items-center justify-end gap-1;
+  }
+
+  .lightsite-next-block-menu-url-button {
+    @apply h-7 rounded-md border-0 bg-transparent px-2 text-xs font-medium outline-none;
+    color: var(--lightsite-editor-fg-soft);
+  }
+
+  .lightsite-next-block-menu-url-button:hover,
+  .lightsite-next-block-menu-url-button:focus-visible {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-bubble-menu-shell {
+    @apply relative;
+  }
+
+  .lightsite-next-bubble-menu {
+    @apply flex items-center gap-0.5 rounded-lg bg-popover p-1 text-popover-foreground shadow-xl ring-1 ring-foreground/10;
+  }
+
+  .lightsite-next-bubble-menu-separator {
+    @apply mx-0.5 h-5 w-px;
+    background: var(--lightsite-editor-popover-separator);
+  }
+
+  .lightsite-next-color-trigger-glyph {
+    @apply relative flex size-5 items-center justify-center rounded-full text-sm font-medium leading-none;
+    color: var(--lightsite-next-current-text-color);
+    background: var(--lightsite-next-current-highlight-color);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 80%, transparent);
+  }
+
+  .lightsite-next-bubble-panel {
+    @apply absolute top-[calc(100%+6px)] z-50 max-h-[min(420px,calc(100vh-24px))] overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-xl ring-1 ring-foreground/10;
+  }
+
+  .lightsite-next-bubble-panel-type,
+  .lightsite-next-bubble-panel-more {
+    @apply left-0 w-[278px];
+  }
+
+  .lightsite-next-bubble-panel-row {
+    @apply flex min-h-8 w-full items-center gap-1.5 rounded-md border-0 bg-transparent px-2 py-1.5 text-left text-popover-foreground/80 outline-none transition-colors;
+  }
+
+  .lightsite-next-bubble-panel-row:hover,
+  .lightsite-next-bubble-panel-row:focus-visible,
+  .lightsite-next-bubble-panel-row[data-active="true"] {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  .lightsite-next-bubble-panel-row:disabled {
+    @apply cursor-default opacity-45;
+  }
+
+  .lightsite-next-bubble-panel-row-icon {
+    @apply size-4 shrink-0;
+  }
+
+  .lightsite-next-bubble-panel-row-copy {
+    @apply flex min-w-0 flex-1 items-center;
+  }
+
+  .lightsite-next-bubble-panel-row-label {
+    @apply truncate text-sm font-medium leading-5;
+  }
+
+  .lightsite-next-bubble-panel-row-check {
+    @apply size-4 shrink-0;
+    color: var(--ring);
+  }
+
+  .lightsite-next-color-panel {
+    @apply right-0 w-[196px] p-3;
+  }
+
+  .lightsite-next-color-section + .lightsite-next-color-section {
+    @apply mt-4;
+  }
+
+  .lightsite-next-color-section-label {
+    @apply mb-2 text-xs font-medium leading-4 text-muted-foreground;
+  }
+
+  .lightsite-next-color-grid {
+    @apply grid gap-2;
+    grid-template-columns: repeat(5, 1.75rem);
+  }
+
+  .lightsite-next-text-color-button,
+  .lightsite-next-highlight-color-button {
+    @apply flex size-7 items-center justify-center rounded-full border-0 bg-transparent p-0 text-sm font-medium outline-none transition;
+  }
+
+  .lightsite-next-text-color-button {
+    color: var(--lightsite-next-color-value);
+    box-shadow: inset 0 0 0 1.5px var(--lightsite-next-color-ring);
+  }
+
+  .lightsite-next-highlight-color-button {
+    background: var(--lightsite-next-highlight-swatch);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 12%, transparent);
+  }
+
+  .lightsite-next-highlight-color-button[data-empty="true"] {
+    @apply relative overflow-hidden;
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--popover-foreground) 54%, transparent);
+  }
+
+  .lightsite-next-highlight-color-button[data-empty="true"]::after {
+    content: "";
+    @apply absolute left-1/2 top-1/2 h-px w-5 -translate-x-1/2 -translate-y-1/2 rotate-[-35deg] rounded-full;
+    background: var(--border);
+  }
+
+  .lightsite-next-text-color-button:hover,
+  .lightsite-next-text-color-button:focus-visible,
+  .lightsite-next-text-color-button[data-active="true"],
+  .lightsite-next-highlight-color-button:hover,
+  .lightsite-next-highlight-color-button:focus-visible,
+  .lightsite-next-highlight-color-button[data-active="true"] {
+    box-shadow:
+      0 0 0 2px var(--popover),
+      0 0 0 4px color-mix(in oklab, var(--ring) 70%, transparent);
+  }
+
+  .lightsite-next-link-panel {
+    @apply left-1/2 w-[300px] -translate-x-1/2;
+  }
+
+  .lightsite-next-link-panel-label {
+    @apply mb-1.5 block px-1 text-xs font-medium text-muted-foreground;
+  }
+
+  .lightsite-next-link-panel-field {
+    @apply h-10 rounded-lg border-border bg-muted/50;
+  }
+
+  .lightsite-next-link-editor-icon {
+    @apply size-4 shrink-0 text-muted-foreground;
+  }
+
+  .lightsite-next-link-panel-actions {
+    @apply mt-2 flex items-center justify-end gap-1;
+  }
+
+  .lightsite-next-suggestion-menu {
+    @apply flex max-h-72 w-[300px] flex-col gap-0.5 overflow-auto rounded-lg border p-1 shadow-xl;
+    background: var(--popover);
+    border-color: var(--lightsite-editor-popover-border);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-next-suggestion-category {
+    @apply px-2 py-1.5 text-xs font-medium leading-4;
+    color: var(--lightsite-editor-fg-muted);
+  }
+
+  .lightsite-next-suggestion-category[data-separated="true"] {
+    @apply mt-1 pt-2;
+    border-top: 1px solid var(--lightsite-editor-popover-border);
+  }
+
+  .lightsite-next-suggestion-item {
+    @apply flex min-h-8 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left outline-none;
+    color: var(--lightsite-editor-fg);
+  }
+
+  .lightsite-next-suggestion-leading {
+    @apply flex size-5 shrink-0 items-center justify-center text-base leading-none;
+  }
+
+  .lightsite-next-suggestion-icon {
+    @apply flex size-4 shrink-0 items-center justify-center;
+  }
+
+  .lightsite-next-suggestion-icon svg {
+    @apply size-4;
+  }
+
+  .lightsite-next-suggestion-copy {
+    @apply flex min-w-0 flex-1 items-center;
+  }
+
+  .lightsite-next-suggestion-item:hover,
+  .lightsite-next-suggestion-item:focus-visible,
+  .lightsite-next-suggestion-item[data-active="true"] {
+    background: var(--lightsite-editor-popover-hover);
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-suggestion-item[data-tone="primary"] {
+    color: var(--lightsite-editor-fg-strong);
+  }
+
+  .lightsite-next-suggestion-item[data-tone="primary"] .lightsite-next-suggestion-icon {
+    @apply rounded-md;
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .lightsite-next-suggestion-item[data-tone="primary"] .lightsite-next-suggestion-icon svg {
+    @apply size-3.5;
+  }
+
+  .lightsite-next-suggestion-item[data-tone="variable"] .lightsite-next-suggestion-icon {
+    color: var(--variable-foreground);
+  }
+
+  .dark .lightsite-next-suggestion-item[data-tone="variable"] .lightsite-next-suggestion-icon {
+    color: var(--variable-background);
+  }
+
+  .lightsite-next-suggestion-item[data-tone="variable"] .lightsite-next-suggestion-icon svg {
+    @apply size-4;
+  }
+
+  .lightsite-next-suggestion-label {
+    @apply text-sm font-medium leading-5;
+  }
+
+  .lightsite-next-suggestion-empty {
+    @apply text-xs leading-4;
+    color: var(--lightsite-editor-fg-muted);
   }
 }
