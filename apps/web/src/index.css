@@ -1,23 +1,77 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter-tight";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: "SF Pro Display", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-site: "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-site: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --color-neutral-950: var(--neutral-950);
+    --color-neutral-900: var(--neutral-900);
+    --color-neutral-800: var(--neutral-800);
+    --color-neutral-700: var(--neutral-700);
+    --color-neutral-600: var(--neutral-600);
+    --color-neutral-500: var(--neutral-500);
+    --color-neutral-400: var(--neutral-400);
+    --color-neutral-300: var(--neutral-300);
+    --color-neutral-200: var(--neutral-200);
+    --color-neutral-100: var(--neutral-100);
+    --color-neutral-50: var(--neutral-50);
+    --color-neutral-alpha-a900: var(--neutral-alpha-a900);
+    --color-neutral-alpha-a800: var(--neutral-alpha-a800);
+    --color-neutral-alpha-a700: var(--neutral-alpha-a700);
+    --color-neutral-alpha-a600: var(--neutral-alpha-a600);
+    --color-neutral-alpha-a500: var(--neutral-alpha-a500);
+    --color-neutral-alpha-a400: var(--neutral-alpha-a400);
+    --color-neutral-alpha-a300: var(--neutral-alpha-a300);
+    --color-neutral-alpha-a200: var(--neutral-alpha-a200);
+    --color-neutral-alpha-a100: var(--neutral-alpha-a100);
     --color-page-background: var(--page-background);
     --color-tertiary-foreground: var(--tertiary-foreground);
+    --color-muted-faint: var(--muted-faint);
+    --color-warning: var(--warning);
+    --color-success: var(--success);
+    --color-selection-background: var(--selection-background);
+    --color-selection-foreground: var(--selection-foreground);
+    --color-selection-border: var(--selection-border);
     --color-editing-background: var(--editing-background);
     --color-editing-foreground: var(--editing-foreground);
     --color-editing-foreground-hover: var(--editing-foreground-hover);
     --color-variable-background: var(--variable-background);
+    --color-variable-background-hover: var(--variable-background-hover);
     --color-variable-background-secondary: var(--variable-background-secondary);
     --color-variable-foreground: var(--variable-foreground);
+    --color-variable-border: var(--variable-border);
+    --color-purple-background: var(--purple-background);
+    --color-purple-foreground: var(--purple-foreground);
+    --color-purple-border: var(--purple-border);
+    --color-blue-background: var(--blue-background);
+    --color-blue-foreground: var(--blue-foreground);
+    --color-blue-border: var(--blue-border);
+    --color-cyan-background: var(--cyan-background);
+    --color-cyan-foreground: var(--cyan-foreground);
+    --color-cyan-border: var(--cyan-border);
+    --color-teal-background: var(--teal-background);
+    --color-teal-foreground: var(--teal-foreground);
+    --color-teal-border: var(--teal-border);
+    --color-green-background: var(--green-background);
+    --color-green-foreground: var(--green-foreground);
+    --color-green-border: var(--green-border);
+    --color-yellow-background: var(--yellow-background);
+    --color-yellow-foreground: var(--yellow-foreground);
+    --color-yellow-border: var(--yellow-border);
+    --color-orange-background: var(--orange-background);
+    --color-orange-foreground: var(--orange-foreground);
+    --color-orange-border: var(--orange-border);
+    --color-red-background: var(--red-background);
+    --color-red-foreground: var(--red-foreground);
+    --color-red-border: var(--red-border);
+    --color-pink-background: var(--pink-background);
+    --color-pink-foreground: var(--pink-foreground);
+    --color-pink-border: var(--pink-border);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -34,12 +88,14 @@
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border-subtle: var(--border-subtle);
+    --color-border-strong: var(--border-strong);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
     --color-muted: var(--muted);
+    --color-table-header-background: var(--table-header-background);
     --color-secondary-foreground: var(--secondary-foreground);
     --color-secondary: var(--secondary);
     --color-primary-foreground: var(--primary-foreground);
@@ -60,123 +116,32 @@
     --radius-4xl: 26px;
 }
 
-:root,
-.light {
-    --background: var(--color-white);
-    --foreground: var(--color-neutral-950);
-    --card: var(--color-white);
-    --card-foreground: var(--color-neutral-950);
-    --popover: var(--color-white);
-    --popover-foreground: var(--color-neutral-950);
-    --primary: var(--color-neutral-900);
-    --primary-foreground: var(--color-neutral-50);
-    --secondary: var(--color-neutral-100);
-    --secondary-foreground: var(--color-neutral-950);
-    --muted: var(--color-neutral-100);
-    --muted-foreground: var(--color-neutral-500);
-    --accent: var(--color-neutral-100);
-    --accent-foreground: var(--color-neutral-900);
-    --destructive: var(--color-red-600);
-    --border: var(--color-neutral-200);
-    --border-subtle: var(--color-neutral-100);
-    --input: var(--color-neutral-200);
-    --ring: var(--color-neutral-500);
-    --chart-1: #8da4ef;
-    --chart-2: #3e63dd;
-    --chart-3: #3358d4;
-    --chart-4: #3a5bc7;
-    --chart-5: #1f2d5c;
-    --radius: 10px;
-    --radius-none: 0;
-    --radius-xs: 2px;
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 10px;
-    --radius-xl: 14px;
-    --radius-2xl: 18px;
-    --radius-3xl: 22px;
-    --radius-4xl: 26px;
-    --radius-full: 9999px;
-    --border-width: 1px;
-    --page-background: var(--color-neutral-50);
-    --tertiary-foreground: var(--color-neutral-600);
-    --editing-background: #f7f9ff;
-    --editing-foreground: var(--color-neutral-300);
-    --editing-foreground-hover: var(--color-neutral-500);
-    --variable-background-secondary: #f9feff;
-    --variable-background: #e1f6fd;
-    --variable-foreground: #00749e;
-    --lightsite-editor-color-neutral: #737373;
-    --lightsite-editor-color-indigo: #4f46e5;
-    --lightsite-editor-color-blue: #2563eb;
-    --lightsite-editor-color-sky: #0284c7;
-    --lightsite-editor-color-cyan: #0891b2;
-    --lightsite-editor-color-teal: #0f766e;
-    --lightsite-editor-color-emerald: #059669;
-    --lightsite-editor-color-amber: #b45309;
-    --lightsite-editor-color-rose: #e11d48;
-    --lightsite-editor-color-pink: #db2777;
-    --sidebar: var(--color-neutral-50);
-    --sidebar-foreground: var(--color-neutral-950);
-    --sidebar-primary: var(--color-neutral-900);
-    --sidebar-primary-foreground: var(--color-neutral-50);
-    --sidebar-accent: var(--color-neutral-100);
-    --sidebar-accent-foreground: var(--color-neutral-900);
-    --sidebar-border: var(--color-neutral-200);
-    --sidebar-ring: var(--color-neutral-500);
+.collaboration-carets__caret {
+  position: relative;
+  margin-right: -1px;
+  margin-left: -1px;
+  border-right: 1px solid;
+  border-left: 1px solid;
+  pointer-events: none;
+  word-break: normal;
 }
 
-.dark {
-    --background: #191919;
-    --foreground: #f5f5f5;
-    --card: #252525;
-    --card-foreground: #f5f5f5;
-    --popover: #252525;
-    --popover-foreground: #f5f5f5;
-    --primary: #f5f5f5;
-    --primary-foreground: #191919;
-    --secondary: #252525;
-    --secondary-foreground: #f5f5f5;
-    --muted: #252525;
-    --muted-foreground: #999999;
-    --accent: #2d2d2d;
-    --accent-foreground: #ffffff;
-    --destructive: #fca5a5;
-    --border: #333333;
-    --border-subtle: #222222;
-    --input: #252525;
-    --ring: #a5b4fc;
-    --chart-1: #8da4ef;
-    --chart-2: #3e63dd;
-    --chart-3: #3358d4;
-    --chart-4: #3a5bc7;
-    --chart-5: #1f2d5c;
-    --page-background: #191919;
-    --tertiary-foreground: #999999;
-    --editing-background: color-mix(in oklab, var(--color-neutral-50) 8%, transparent);
-    --editing-foreground: var(--color-neutral-700);
-    --editing-foreground-hover: var(--color-neutral-500);
-    --variable-background-secondary: #1d3e56;
-    --variable-background: #00749e;
-    --variable-foreground: #e1f6fd;
-    --lightsite-editor-color-neutral: #999999;
-    --lightsite-editor-color-indigo: #a5b4fc;
-    --lightsite-editor-color-blue: #60a5fa;
-    --lightsite-editor-color-sky: #7dd3fc;
-    --lightsite-editor-color-cyan: #22d3ee;
-    --lightsite-editor-color-teal: #2dd4bf;
-    --lightsite-editor-color-emerald: #86efac;
-    --lightsite-editor-color-amber: #fcd34d;
-    --lightsite-editor-color-rose: #fda4af;
-    --lightsite-editor-color-pink: #f472b6;
-    --sidebar: #252525;
-    --sidebar-foreground: #f5f5f5;
-    --sidebar-primary: #f5f5f5;
-    --sidebar-primary-foreground: #191919;
-    --sidebar-accent: #2d2d2d;
-    --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #333333;
-    --sidebar-ring: #a5b4fc;
+.collaboration-carets__label {
+  position: absolute;
+  top: -1.45rem;
+  left: -1px;
+  border-radius: 0.25rem 0.25rem 0.25rem 0;
+  padding: 0.125rem 0.375rem;
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1rem;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.collaboration-carets__selection {
+  border-radius: 0.125rem;
 }
 
 @layer base {
@@ -206,7 +171,18 @@
   }
 }
 
+html.gmail-extension-panel,
+html.gmail-extension-panel body,
+html.gmail-extension-panel #root {
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--popover);
+}
+
 @layer components {
+  /* EDITOR CHROME ONLY: recipient-visible tokens and presentation are owned by
+     @lightsite/design-tokens and @lightsite/site-document. Every NodeView must
+     carry its canonical `ls-*` class; do not recreate site styles in this file. */
   .lightsite-tiptap {
     @apply min-w-0 text-inherit;
   }
@@ -235,7 +211,8 @@
 
   .lightsite-tiptap .is-editor-empty:first-child::before {
     content: attr(data-placeholder);
-    @apply pointer-events-none float-left h-0 text-muted-foreground;
+    @apply pointer-events-none float-left h-0;
+    color: var(--muted-faint);
   }
 
   .lightsite-document-editor {
@@ -297,10 +274,10 @@
     left: 0;
     z-index: 60;
     pointer-events: none;
-    border: 1px solid var(--color-indigo-700);
+    border: 1px solid var(--selection-border);
     border-radius: var(--radius-sm);
-    background-color: color-mix(in oklab, var(--color-indigo-700) 8%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-indigo-700) 12%, transparent);
+    background-color: color-mix(in oklab, var(--selection-border) 8%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--selection-border) 12%, transparent);
   }
 
   .lightsite-editor-marquee-active {
@@ -374,7 +351,8 @@
 
   .lightsite-document-editor .react-renderer.is-editor-empty::before {
     content: attr(data-placeholder);
-    @apply pointer-events-none absolute text-muted-foreground;
+    @apply pointer-events-none absolute;
+    color: var(--muted-faint);
     left: 0.375rem;
     top: 0.25rem;
     font: inherit;
@@ -398,43 +376,56 @@
     font-size: 1rem;
   }
 
-  [data-editor-next-page] {
-    --lightsite-editor-fg-strong: color-mix(in oklab, var(--foreground) 96%, var(--background));
-    --lightsite-editor-fg: color-mix(in oklab, var(--foreground) 80%, var(--background));
-    --lightsite-editor-fg-soft: color-mix(in oklab, var(--foreground) 64%, var(--background));
-    --lightsite-editor-fg-muted: color-mix(in oklab, var(--foreground) 46%, var(--background));
-    --lightsite-editor-fg-faint: color-mix(in oklab, var(--foreground) 30%, var(--background));
+  [data-editor-page] {
+    --lightsite-editor-fg-strong: var(--foreground);
+    --lightsite-editor-fg: var(--tertiary-foreground);
+    --lightsite-editor-fg-soft: var(--muted-foreground);
+    --lightsite-editor-fg-muted: var(--tertiary-foreground);
+    --lightsite-editor-fg-faint: var(--muted-foreground);
     --lightsite-editor-surface: var(--popover);
-    --lightsite-editor-surface-muted: color-mix(in oklab, var(--foreground) 4%, var(--background));
-    --lightsite-editor-surface-hover: color-mix(in oklab, var(--foreground) 8%, var(--background));
-    --lightsite-editor-border: color-mix(in oklab, var(--foreground) 11%, var(--background));
-    --lightsite-editor-border-strong: color-mix(in oklab, var(--foreground) 18%, var(--background));
-    --lightsite-editor-popover-hover: color-mix(in oklab, var(--popover-foreground) 8%, var(--popover));
-    --lightsite-editor-popover-border: color-mix(in oklab, var(--popover-foreground) 12%, var(--popover));
-    --lightsite-editor-popover-separator: color-mix(in oklab, var(--popover-foreground) 7%, var(--popover));
-    --lightsite-editor-popover-muted: color-mix(in oklab, var(--popover-foreground) 45%, var(--popover));
-    --lightsite-editor-popover-faint: color-mix(in oklab, var(--popover-foreground) 34%, var(--popover));
-    --lightsite-editor-selection: var(--editing-background);
+    --lightsite-editor-surface-muted: var(--muted);
+    --lightsite-editor-surface-hover: var(--accent);
+    --lightsite-editor-border: var(--border);
+    --lightsite-editor-border-strong: var(--border-strong);
+    --lightsite-editor-popover-hover: var(--accent);
+    --lightsite-editor-popover-border: var(--border);
+    --lightsite-editor-popover-separator: var(--border-subtle);
+    --lightsite-editor-popover-muted: var(--muted-foreground);
+    --lightsite-editor-popover-faint: var(--muted-foreground);
+    --lightsite-editor-selection: var(--selection-background);
     --lightsite-editor-danger: var(--destructive);
     --lightsite-editor-link: var(--chart-1);
-    --lightsite-editor-drop: var(--chart-2);
+    --lightsite-editor-drop: var(--selection-border);
   }
 
-  .lightsite-editor-next {
+  .lightsite-editor {
     @apply min-h-full font-site;
     background: var(--background);
     color: var(--foreground);
   }
 
-  .lightsite-editor-next-prosemirror {
+  .lightsite-editor-prosemirror {
     @apply min-h-full cursor-default px-0 pt-[54px] pb-32 outline-none;
   }
 
-  .lightsite-editor-next .ProseMirror-focused {
+  .lightsite-editor .ProseMirror-focused {
     @apply outline-none;
   }
 
-  .lightsite-next-page-empty-state {
+  .lightsite-editor[data-empty-state-active] .ProseMirror > p.lightsite-editor-placeholder-hidden.is-editor-empty {
+    height: 0;
+    min-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 0;
+    color: transparent;
+    caret-color: transparent;
+  }
+
+  .lightsite-editor-page-empty-state {
     position: absolute;
     top: var(--lightsite-empty-top, 220px);
     left: var(--lightsite-empty-left, 50%);
@@ -446,7 +437,7 @@
     z-index: 1;
   }
 
-  .lightsite-next-page-empty-state-inner {
+  .lightsite-editor-page-empty-state-inner {
     display: flex;
     width: min(334px, 100%);
     flex-direction: column;
@@ -457,52 +448,58 @@
     line-height: 24px;
   }
 
-  .lightsite-next-page-empty-state-instructions {
+  .lightsite-editor-page-empty-state-instructions {
     width: min(334px, 100%);
   }
 
-  .lightsite-next-page-empty-state-instructions ul {
+  .lightsite-editor-page-empty-state-instructions ul {
     margin: 0;
     padding-left: 24px;
     list-style: disc;
     line-height: 2;
   }
 
-  .lightsite-next-page-empty-state-instructions li {
+  .lightsite-editor-page-empty-state-instructions li {
     padding-left: 0;
   }
 
-  .lightsite-next-page-empty-state-heading {
+  .lightsite-editor-page-empty-state-heading {
     margin: 0;
     font-weight: 600;
     line-height: 24px;
   }
 
-  .lightsite-next-page-empty-state-instructions .lightsite-next-page-empty-state-heading {
+  .lightsite-editor-page-empty-state-instructions .lightsite-editor-page-empty-state-heading {
     line-height: 2;
   }
 
-  .lightsite-next-page-empty-state strong {
-    color: var(--chart-3);
-    font-weight: 700;
+  .lightsite-editor-page-empty-state strong {
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    padding: 0 4px;
+    background: var(--selection-background);
+    color: var(--selection-foreground);
+    font-weight: 500;
+    line-height: 1.35;
   }
 
-  .lightsite-next-page-empty-state-section,
-  .lightsite-next-page-empty-state-items {
+  .lightsite-editor-page-empty-state-section,
+  .lightsite-editor-page-empty-state-items {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .lightsite-next-page-empty-state-section {
+  .lightsite-editor-page-empty-state-section {
     gap: 12px;
   }
 
-  .lightsite-next-page-empty-state-items {
+  .lightsite-editor-page-empty-state-items {
     gap: 12px;
   }
 
-  .lightsite-next-page-empty-state-item {
+  .lightsite-editor-page-empty-state-item {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -518,403 +515,404 @@
     transition: color 120ms ease;
   }
 
-  .lightsite-next-page-empty-state-item:hover,
-  .lightsite-next-page-empty-state-item:focus-visible {
+  .lightsite-editor-page-empty-state-item:hover,
+  .lightsite-editor-page-empty-state-item:focus-visible {
     color: var(--secondary-foreground);
     outline: none;
   }
 
-  .lightsite-next-page-empty-state-item svg {
+  .lightsite-editor-page-empty-state-item svg {
     width: 16px;
     height: 16px;
     flex: 0 0 auto;
     stroke-width: 1.75;
   }
 
-  .lightsite-next-gif-picker[data-slot="dialog-content"] {
+  .lightsite-editor-gif-picker[data-slot="dialog-content"] {
     background: var(--popover) !important;
-    border-color: var(--lightsite-editor-popover-border) !important;
+    border-color: var(--border) !important;
     color: var(--popover-foreground) !important;
     box-shadow:
       0 24px 80px color-mix(in oklab, var(--foreground) 20%, transparent),
       0 0 0 1px color-mix(in oklab, var(--foreground) 3%, transparent) inset;
   }
 
-  .lightsite-next-gif-picker [data-slot="dialog-close"] {
-    color: var(--lightsite-editor-fg-muted);
+  .lightsite-editor-gif-picker [data-slot="dialog-close"] {
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-gif-picker [data-slot="dialog-close"]:hover,
-  .lightsite-next-gif-picker [data-slot="dialog-close"]:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-gif-picker [data-slot="dialog-close"]:hover,
+  .lightsite-editor-gif-picker [data-slot="dialog-close"]:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-gif-picker-header {
-    border-bottom: 1px solid var(--lightsite-editor-popover-border);
-    background: linear-gradient(180deg, var(--lightsite-editor-popover-hover), var(--popover));
+  .lightsite-editor-gif-picker-header {
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--accent), var(--popover));
   }
 
-  .lightsite-next-gif-picker [data-slot="dialog-title"] {
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-gif-picker [data-slot="dialog-title"] {
+    color: var(--foreground);
   }
 
-  .lightsite-next-gif-picker [data-slot="dialog-description"] {
-    color: var(--lightsite-editor-fg-muted);
+  .lightsite-editor-gif-picker [data-slot="dialog-description"] {
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-gif-picker-header svg {
-    color: var(--lightsite-editor-fg-muted);
+  .lightsite-editor-gif-picker-header svg {
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-gif-picker-search[data-slot="input"] {
-    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover)) !important;
-    border-color: var(--lightsite-editor-popover-border) !important;
-    color: var(--lightsite-editor-fg-strong) !important;
+  .lightsite-editor-gif-picker-search[data-slot="input"] {
+    background: var(--input) !important;
+    border-color: var(--border) !important;
+    color: var(--foreground) !important;
     box-shadow: none !important;
   }
 
-  .lightsite-next-gif-picker-search[data-slot="input"]::placeholder {
-    color: var(--lightsite-editor-fg-faint);
+  .lightsite-editor-gif-picker-search[data-slot="input"]::placeholder {
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-gif-picker-search[data-slot="input"]:focus-visible {
+  .lightsite-editor-gif-picker-search[data-slot="input"]:focus-visible {
     border-color: color-mix(in oklab, var(--ring) 64%, transparent) !important;
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent) !important;
   }
 
-  .lightsite-next-gif-picker-results {
+  .lightsite-editor-gif-picker-results {
     background: var(--background);
   }
 
-  .lightsite-next-gif-picker-results [data-giphy-gif],
-  .lightsite-next-gif-picker-results img {
+  .lightsite-editor-gif-picker-results [data-giphy-gif],
+  .lightsite-editor-gif-picker-results img {
     border-radius: 10px;
   }
 
-  .lightsite-next-gif-picker-empty {
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border-strong);
-    color: var(--lightsite-editor-fg-muted);
+  .lightsite-editor-gif-picker-empty {
+    background: var(--muted);
+    border-color: var(--border);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-gif-picker-footer {
-    border-top: 1px solid var(--lightsite-editor-popover-border);
-    background: color-mix(in oklab, var(--popover-foreground) 3%, var(--popover));
+  .lightsite-editor-gif-picker-footer {
+    border-top: 1px solid var(--border);
+    background: var(--border-subtle);
   }
 
-  .lightsite-editor-next .lightsite-next-emoji {
+  .lightsite-editor .lightsite-editor-emoji {
     display: inline-flex;
     line-height: 1;
     vertical-align: -0.08em;
   }
 
-  .lightsite-editor-next .lightsite-next-emoji img {
+  .lightsite-editor .lightsite-editor-emoji img {
     height: 1em;
     width: 1em;
   }
 
-  .lightsite-editor-next .lightsite-next-width,
-  .lightsite-editor-next .react-renderer.node-buttonBlock,
-  .lightsite-editor-next .react-renderer.node-calendarEmbed,
-  .lightsite-editor-next .react-renderer.node-videoEmbed,
-  .lightsite-editor-next .react-renderer.node-gifBlock,
-  .lightsite-editor-next .react-renderer.node-iconCard,
-  .lightsite-editor-next .react-renderer.node-imageCard,
-  .lightsite-editor-next .react-renderer.node-pageTitleSection,
-  .lightsite-editor-next .react-renderer.node-testimonialCard,
-  .lightsite-editor-next .ProseMirror > [data-lightsite-grid],
-  .lightsite-editor-next .ProseMirror > .tableWrapper,
-  .lightsite-editor-next .ProseMirror > table,
-  .lightsite-editor-next .ProseMirror > [data-lightsite-gif-empty],
-  .lightsite-editor-next .ProseMirror > [data-lightsite-image-empty],
-  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="gifBlock"],
-  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="image"],
-  .lightsite-editor-next .ProseMirror > p,
-  .lightsite-editor-next .ProseMirror > h1,
-  .lightsite-editor-next .ProseMirror > h2,
-  .lightsite-editor-next .ProseMirror > h3,
-  .lightsite-editor-next .ProseMirror > ul,
-  .lightsite-editor-next .ProseMirror > ol,
-  .lightsite-editor-next .ProseMirror > blockquote,
-  .lightsite-editor-next .ProseMirror > pre,
-  .lightsite-editor-next .ProseMirror > hr {
+  .lightsite-editor .lightsite-editor-width,
+  .lightsite-editor .react-renderer.node-buttonBlock,
+  .lightsite-editor .react-renderer.node-calendarEmbed,
+  .lightsite-editor .react-renderer.node-videoEmbed,
+  .lightsite-editor .react-renderer.node-gifBlock,
+  .lightsite-editor .react-renderer.node-iconCard,
+  .lightsite-editor .react-renderer.node-imageCard,
+  .lightsite-editor .react-renderer.node-logoGrid,
+  .lightsite-editor .react-renderer.node-pageTitleSection,
+  .lightsite-editor .react-renderer.node-testimonialCard,
+  .lightsite-editor .ProseMirror > [data-lightsite-grid],
+  .lightsite-editor .ProseMirror > .tableWrapper,
+  .lightsite-editor .ProseMirror > table,
+  .lightsite-editor .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor .ProseMirror > [data-lightsite-image-empty],
+  .lightsite-editor .ProseMirror > [data-resize-container][data-node="gifBlock"],
+  .lightsite-editor .ProseMirror > [data-resize-container][data-node="image"],
+  .lightsite-editor .ProseMirror > p,
+  .lightsite-editor .ProseMirror > h1,
+  .lightsite-editor .ProseMirror > h2,
+  .lightsite-editor .ProseMirror > h3,
+  .lightsite-editor .ProseMirror > ul,
+  .lightsite-editor .ProseMirror > ol,
+  .lightsite-editor .ProseMirror > blockquote,
+  .lightsite-editor .ProseMirror > pre,
+  .lightsite-editor .ProseMirror > hr {
     @apply mx-auto w-[612px] max-w-[calc(100%-104px)];
   }
 
-  .lightsite-editor-next .ProseMirror > p,
-  .lightsite-editor-next .ProseMirror > h1,
-  .lightsite-editor-next .ProseMirror > h2,
-  .lightsite-editor-next .ProseMirror > h3,
-  .lightsite-editor-next .ProseMirror > ul,
-  .lightsite-editor-next .ProseMirror > ol,
-  .lightsite-editor-next .ProseMirror > blockquote,
-  .lightsite-editor-next .ProseMirror > pre,
-  .lightsite-editor-next .ProseMirror > .tableWrapper,
-  .lightsite-editor-next .ProseMirror > table,
-  .lightsite-editor-next .ProseMirror > [data-lightsite-grid],
-  .lightsite-editor-next .lightsite-next-card-content,
-  .lightsite-editor-next .lightsite-next-page-title-content,
-  .lightsite-editor-next .lightsite-next-testimonial-content,
-  .lightsite-editor-next [data-lightsite-next-block-type="icon-list-item"],
-  .lightsite-editor-next [data-lightsite-next-block-type="button"] {
+  .lightsite-editor .ProseMirror > p,
+  .lightsite-editor .ProseMirror > h1,
+  .lightsite-editor .ProseMirror > h2,
+  .lightsite-editor .ProseMirror > h3,
+  .lightsite-editor .ProseMirror > ul,
+  .lightsite-editor .ProseMirror > ol,
+  .lightsite-editor .ProseMirror > blockquote,
+  .lightsite-editor .ProseMirror > pre,
+  .lightsite-editor .ProseMirror > .tableWrapper,
+  .lightsite-editor .ProseMirror > table,
+  .lightsite-editor .ProseMirror > [data-lightsite-grid],
+  .lightsite-editor .lightsite-editor-card-content,
+  .lightsite-editor .lightsite-editor-page-title-content,
+  .lightsite-editor .lightsite-editor-testimonial-content,
+  .lightsite-editor [data-lightsite-editor-block-type="icon-list-item"],
+  .lightsite-editor [data-lightsite-editor-block-type="button"] {
     cursor: text;
   }
 
-  .lightsite-editor-next .ProseMirror > hr,
-  .lightsite-editor-next .ProseMirror > [data-lightsite-gif-empty],
-  .lightsite-editor-next .ProseMirror > [data-lightsite-image-empty],
-  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="gifBlock"],
-  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="image"],
-  .lightsite-editor-next .react-renderer.node-gifBlock {
+  .lightsite-editor .ProseMirror > hr,
+  .lightsite-editor .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor .ProseMirror > [data-lightsite-image-empty],
+  .lightsite-editor .ProseMirror > [data-resize-container][data-node="gifBlock"],
+  .lightsite-editor .ProseMirror > [data-resize-container][data-node="image"],
+  .lightsite-editor .react-renderer.node-gifBlock {
     cursor: default;
   }
 
-  .lightsite-editor-next .react-renderer.node-calendarEmbed,
-  .lightsite-editor-next .react-renderer.node-videoEmbed {
+  .lightsite-editor .react-renderer.node-calendarEmbed,
+  .lightsite-editor .react-renderer.node-videoEmbed {
     cursor: default;
   }
 
-  .lightsite-editor-next .ProseMirror > [data-lightsite-gif-empty],
-  .lightsite-editor-next .ProseMirror > [data-lightsite-image-empty] {
+  .lightsite-editor .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor .ProseMirror > [data-lightsite-image-empty] {
     @apply rounded-xl border border-dashed p-0;
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border-strong);
+    background: var(--muted);
+    border-color: var(--border);
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     .ProseMirror
     > [data-lightsite-image-empty][data-drag-active="true"] {
     background: color-mix(in oklab, var(--ring) 14%, transparent);
     border-color: color-mix(in oklab, var(--ring) 78%, transparent);
   }
 
-  .lightsite-next-image-empty-input {
+  .lightsite-editor-image-empty-input {
     @apply sr-only;
   }
 
-  .lightsite-next-gif-empty-button,
-  .lightsite-next-image-empty-button {
+  .lightsite-editor-gif-empty-button,
+  .lightsite-editor-image-empty-button {
     @apply flex min-h-[188px] w-full flex-col items-center justify-center rounded-xl border-0 bg-transparent px-6 py-8 text-center outline-none transition;
-    color: var(--lightsite-editor-fg-soft);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-gif-empty-button:hover,
-  .lightsite-next-gif-empty-button:focus-visible,
-  .lightsite-next-image-empty-button:hover,
-  .lightsite-next-image-empty-button:focus-visible {
-    background: var(--lightsite-editor-surface-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-gif-empty-button:hover,
+  .lightsite-editor-gif-empty-button:focus-visible,
+  .lightsite-editor-image-empty-button:hover,
+  .lightsite-editor-image-empty-button:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-gif-empty-title,
-  .lightsite-next-image-empty-title {
+  .lightsite-editor-gif-empty-title,
+  .lightsite-editor-image-empty-title {
     @apply text-sm font-medium leading-5;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-next-gif-empty-description,
-  .lightsite-next-image-empty-description {
+  .lightsite-editor-gif-empty-description,
+  .lightsite-editor-image-empty-description {
     @apply mt-1 text-xs leading-4;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-calendar-embed-shell {
+  .lightsite-editor-calendar-embed-shell {
     @apply block;
   }
 
-  .lightsite-next-video-embed-shell {
+  .lightsite-editor-video-embed-shell {
     @apply block;
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     .ProseMirror
     > .react-renderer.node-calendarEmbed
-    > .lightsite-next-calendar-embed-shell,
-  .lightsite-editor-next
+    > .lightsite-editor-calendar-embed-shell,
+  .lightsite-editor
     .ProseMirror
     > .react-renderer.node-videoEmbed
-    > .lightsite-next-video-embed-shell {
+    > .lightsite-editor-video-embed-shell {
     padding-top: 8px;
     padding-bottom: 8px;
   }
 
-  .lightsite-next-calendar-embed-empty,
-  .lightsite-next-video-embed-empty {
+  .lightsite-editor-calendar-embed-empty,
+  .lightsite-editor-video-embed-empty {
     @apply flex min-h-[220px] w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center outline-none transition;
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border-strong);
-    color: var(--lightsite-editor-fg-soft);
+    background: var(--muted);
+    border-color: var(--border);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-calendar-embed-empty:hover,
-  .lightsite-next-calendar-embed-empty:focus-visible,
-  .lightsite-next-video-embed-empty:hover,
-  .lightsite-next-video-embed-empty:focus-visible {
-    background: var(--lightsite-editor-surface-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-calendar-embed-empty:hover,
+  .lightsite-editor-calendar-embed-empty:focus-visible,
+  .lightsite-editor-video-embed-empty:hover,
+  .lightsite-editor-video-embed-empty:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-calendar-embed-empty svg,
-  .lightsite-next-video-embed-empty svg {
+  .lightsite-editor-calendar-embed-empty svg,
+  .lightsite-editor-video-embed-empty svg {
     @apply mb-3 size-5;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-calendar-embed-empty-title,
-  .lightsite-next-video-embed-empty-title {
+  .lightsite-editor-calendar-embed-empty-title,
+  .lightsite-editor-video-embed-empty-title {
     @apply text-sm font-medium leading-5;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-next-calendar-embed-empty-description,
-  .lightsite-next-video-embed-empty-description {
+  .lightsite-editor-calendar-embed-empty-description,
+  .lightsite-editor-video-embed-empty-description {
     @apply mt-1 text-xs leading-4;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-calendar-embed,
-  .lightsite-next-video-embed {
+  .lightsite-editor-calendar-embed,
+  .lightsite-editor-video-embed {
     @apply relative overflow-hidden rounded-xl border;
-    background: var(--lightsite-editor-surface);
-    border-color: var(--lightsite-editor-border);
+    background: var(--popover);
+    border-color: var(--border);
   }
 
-  .lightsite-next-calendar-embed-toolbar,
-  .lightsite-next-video-embed-toolbar {
+  .lightsite-editor-calendar-embed-toolbar,
+  .lightsite-editor-video-embed-toolbar {
     @apply flex min-h-10 items-center justify-between gap-3 border-b px-3 py-2;
-    border-color: var(--lightsite-editor-border);
-    background: var(--lightsite-editor-surface-muted);
-    color: var(--lightsite-editor-fg);
+    border-color: var(--border);
+    background: var(--muted);
+    color: var(--foreground);
   }
 
-  .lightsite-next-calendar-embed-meta,
-  .lightsite-next-video-embed-meta {
+  .lightsite-editor-calendar-embed-meta,
+  .lightsite-editor-video-embed-meta {
     @apply flex min-w-0 items-center gap-2 text-xs font-medium;
   }
 
-  .lightsite-next-calendar-embed-meta svg,
-  .lightsite-next-video-embed-meta svg {
+  .lightsite-editor-calendar-embed-meta svg,
+  .lightsite-editor-video-embed-meta svg {
     @apply size-3.5 shrink-0;
   }
 
-  .lightsite-next-calendar-embed-meta span,
-  .lightsite-next-video-embed-meta span {
+  .lightsite-editor-calendar-embed-meta span,
+  .lightsite-editor-video-embed-meta span {
     @apply truncate;
   }
 
-  .lightsite-next-calendar-embed-edit,
-  .lightsite-next-video-embed-edit {
+  .lightsite-editor-calendar-embed-edit,
+  .lightsite-editor-video-embed-edit {
     @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium outline-none transition;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-calendar-embed-edit:hover,
-  .lightsite-next-calendar-embed-edit:focus-visible,
-  .lightsite-next-video-embed-edit:hover,
-  .lightsite-next-video-embed-edit:focus-visible {
-    background: var(--lightsite-editor-surface-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-calendar-embed-edit:hover,
+  .lightsite-editor-calendar-embed-edit:focus-visible,
+  .lightsite-editor-video-embed-edit:hover,
+  .lightsite-editor-video-embed-edit:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-calendar-embed-edit svg,
-  .lightsite-next-video-embed-edit svg {
+  .lightsite-editor-calendar-embed-edit svg,
+  .lightsite-editor-video-embed-edit svg {
     @apply size-3.5;
   }
 
-  .lightsite-next-calendar-embed-frame {
+  .lightsite-editor-calendar-embed-frame {
     @apply block w-full border-0 bg-background;
     height: var(--lightsite-calendar-embed-height, 420px);
   }
 
-  .lightsite-next-video-embed-frame {
+  .lightsite-editor-video-embed-frame {
     @apply block aspect-video w-full border-0 bg-background;
   }
 
-  .lightsite-next-calendar-embed-resize {
+  .lightsite-editor-calendar-embed-resize {
     @apply absolute right-3 bottom-1 left-3 h-3 rounded-full border-0 bg-transparent opacity-0 outline-none transition-opacity;
     cursor: ns-resize;
   }
 
-  .lightsite-next-calendar-embed-resize::before {
+  .lightsite-editor-calendar-embed-resize::before {
     content: "";
     @apply absolute left-1/2 top-1/2 h-1 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full;
     background: var(--ring);
     box-shadow: 0 1px 4px color-mix(in oklab, var(--foreground) 24%, transparent);
   }
 
-  .lightsite-next-calendar-embed:hover .lightsite-next-calendar-embed-resize,
-  .lightsite-next-calendar-embed:focus-within .lightsite-next-calendar-embed-resize,
-  .lightsite-next-calendar-embed[data-resizing="true"] .lightsite-next-calendar-embed-resize {
+  .lightsite-editor-calendar-embed:hover .lightsite-editor-calendar-embed-resize,
+  .lightsite-editor-calendar-embed:focus-within .lightsite-editor-calendar-embed-resize,
+  .lightsite-editor-calendar-embed[data-resizing="true"] .lightsite-editor-calendar-embed-resize {
     opacity: 1;
   }
 
-  .lightsite-next-calendar-settings-menu,
-  .lightsite-next-video-settings-menu {
-    @apply fixed z-50 w-[320px] rounded-lg border p-3 shadow-xl;
+  .lightsite-editor-calendar-settings-menu,
+  .lightsite-editor-video-settings-menu {
+    @apply fixed z-50 w-[320px] overflow-y-auto rounded-lg border p-3 shadow-xl;
     background: var(--popover);
-    border-color: var(--lightsite-editor-popover-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-calendar-settings-preview,
-  .lightsite-next-video-settings-preview {
+  .lightsite-editor-calendar-settings-preview,
+  .lightsite-editor-video-settings-preview {
     @apply mt-2 flex items-center gap-1.5 text-xs leading-4;
-    color: var(--lightsite-editor-popover-muted);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-calendar-settings-preview svg,
-  .lightsite-next-video-settings-preview svg {
+  .lightsite-editor-calendar-settings-preview svg,
+  .lightsite-editor-video-settings-preview svg {
     @apply size-3.5 shrink-0;
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     .ProseMirror
     > [data-lightsite-image-empty][data-upload-error="true"]
-    .lightsite-next-image-empty-description {
-    color: var(--lightsite-editor-danger);
+    .lightsite-editor-image-empty-description {
+    color: var(--destructive);
   }
 
-  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="gifBlock"],
-  .lightsite-editor-next .ProseMirror > [data-resize-container][data-node="image"] {
+  .lightsite-editor .ProseMirror > [data-resize-container][data-node="gifBlock"],
+  .lightsite-editor .ProseMirror > [data-resize-container][data-node="image"] {
     @apply justify-start;
   }
 
-  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-wrapper],
-  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-wrapper] {
+  .lightsite-editor [data-resize-container][data-node="gifBlock"] [data-resize-wrapper],
+  .lightsite-editor [data-resize-container][data-node="image"] [data-resize-wrapper] {
     @apply max-w-full rounded-xl leading-none;
   }
 
-  .lightsite-editor-next .lightsite-next-gif,
-  .lightsite-editor-next .lightsite-next-image {
+  .lightsite-editor .lightsite-editor-gif,
+  .lightsite-editor .lightsite-editor-image {
     @apply block h-auto max-w-full rounded-xl border object-contain align-top;
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border);
+    background: var(--muted);
+    border-color: var(--border);
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="gifBlock"]:hover
     [data-resize-wrapper],
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="gifBlock"].ProseMirror-selectednode
     [data-resize-wrapper],
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="gifBlock"][data-resize-state="true"]
     [data-resize-wrapper],
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="image"]:hover
     [data-resize-wrapper],
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="image"].ProseMirror-selectednode
     [data-resize-wrapper],
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="image"][data-resize-state="true"]
     [data-resize-wrapper] {
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--ring) 56%, transparent);
   }
 
-  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle],
-  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle] {
+  .lightsite-editor [data-resize-container][data-node="gifBlock"] [data-resize-handle],
+  .lightsite-editor [data-resize-container][data-node="image"] [data-resize-handle] {
     @apply rounded-full border opacity-0 transition-opacity duration-150;
     background: var(--ring);
     border-color: var(--background);
@@ -924,27 +922,27 @@
     z-index: 2;
   }
 
-  .lightsite-editor-next [data-resize-container][data-node="gifBlock"]:hover [data-resize-handle],
-  .lightsite-editor-next
+  .lightsite-editor [data-resize-container][data-node="gifBlock"]:hover [data-resize-handle],
+  .lightsite-editor
     [data-resize-container][data-node="gifBlock"].ProseMirror-selectednode
     [data-resize-handle],
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="gifBlock"][data-resize-state="true"]
     [data-resize-handle],
-  .lightsite-editor-next [data-resize-container][data-node="image"]:hover [data-resize-handle],
-  .lightsite-editor-next
+  .lightsite-editor [data-resize-container][data-node="image"]:hover [data-resize-handle],
+  .lightsite-editor
     [data-resize-container][data-node="image"].ProseMirror-selectednode
     [data-resize-handle],
-  .lightsite-editor-next
+  .lightsite-editor
     [data-resize-container][data-node="image"][data-resize-state="true"]
     [data-resize-handle] {
     opacity: 1;
   }
 
-  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="left"],
-  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="right"],
-  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="left"],
-  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="right"] {
+  .lightsite-editor [data-resize-container][data-node="gifBlock"] [data-resize-handle="left"],
+  .lightsite-editor [data-resize-container][data-node="gifBlock"] [data-resize-handle="right"],
+  .lightsite-editor [data-resize-container][data-node="image"] [data-resize-handle="left"],
+  .lightsite-editor [data-resize-container][data-node="image"] [data-resize-handle="right"] {
     height: 28px;
     width: 8px;
     cursor: ew-resize;
@@ -953,43 +951,43 @@
     transform: translateY(-50%);
   }
 
-  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="left"],
-  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="left"] {
+  .lightsite-editor [data-resize-container][data-node="gifBlock"] [data-resize-handle="left"],
+  .lightsite-editor [data-resize-container][data-node="image"] [data-resize-handle="left"] {
     left: -4px !important;
   }
 
-  .lightsite-editor-next [data-resize-container][data-node="gifBlock"] [data-resize-handle="right"],
-  .lightsite-editor-next [data-resize-container][data-node="image"] [data-resize-handle="right"] {
+  .lightsite-editor [data-resize-container][data-node="gifBlock"] [data-resize-handle="right"],
+  .lightsite-editor [data-resize-container][data-node="image"] [data-resize-handle="right"] {
     right: -4px !important;
   }
 
-  .lightsite-editor-next .ProseMirror > * + * {
+  .lightsite-editor .ProseMirror > * + * {
     margin-top: 20px;
   }
 
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-iconCard,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-imageCard,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-testimonialCard,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-iconCard,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-imageCard,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-testimonialCard,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-testimonialCard + .react-renderer.node-iconCard,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-testimonialCard + .react-renderer.node-imageCard,
-  .lightsite-editor-next
+  .lightsite-editor .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-iconCard,
+  .lightsite-editor .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-imageCard,
+  .lightsite-editor .ProseMirror > .react-renderer.node-iconCard + .react-renderer.node-testimonialCard,
+  .lightsite-editor .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-iconCard,
+  .lightsite-editor .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-imageCard,
+  .lightsite-editor .ProseMirror > .react-renderer.node-imageCard + .react-renderer.node-testimonialCard,
+  .lightsite-editor .ProseMirror > .react-renderer.node-testimonialCard + .react-renderer.node-iconCard,
+  .lightsite-editor .ProseMirror > .react-renderer.node-testimonialCard + .react-renderer.node-imageCard,
+  .lightsite-editor
     .ProseMirror
     > .react-renderer.node-testimonialCard
     + .react-renderer.node-testimonialCard {
     margin-top: 0;
   }
 
-  .lightsite-editor-next .ProseMirror > blockquote,
-  .lightsite-editor-next .ProseMirror > pre,
-  .lightsite-editor-next .ProseMirror > ul,
-  .lightsite-editor-next .ProseMirror > ol {
+  .lightsite-editor .ProseMirror > blockquote,
+  .lightsite-editor .ProseMirror > pre,
+  .lightsite-editor .ProseMirror > ul,
+  .lightsite-editor .ProseMirror > ol {
     margin-top: 24px;
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     .ProseMirror
     > :is(p, h1, h2, h3, blockquote, ul, ol)
     + :is(
@@ -997,7 +995,7 @@
       .react-renderer.node-imageCard,
       .react-renderer.node-testimonialCard
     ),
-  .lightsite-editor-next
+  .lightsite-editor
     .ProseMirror
     > :is(
       .react-renderer.node-iconCard,
@@ -1008,92 +1006,101 @@
     margin-top: 12px;
   }
 
-  .lightsite-editor-next .ProseMirror > h1 + blockquote,
-  .lightsite-editor-next .ProseMirror > h1 + pre,
-  .lightsite-editor-next .ProseMirror > h1 + ul,
-  .lightsite-editor-next .ProseMirror > h1 + ol {
+  .lightsite-editor .ProseMirror > h1 + blockquote,
+  .lightsite-editor .ProseMirror > h1 + pre,
+  .lightsite-editor .ProseMirror > h1 + ul,
+  .lightsite-editor .ProseMirror > h1 + ol {
     margin-top: 24px;
   }
 
-  .lightsite-editor-next .ProseMirror > h1:not(:first-child) {
+  .lightsite-editor .ProseMirror > h1:not(:first-child) {
     margin-top: 72px;
   }
 
-  .lightsite-editor-next .ProseMirror > h2:not(:first-child) {
+  .lightsite-editor .ProseMirror > h2:not(:first-child) {
     margin-top: 50px;
   }
 
-  .lightsite-editor-next .ProseMirror > h3:not(:first-child) {
+  .lightsite-editor .ProseMirror > h3:not(:first-child) {
     margin-top: 36px;
   }
 
-  .lightsite-editor-next .ProseMirror > p {
+  .lightsite-editor .ProseMirror > p {
     @apply px-0 py-0 text-base leading-[26px];
-    color: var(--lightsite-editor-fg);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-editor-next .ProseMirror > h1 {
+  .lightsite-editor .ProseMirror > h1 {
     @apply px-0 py-0 text-2xl leading-9 font-semibold tracking-normal;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next .ProseMirror > h2 {
+  .lightsite-editor .ProseMirror > h2 {
     @apply px-0 py-0 text-xl leading-8 font-semibold tracking-normal;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next .ProseMirror > h3 {
+  .lightsite-editor .ProseMirror > h3 {
     @apply px-0 py-0 text-base leading-[26px] font-semibold tracking-normal;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next .ProseMirror > ul,
-  .lightsite-editor-next .ProseMirror > ol {
+  .lightsite-editor .ProseMirror > ul,
+  .lightsite-editor .ProseMirror > ol {
     @apply py-0 pl-6 text-base leading-[26px];
-    color: var(--lightsite-editor-fg);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-editor-next .ProseMirror > ul[data-type="taskList"] {
+  .lightsite-editor .ProseMirror > ul[data-type="taskList"] {
     @apply list-none pl-0;
   }
 
-  .lightsite-editor-next .ProseMirror > ul {
+  .lightsite-editor .ProseMirror > ul {
     @apply list-disc;
   }
 
-  .lightsite-editor-next .ProseMirror > ul[data-lightsite-icon-list] {
-    @apply list-none pl-0;
+  .lightsite-editor .ProseMirror ul[data-lightsite-icon-list],
+  .lightsite-editor .ProseMirror li[data-lightsite-icon-list-item] {
+    @apply list-none;
   }
 
-  .lightsite-editor-next .ProseMirror > ol {
+  .lightsite-editor .ProseMirror ul[data-lightsite-icon-list] {
+    @apply pl-0;
+  }
+
+  .lightsite-editor .ProseMirror li[data-lightsite-icon-list-item]::marker {
+    content: "";
+  }
+
+  .lightsite-editor .ProseMirror > ol {
     @apply list-decimal;
   }
 
-  .lightsite-editor-next .ProseMirror li p {
+  .lightsite-editor .ProseMirror li p {
     @apply m-0;
   }
 
-  .lightsite-editor-next .ProseMirror > ul[data-lightsite-icon-list] > li {
+  .lightsite-editor .ProseMirror > ul[data-lightsite-icon-list] > li {
     @apply relative py-0 pl-0;
   }
 
-  .lightsite-editor-next .ProseMirror > ul[data-lightsite-icon-list] > li + li {
+  .lightsite-editor .ProseMirror > ul[data-lightsite-icon-list] > li + li {
     margin-top: 6px;
   }
 
-  .lightsite-editor-next [data-lightsite-grid] {
+  .lightsite-editor [data-lightsite-grid] {
     @apply flex flex-col gap-3;
     container-type: inline-size;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-row] {
+  .lightsite-editor [data-lightsite-grid-row] {
     display: grid;
     grid-template-columns: repeat(var(--lightsite-grid-columns, 2), minmax(0, 1fr));
     column-gap: 12px;
     row-gap: 12px;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] {
+  .lightsite-editor [data-lightsite-grid-cell] {
     @apply min-w-0 rounded-lg border border-dashed p-2 transition;
     background: transparent;
     border-color: transparent;
@@ -1101,670 +1108,476 @@
     min-height: 38px;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell]:hover,
-  .lightsite-editor-next [data-lightsite-grid-cell]:focus-within {
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border);
+  .lightsite-editor [data-lightsite-grid-cell]:hover,
+  .lightsite-editor [data-lightsite-grid-cell]:focus-within {
+    background: var(--muted);
+    border-color: var(--border);
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > .react-renderer {
+  .lightsite-editor [data-lightsite-grid-cell] > .react-renderer {
     @apply m-0 w-full max-w-full min-w-0;
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     [data-lightsite-grid-cell]
     > .react-renderer
-    > [data-lightsite-next-block] {
+    > [data-lightsite-editor-block] {
     margin: 0;
     padding-top: 0;
     padding-bottom: 0;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > p.lightsite-next-placeholder-hidden {
+  .lightsite-editor [data-lightsite-grid-cell] > p.lightsite-editor-placeholder-hidden {
     display: none;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > :not(:last-child) {
+  .lightsite-editor [data-lightsite-grid-cell] > :not(:last-child) {
     margin-bottom: 12px;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > p.lightsite-next-placeholder-hidden {
+  .lightsite-editor [data-lightsite-grid-cell] > p.lightsite-editor-placeholder-hidden {
     margin-bottom: 0;
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     [data-lightsite-grid-cell]
     > .react-renderer.node-imageCard
-    > .lightsite-next-image-card-shell,
-  .lightsite-editor-next
+    > .lightsite-editor-image-card-shell,
+  .lightsite-editor
     [data-lightsite-grid-cell]
     > .react-renderer.node-testimonialCard
-    > .lightsite-next-testimonial-card-shell,
-  .lightsite-editor-next
+    > .lightsite-editor-testimonial-card-shell,
+  .lightsite-editor
     [data-lightsite-grid-cell]
     > .react-renderer.node-calendarEmbed
-    > .lightsite-next-calendar-embed-shell,
-  .lightsite-editor-next
+    > .lightsite-editor-calendar-embed-shell,
+  .lightsite-editor
     [data-lightsite-grid-cell]
     > .react-renderer.node-videoEmbed
-    > .lightsite-next-video-embed-shell,
-  .lightsite-editor-next
+    > .lightsite-editor-video-embed-shell,
+  .lightsite-editor
     [data-lightsite-grid-cell]
     > .react-renderer.node-iconCard
-    > [data-lightsite-next-block-type="icon-card"] {
+    > [data-lightsite-editor-block-type="icon-card"] {
     @apply py-0;
     margin: 0;
   }
 
-  .lightsite-editor-next
+  .lightsite-editor
     [data-lightsite-grid-cell]
     > .react-renderer.node-iconCard
-    > [data-lightsite-next-block-type="icon-card"]
+    > [data-lightsite-editor-block-type="icon-card"]
     > div {
     @apply p-3;
   }
 
-  .lightsite-editor-next
-    [data-lightsite-grid-cell]
-    .lightsite-next-testimonial-card {
-    @apply p-3;
-  }
-
-  .lightsite-editor-next
-    [data-lightsite-grid-cell]
-    .lightsite-next-image-card {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
-  .lightsite-editor-next
-    [data-lightsite-grid-cell]
-    .lightsite-next-image-card-copy {
-    min-height: 80px;
-    padding: 14px;
-  }
-
-  .lightsite-editor-next [data-lightsite-grid-cell] > p {
+  .lightsite-editor [data-lightsite-grid-cell] > p {
     @apply m-0 px-0 py-0 text-base leading-[26px];
-    color: var(--lightsite-editor-fg);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > h1 {
+  .lightsite-editor [data-lightsite-grid-cell] > h1 {
     @apply m-0 px-0 py-0 text-2xl leading-9 font-semibold tracking-normal;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > h2 {
+  .lightsite-editor [data-lightsite-grid-cell] > h2 {
     @apply m-0 px-0 py-0 text-xl leading-8 font-semibold tracking-normal;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > h3 {
+  .lightsite-editor [data-lightsite-grid-cell] > h3 {
     @apply m-0 px-0 py-0 text-base leading-[26px] font-semibold tracking-normal;
-    color: var(--lightsite-editor-fg-strong);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > ul,
-  .lightsite-editor-next [data-lightsite-grid-cell] > ol {
+  .lightsite-editor [data-lightsite-grid-cell] > ul,
+  .lightsite-editor [data-lightsite-grid-cell] > ol {
     @apply my-0 py-0 pl-6 text-base leading-[26px];
-    color: var(--lightsite-editor-fg);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > ul {
+  .lightsite-editor [data-lightsite-grid-cell] > ul {
     @apply list-disc;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > ol {
+  .lightsite-editor [data-lightsite-grid-cell] > ol {
     @apply list-decimal;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > ul[data-lightsite-icon-list],
-  .lightsite-editor-next [data-lightsite-grid-cell] > ul[data-type="taskList"] {
+  .lightsite-editor [data-lightsite-grid-cell] > ul[data-type="taskList"] {
     @apply list-none pl-0;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > blockquote {
+  .lightsite-editor [data-lightsite-grid-cell] > blockquote {
     @apply m-0 border-l-4 py-1.5 pr-0 pl-4 text-base leading-[26px];
-    border-color: var(--lightsite-editor-border-strong);
-    color: var(--lightsite-editor-fg-soft);
+    border-color: var(--border);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > pre {
+  .lightsite-editor [data-lightsite-grid-cell] > pre {
     @apply m-0 overflow-x-auto rounded-md border px-4 py-4 text-sm leading-6;
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border);
-    color: var(--lightsite-editor-fg);
+    background: var(--muted);
+    border-color: var(--border);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next .tableWrapper {
+  .lightsite-editor .tableWrapper {
     @apply overflow-x-auto rounded-xl border;
     background: var(--card);
     border-color: var(--border);
   }
 
-  .lightsite-editor-next .lightsite-next-table,
-  .lightsite-editor-next .tableWrapper > table {
+  .lightsite-editor .lightsite-editor-table,
+  .lightsite-editor .tableWrapper > table {
     @apply w-full border-separate border-spacing-0 text-sm leading-5;
-    color: var(--lightsite-editor-fg);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next .lightsite-next-table :where(th, td),
-  .lightsite-editor-next .tableWrapper > table :where(th, td) {
+  .lightsite-editor .lightsite-editor-table :where(th, td),
+  .lightsite-editor .tableWrapper > table :where(th, td) {
     @apply min-w-28 border-0 border-r border-b px-3 py-2 text-left align-top;
     border-color: var(--border);
   }
 
-  .lightsite-editor-next .lightsite-next-table tr > :last-child,
-  .lightsite-editor-next .tableWrapper > table tr > :last-child {
+  .lightsite-editor .lightsite-editor-table tr > :last-child,
+  .lightsite-editor .tableWrapper > table tr > :last-child {
     border-right-width: 0;
   }
 
-  .lightsite-editor-next .lightsite-next-table tr:last-child > :where(th, td),
-  .lightsite-editor-next .tableWrapper > table tr:last-child > :where(th, td) {
+  .lightsite-editor .lightsite-editor-table tr:last-child > :where(th, td),
+  .lightsite-editor .tableWrapper > table tr:last-child > :where(th, td) {
     border-bottom-width: 0;
   }
 
-  .lightsite-editor-next .lightsite-next-table th,
-  .lightsite-editor-next .tableWrapper > table th {
+  .lightsite-editor .lightsite-editor-table th,
+  .lightsite-editor .tableWrapper > table th {
     @apply font-semibold;
-    background: var(--lightsite-editor-surface-muted);
-    color: var(--lightsite-editor-fg-strong);
+    background: var(--table-header-background);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next .lightsite-next-table td,
-  .lightsite-editor-next .tableWrapper > table td {
+  .lightsite-editor .lightsite-editor-table td,
+  .lightsite-editor .tableWrapper > table td {
     background: var(--card);
   }
 
-  .lightsite-editor-next .lightsite-next-table :where(th, td) > *,
-  .lightsite-editor-next .tableWrapper > table :where(th, td) > * {
+  .lightsite-editor .lightsite-editor-table :where(th, td) > *,
+  .lightsite-editor .tableWrapper > table :where(th, td) > * {
     @apply m-0;
   }
 
-  .lightsite-editor-next .lightsite-next-table :where(th, td).selectedCell,
-  .lightsite-editor-next .tableWrapper > table :where(th, td).selectedCell {
-    background: var(--lightsite-editor-selection);
+  .lightsite-editor .lightsite-editor-table :where(th, td).selectedCell,
+  .lightsite-editor .tableWrapper > table :where(th, td).selectedCell {
+    background: var(--selection-background);
   }
 
-  .lightsite-editor-next .column-resize-handle {
+  .lightsite-editor .column-resize-handle {
     @apply pointer-events-none absolute top-0 bottom-0 w-1;
     background: var(--ring);
     right: -2px;
   }
 
-  .lightsite-editor-next.resize-cursor,
-  .lightsite-editor-next .resize-cursor {
+  .lightsite-editor.resize-cursor,
+  .lightsite-editor .resize-cursor {
     cursor: col-resize;
   }
 
-  .lightsite-editor-next [data-lightsite-grid-cell] > .tableWrapper {
+  .lightsite-editor [data-lightsite-grid-cell] > .tableWrapper {
     @apply m-0 w-full max-w-full;
   }
 
   @container (max-width: 520px) {
-    .lightsite-editor-next [data-lightsite-grid-row] {
+    .lightsite-editor [data-lightsite-grid-row] {
       grid-template-columns: minmax(0, 1fr);
     }
   }
 
-  .lightsite-next-icon-list-item {
+  .lightsite-editor-icon-list-item {
     cursor: text;
   }
 
-  .lightsite-next-icon-list-inner {
+  .lightsite-editor-icon-list-inner {
     @apply grid grid-cols-[24px_minmax(0,1fr)] items-start gap-2;
   }
 
-  .lightsite-next-icon-bullet {
+  .lightsite-editor-icon-bullet {
     @apply mt-[3px] flex size-5 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent p-0 outline-none transition;
   }
 
-  .lightsite-next-icon-bullet:hover,
-  .lightsite-next-icon-bullet:focus-visible,
-  .lightsite-next-icon-list-item.has-focus .lightsite-next-icon-bullet {
-    border-color: color-mix(in oklab, var(--lightsite-next-icon-color) 32%, transparent);
-    background: color-mix(in oklab, var(--lightsite-next-icon-color) 14%, transparent);
-    color: color-mix(in oklab, var(--lightsite-next-icon-color) 86%, white);
+  .lightsite-editor-icon-bullet:hover,
+  .lightsite-editor-icon-bullet:focus-visible,
+  .lightsite-editor-icon-list-item.has-focus .lightsite-editor-icon-bullet {
+    border-color: color-mix(in oklab, var(--lightsite-editor-icon-color) 32%, transparent);
+    background: color-mix(in oklab, var(--lightsite-editor-icon-color) 14%, transparent);
+    color: color-mix(in oklab, var(--lightsite-editor-icon-color) 86%, white);
   }
 
-  .lightsite-next-icon-bullet svg {
+  .lightsite-editor-icon-bullet svg {
     @apply size-3.5;
   }
 
-  .lightsite-next-icon-list-content {
+  .lightsite-editor-icon-list-content {
     @apply min-w-0 text-base leading-[26px] outline-none;
-    color: var(--lightsite-editor-fg);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-icon-list-content > p {
+  .lightsite-editor-icon-list-content > p {
     @apply m-0;
   }
 
-  .lightsite-next-icon-card-picker-anchor {
+  .lightsite-editor-icon-card-picker-anchor {
     @apply relative mb-3 w-fit;
   }
 
-  .lightsite-next-icon-card-button {
+  .lightsite-editor-icon-card-button {
     @apply flex size-8 items-center justify-center rounded-lg border border-transparent p-0 outline-none transition;
-    background: var(--lightsite-editor-surface-hover);
-    color: color-mix(in oklab, var(--lightsite-next-icon-color) 86%, white);
+    background: var(--accent);
+    color: color-mix(in oklab, var(--lightsite-editor-icon-color) 86%, white);
   }
 
-  .lightsite-next-icon-card-button:hover,
-  .lightsite-next-icon-card-button:focus-visible,
-  .lightsite-next-icon-card-button[aria-expanded="true"] {
-    border-color: color-mix(in oklab, var(--lightsite-next-icon-color) 32%, transparent);
-    background: color-mix(in oklab, var(--lightsite-next-icon-color) 14%, var(--lightsite-editor-surface-hover));
+  .lightsite-editor-icon-card-button:hover,
+  .lightsite-editor-icon-card-button:focus-visible,
+  .lightsite-editor-icon-card-button[aria-expanded="true"] {
+    border-color: color-mix(in oklab, var(--lightsite-editor-icon-color) 32%, transparent);
+    background: color-mix(in oklab, var(--lightsite-editor-icon-color) 14%, var(--accent));
   }
 
-  .lightsite-next-icon-picker {
-    --lightsite-next-icon-picker-height: 278px;
+  .lightsite-editor-icon-picker {
+    --lightsite-editor-icon-picker-height: 278px;
     @apply absolute left-0 top-7 z-50 flex h-auto w-[256px] items-stretch overflow-hidden rounded-lg border p-0 shadow-xl;
     background: var(--popover);
-    border-color: var(--lightsite-editor-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-icon-color-rail {
+  .lightsite-editor-icon-color-rail {
     @apply flex w-[38px] shrink-0 flex-col items-center gap-1.5 overflow-hidden py-3;
-    border-right: 1px solid var(--lightsite-editor-border);
+    border-right: 1px solid var(--border);
   }
 
-  .lightsite-next-icon-scroll {
+  .lightsite-editor-icon-scroll {
     @apply min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-3;
-    max-height: var(--lightsite-next-icon-picker-height);
+    max-height: var(--lightsite-editor-icon-picker-height);
     scrollbar-width: thin;
-    scrollbar-color: var(--lightsite-editor-border-strong) transparent;
+    scrollbar-color: var(--border) transparent;
   }
 
-  .lightsite-next-icon-scroll::-webkit-scrollbar {
+  .lightsite-editor-icon-scroll::-webkit-scrollbar {
     width: 6px;
   }
 
-  .lightsite-next-icon-scroll::-webkit-scrollbar-thumb {
-    background: var(--lightsite-editor-border-strong);
+  .lightsite-editor-icon-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
     border-radius: 999px;
   }
 
-  .lightsite-next-icon-picker-grid {
+  .lightsite-editor-icon-picker-grid {
     @apply grid gap-1;
     grid-template-columns: repeat(7, 26px);
   }
 
-  .lightsite-next-icon-picker-button {
+  .lightsite-editor-icon-picker-button {
     @apply flex size-[26px] items-center justify-center rounded-md border border-transparent bg-transparent p-0 outline-none transition;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-icon-picker-button:hover,
-  .lightsite-next-icon-picker-button:focus-visible,
-  .lightsite-next-icon-picker-button-active {
-    background: var(--lightsite-editor-surface-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-icon-picker-button:hover,
+  .lightsite-editor-icon-picker-button:focus-visible,
+  .lightsite-editor-icon-picker-button-active {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-icon-picker-button-active {
+  .lightsite-editor-icon-picker-button-active {
     border-color: color-mix(in oklab, var(--ring) 34%, transparent);
   }
 
-  .lightsite-next-icon-picker-button svg,
-  .lightsite-next-icon-bullet svg,
-  .lightsite-next-icon-card-button svg {
+  .lightsite-editor-icon-picker-button svg,
+  .lightsite-editor-icon-bullet svg,
+  .lightsite-editor-icon-card-button svg {
     display: block;
     flex: none;
     overflow: visible;
     shape-rendering: auto;
   }
 
-  .lightsite-next-icon-picker-card {
+  .lightsite-editor-icon-picker-card {
     @apply top-10;
   }
 
-  .lightsite-next-icon-color-button {
+  .lightsite-editor-icon-color-button {
     @apply flex size-5 shrink-0 items-center justify-center rounded-full border border-transparent p-0 outline-none transition;
-    background: var(--lightsite-next-icon-color);
+    background: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-button:hover,
-  .lightsite-next-icon-color-button:focus-visible,
-  .lightsite-next-icon-color-button-active {
+  .lightsite-editor-icon-color-button:hover,
+  .lightsite-editor-icon-color-button:focus-visible,
+  .lightsite-editor-icon-color-button-active {
     border-color: color-mix(in oklab, var(--foreground) 78%, transparent);
     box-shadow:
       0 0 0 2px var(--popover),
-      0 0 0 3px color-mix(in oklab, var(--lightsite-next-icon-color) 68%, white);
+      0 0 0 3px color-mix(in oklab, var(--lightsite-editor-icon-color) 68%, white);
   }
 
-  .lightsite-next-icon-color-neutral {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-neutral);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-neutral {
+    --lightsite-editor-icon-color: var(--muted-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-indigo {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-indigo);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-purple {
+    --lightsite-editor-icon-color: var(--purple-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-blue {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-blue);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-blue {
+    --lightsite-editor-icon-color: var(--blue-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-sky {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-sky);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-cyan {
+    --lightsite-editor-icon-color: var(--cyan-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-cyan {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-cyan);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-teal {
+    --lightsite-editor-icon-color: var(--teal-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-teal {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-teal);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-green {
+    --lightsite-editor-icon-color: var(--green-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-emerald {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-emerald);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-yellow {
+    --lightsite-editor-icon-color: var(--yellow-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-amber {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-amber);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-orange {
+    --lightsite-editor-icon-color: var(--orange-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-rose {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-rose);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-red {
+    --lightsite-editor-icon-color: var(--red-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-icon-color-pink {
-    --lightsite-next-icon-color: var(--lightsite-editor-color-pink);
-    color: var(--lightsite-next-icon-color);
+  .lightsite-editor-icon-color-pink {
+    --lightsite-editor-icon-color: var(--pink-foreground);
+    color: var(--lightsite-editor-icon-color);
   }
 
-  .lightsite-next-testimonial-card-shell {
+  .lightsite-editor-testimonial-card-shell {
     container-type: inline-size;
     cursor: default;
   }
 
-  .lightsite-next-testimonial-card {
-    @apply grid overflow-hidden border;
-    grid-template-columns: 40px minmax(0, 1fr);
-    grid-template-rows: 20px 20px minmax(40px, auto);
-    column-gap: 12px;
-    align-items: center;
-    background: var(--card);
-    border-color: var(--lightsite-editor-border);
-    border-radius: 14px;
-    color: var(--card-foreground);
-    padding: 16px 20px 20px 16px;
-  }
-
-  .lightsite-next-testimonial-card[data-drag-active="true"] {
+  .lightsite-editor-testimonial-card[data-drag-active="true"] {
     background: color-mix(in oklab, var(--ring) 10%, var(--card));
-    border-color: color-mix(in oklab, var(--ring) 72%, var(--lightsite-editor-border));
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--border));
   }
 
-  .lightsite-next-testimonial-avatar {
+  .lightsite-editor-testimonial-avatar {
     @apply relative flex size-10 items-center justify-center overflow-hidden border p-0 outline-none transition;
     align-self: start;
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border);
+    background: var(--muted);
+    border-color: var(--border);
     border-radius: 10px;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
     cursor: pointer;
     grid-column: 1;
     grid-row: 1 / span 2;
   }
 
-  .lightsite-next-testimonial-avatar:not([data-has-image="true"]) {
+  .lightsite-editor-testimonial-avatar:not([data-has-image="true"]) {
     border-style: dashed;
   }
 
-  .lightsite-next-testimonial-avatar:hover,
-  .lightsite-next-testimonial-avatar:focus-visible {
-    background: var(--lightsite-editor-surface-hover);
-    border-color: var(--lightsite-editor-border-strong);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-testimonial-avatar:hover,
+  .lightsite-editor-testimonial-avatar:focus-visible {
+    background: var(--accent);
+    border-color: var(--border);
+    color: var(--foreground);
   }
 
-  .lightsite-next-testimonial-avatar[data-has-image="true"] {
+  .lightsite-editor-testimonial-avatar[data-has-image="true"] {
     border-style: solid;
     background: transparent;
   }
 
-  .lightsite-next-testimonial-avatar-img {
+  .lightsite-editor-testimonial-avatar-img {
     @apply block size-full object-cover;
   }
 
-  .lightsite-next-testimonial-content {
+  .lightsite-editor-testimonial-content {
     display: contents;
     cursor: text;
   }
 
-  .lightsite-next-testimonial-content > [data-node-view-content-react] {
+  .lightsite-editor-testimonial-content > [data-node-view-content-react] {
     display: contents;
   }
 
-  .lightsite-next-testimonial-content [data-lightsite-testimonial-author-name] {
-    @apply m-0 min-w-0 truncate text-base leading-5 font-medium tracking-normal outline-none;
-    color: var(--lightsite-editor-fg-strong);
-    grid-column: 2;
-    grid-row: 1;
-    min-height: 20px;
+  .lightsite-editor-testimonial-card[data-upload-error="true"]
+    .lightsite-editor-testimonial-avatar {
+    color: var(--destructive);
+    border-color: color-mix(in oklab, var(--destructive) 58%, transparent);
   }
 
-  .lightsite-next-testimonial-content [data-lightsite-testimonial-author-role] {
-    @apply m-0 min-w-0 truncate text-sm leading-5 font-normal tracking-normal outline-none;
-    color: var(--tertiary-foreground);
-    grid-column: 2;
-    grid-row: 2;
-    min-height: 20px;
-  }
-
-  .lightsite-next-testimonial-content [data-lightsite-testimonial-quote] {
-    @apply m-0 min-w-0 text-lg leading-6 font-medium tracking-normal outline-none;
-    color: var(--lightsite-editor-fg-strong);
-    grid-column: 1 / -1;
-    grid-row: 3;
-    min-height: 40px;
-    padding-top: 16px;
-  }
-
-  .lightsite-next-testimonial-content [data-lightsite-testimonial-quote]:not(.is-empty)::before {
-    content: "“";
-  }
-
-  .lightsite-next-testimonial-content [data-lightsite-testimonial-quote]:not(.is-empty)::after {
-    content: "”";
-  }
-
-  .lightsite-next-testimonial-card[data-upload-error="true"]
-    .lightsite-next-testimonial-avatar {
-    color: var(--lightsite-editor-danger);
-    border-color: color-mix(in oklab, var(--lightsite-editor-danger) 58%, transparent);
-  }
-
-  .lightsite-next-image-card-shell {
+  .lightsite-editor-image-card-shell {
     container-type: inline-size;
     cursor: default;
   }
 
-  .lightsite-next-page-title-shell {
-    cursor: default;
-  }
-
-  .lightsite-editor-next
-    .ProseMirror
-    > .react-renderer.node-pageTitleSection
-    > .lightsite-next-page-title-shell {
-    border-bottom: 1px solid var(--lightsite-editor-border);
-    padding-top: 52px;
-    padding-bottom: 36px;
-  }
-
-  .lightsite-next-page-title {
-    display: flex;
-    width: 100%;
-    flex-direction: column;
-    gap: 24px;
-    color: var(--foreground);
-  }
-
-  .lightsite-next-page-title-shell[data-align="center"] .lightsite-next-page-title {
-    align-items: center;
-    text-align: center;
-  }
-
-  .lightsite-next-page-title-shell[data-align="left"] .lightsite-next-page-title {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .lightsite-next-page-title-logos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .lightsite-next-page-title-shell[data-align="center"] .lightsite-next-page-title-logos {
-    justify-content: center;
-  }
-
-  .lightsite-next-page-title-shell[data-align="left"] .lightsite-next-page-title-logos {
-    justify-content: flex-start;
-  }
-
-  .lightsite-next-page-title-logo-tile {
-    display: flex;
-    height: 52px;
-    width: 52px;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border-radius: 14px;
-    background: var(--foreground);
-    color: var(--background);
-  }
-
-  .lightsite-next-page-title-logo-img {
-    display: block;
-    height: 100%;
-    width: 100%;
-    object-fit: contain;
-    padding: 8px;
-  }
-
-  .lightsite-next-page-title-logo-fallback {
+  .lightsite-editor-page-title-logo-fallback {
     font-size: 16px;
     font-weight: 600;
     line-height: 1;
   }
 
-  .lightsite-next-page-title-content {
-    width: 100%;
-    cursor: text;
-  }
-
-  .lightsite-next-page-title-content > [data-node-view-content-react] {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .lightsite-next-page-title-shell[data-align="center"]
-    .lightsite-next-page-title-content
-    > [data-node-view-content-react] {
-    align-items: center;
-  }
-
-  .lightsite-next-page-title-shell[data-align="left"]
-    .lightsite-next-page-title-content
-    > [data-node-view-content-react] {
-    align-items: flex-start;
-  }
-
-  .lightsite-next-page-title-content [data-lightsite-page-title-heading] {
-    max-width: 100%;
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: 0;
-    line-height: 1;
-    color: var(--foreground);
-  }
-
-  .lightsite-next-page-title-content [data-lightsite-page-title-subtitle] {
-    max-width: 100%;
-    font-size: 16px;
-    font-weight: 400;
-    letter-spacing: 0;
-    line-height: 1.5;
-    color: var(--secondary-foreground);
-  }
-
-  .lightsite-editor-next
+  .lightsite-editor
     .ProseMirror
     > .react-renderer.node-imageCard
-    > .lightsite-next-image-card-shell {
+    > .lightsite-editor-image-card-shell {
     padding-top: 8px;
     padding-bottom: 8px;
   }
 
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-iconCard > [data-lightsite-next-block],
-  .lightsite-editor-next
+  .lightsite-editor .ProseMirror > .react-renderer.node-iconCard > [data-lightsite-editor-block],
+  .lightsite-editor
     .ProseMirror
     > .react-renderer.node-testimonialCard
-    > .lightsite-next-testimonial-card-shell,
-  .lightsite-editor-next
+    > .lightsite-editor-testimonial-card-shell,
+  .lightsite-editor
     .ProseMirror
     > .react-renderer.node-logoGrid
-    > .lightsite-next-logo-grid-shell,
-  .lightsite-editor-next .ProseMirror > .react-renderer.node-buttonBlock > [data-lightsite-next-block] {
+    > .lightsite-editor-logo-grid-shell,
+  .lightsite-editor .ProseMirror > .react-renderer.node-buttonBlock > [data-lightsite-editor-block] {
     padding-top: 8px;
     padding-bottom: 8px;
   }
 
-  .lightsite-next-logo-grid-shell {
+  .lightsite-editor-logo-grid-shell {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     container-type: inline-size;
     cursor: default;
   }
 
-  .lightsite-next-logo-grid {
-    display: block;
-    border-radius: 18px;
-    padding: 6px;
-  }
-
-  .lightsite-next-logo-grid > [data-node-view-content-react] {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    width: 100%;
-  }
-
-  .lightsite-next-logo-grid-item {
-    position: relative;
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: var(--background);
-    color: var(--foreground);
-    padding: 16px 12px 12px;
-  }
-
-  .lightsite-next-logo-grid-item[data-drag-active="true"] {
+  .lightsite-editor-logo-grid-item[data-drag-active="true"] {
     background: color-mix(in oklab, var(--ring) 10%, var(--background));
     border-color: color-mix(in oklab, var(--ring) 72%, var(--border));
   }
 
-  .lightsite-next-logo-grid-logo-button {
+  .lightsite-editor-logo-grid-item {
+    position: relative;
+  }
+
+  .lightsite-editor-logo-grid-logo-button {
     display: flex;
     width: 40px;
     height: 40px;
@@ -1781,24 +1594,24 @@
       color 120ms ease;
   }
 
-  .lightsite-next-logo-grid-item:not([data-has-logo="true"])
-    .lightsite-next-logo-grid-logo-button {
+  .lightsite-editor-logo-grid-item:not([data-has-logo="true"])
+    .lightsite-editor-logo-grid-logo-button {
     border: 1px dashed var(--border);
     background: var(--secondary);
     color: var(--muted-foreground);
   }
 
-  .lightsite-next-logo-grid-item[data-has-logo="true"] .lightsite-next-logo-grid-logo-button {
+  .lightsite-editor-logo-grid-item[data-has-logo="true"] .lightsite-editor-logo-grid-logo-button {
     border: 0;
     background: transparent;
   }
 
-  .lightsite-next-logo-grid-logo-button:hover,
-  .lightsite-next-logo-grid-logo-button:focus-visible {
+  .lightsite-editor-logo-grid-logo-button:hover,
+  .lightsite-editor-logo-grid-logo-button:focus-visible {
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 62%, transparent);
   }
 
-  .lightsite-next-logo-grid-menu {
+  .lightsite-editor-logo-grid-menu {
     position: absolute;
     top: 58px;
     left: 50%;
@@ -1807,7 +1620,7 @@
     width: 272px;
     transform: translateX(-50%);
     gap: 1px;
-    border: 1px solid var(--lightsite-editor-popover-border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: var(--popover);
     color: var(--popover-foreground);
@@ -1818,7 +1631,7 @@
       0 0 0 1px color-mix(in oklab, var(--foreground) 3%, transparent) inset;
   }
 
-  .lightsite-next-logo-grid-menu-item {
+  .lightsite-editor-logo-grid-menu-item {
     display: flex;
     min-height: 34px;
     width: 100%;
@@ -1828,7 +1641,7 @@
     border-radius: var(--radius-md);
     background: transparent;
     padding: 7px 8px;
-    color: var(--lightsite-editor-fg);
+    color: var(--foreground);
     font-size: 14px;
     font-weight: 500;
     line-height: 20px;
@@ -1838,55 +1651,55 @@
       color 120ms ease;
   }
 
-  .lightsite-next-logo-grid-menu-item:hover,
-  .lightsite-next-logo-grid-menu-item:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-logo-grid-menu-item:hover,
+  .lightsite-editor-logo-grid-menu-item:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-logo-grid-menu-item svg {
+  .lightsite-editor-logo-grid-menu-item svg {
     flex-shrink: 0;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-logo-grid-menu-separator {
+  .lightsite-editor-logo-grid-menu-separator {
     height: 1px;
     margin: 4px;
-    background: var(--lightsite-editor-popover-separator);
+    background: var(--border-subtle);
   }
 
-  .lightsite-next-logo-grid-domain-form {
+  .lightsite-editor-logo-grid-domain-form {
     display: grid;
     gap: 8px;
     padding: 6px 4px 4px;
   }
 
-  .lightsite-next-logo-grid-domain-label {
+  .lightsite-editor-logo-grid-domain-label {
     padding: 0 4px;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
   }
 
-  .lightsite-next-logo-grid-domain-control {
+  .lightsite-editor-logo-grid-domain-control {
     display: flex;
     height: 36px;
     align-items: center;
     gap: 8px;
-    border: 1px solid var(--lightsite-editor-popover-border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover));
+    background: var(--input);
     padding: 0 9px;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-logo-grid-domain-control:focus-within {
+  .lightsite-editor-logo-grid-domain-control:focus-within {
     border-color: color-mix(in oklab, var(--ring) 72%, var(--popover));
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent);
   }
 
-  .lightsite-next-logo-grid-domain-input {
+  .lightsite-editor-logo-grid-domain-input {
     min-width: 0;
     flex: 1;
     border: 0;
@@ -1897,31 +1710,31 @@
     outline: none;
   }
 
-  .lightsite-next-logo-grid-domain-input::placeholder {
-    color: var(--lightsite-editor-popover-faint);
+  .lightsite-editor-logo-grid-domain-input::placeholder {
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-logo-grid-domain-input:disabled {
+  .lightsite-editor-logo-grid-domain-input:disabled {
     cursor: progress;
     opacity: 0.72;
   }
 
-  .lightsite-next-logo-grid-domain-error {
+  .lightsite-editor-logo-grid-domain-error {
     margin: -2px 4px 0;
     color: var(--destructive);
     font-size: 12px;
     line-height: 16px;
   }
 
-  .lightsite-next-logo-grid-domain-actions {
+  .lightsite-editor-logo-grid-domain-actions {
     display: flex;
     justify-content: flex-end;
     gap: 6px;
     padding-top: 2px;
   }
 
-  .lightsite-next-logo-grid-domain-cancel,
-  .lightsite-next-logo-grid-domain-submit {
+  .lightsite-editor-logo-grid-domain-cancel,
+  .lightsite-editor-logo-grid-domain-submit {
     height: 32px;
     border: 0;
     border-radius: var(--radius-md);
@@ -1936,34 +1749,34 @@
       opacity 120ms ease;
   }
 
-  .lightsite-next-logo-grid-domain-cancel {
+  .lightsite-editor-logo-grid-domain-cancel {
     background: transparent;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-logo-grid-domain-cancel:hover,
-  .lightsite-next-logo-grid-domain-cancel:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-logo-grid-domain-cancel:hover,
+  .lightsite-editor-logo-grid-domain-cancel:focus-visible {
+    background: var(--accent);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-logo-grid-domain-submit {
+  .lightsite-editor-logo-grid-domain-submit {
     background: var(--primary);
     color: var(--primary-foreground);
   }
 
-  .lightsite-next-logo-grid-domain-submit:hover,
-  .lightsite-next-logo-grid-domain-submit:focus-visible {
+  .lightsite-editor-logo-grid-domain-submit:hover,
+  .lightsite-editor-logo-grid-domain-submit:focus-visible {
     opacity: 0.9;
   }
 
-  .lightsite-next-logo-grid-domain-cancel:disabled,
-  .lightsite-next-logo-grid-domain-submit:disabled {
+  .lightsite-editor-logo-grid-domain-cancel:disabled,
+  .lightsite-editor-logo-grid-domain-submit:disabled {
     cursor: progress;
     opacity: 0.62;
   }
 
-  .lightsite-next-logo-grid-img {
+  .lightsite-editor-logo-grid-img {
     display: block;
     max-width: 40px;
     max-height: 40px;
@@ -1972,17 +1785,17 @@
     object-fit: contain;
   }
 
-  .lightsite-next-logo-grid-title-content {
+  .lightsite-editor-logo-grid-title-content {
     width: 100%;
     min-width: 0;
     cursor: text;
   }
 
-  .lightsite-next-logo-grid-title-content > [data-node-view-content-react] {
+  .lightsite-editor-logo-grid-title-content > [data-node-view-content-react] {
     display: block;
   }
 
-  .lightsite-next-logo-grid-title-content [data-lightsite-logo-grid-title] {
+  .lightsite-editor-logo-grid-title-content [data-lightsite-logo-grid-title] {
     margin: 0;
     min-height: 24px;
     min-width: 0;
@@ -1996,11 +1809,11 @@
     outline: none;
   }
 
-  .lightsite-next-logo-grid-title-content [data-lightsite-logo-grid-title].is-empty::before {
-    color: var(--muted-foreground);
+  .lightsite-editor-logo-grid-title-content [data-lightsite-logo-grid-title].is-empty::before {
+    color: var(--muted-faint);
   }
 
-  .lightsite-next-logo-grid-remove {
+  .lightsite-editor-logo-grid-remove {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -2020,51 +1833,28 @@
       opacity 120ms ease;
   }
 
-  .lightsite-next-logo-grid-item:hover .lightsite-next-logo-grid-remove,
-  .lightsite-next-logo-grid-remove:focus-visible {
+  .lightsite-editor-logo-grid-item:hover .lightsite-editor-logo-grid-remove,
+  .lightsite-editor-logo-grid-remove:focus-visible {
     opacity: 1;
   }
 
-  .lightsite-next-logo-grid-remove:hover {
+  .lightsite-editor-logo-grid-remove:hover {
     background: var(--secondary);
     color: var(--foreground);
   }
 
-  @container (max-width: 520px) {
-    .lightsite-next-logo-grid > [data-node-view-content-react] {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @container (max-width: 340px) {
-    .lightsite-next-logo-grid > [data-node-view-content-react] {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  .lightsite-next-image-card {
-    @apply grid overflow-hidden border p-1.5;
-    grid-template-columns: minmax(180px, 41.5%) minmax(0, 1fr);
-    gap: 20px;
-    align-items: center;
-    background: var(--card);
-    border-color: var(--lightsite-editor-border);
-    border-radius: 14px;
-    color: var(--card-foreground);
-  }
-
-  .lightsite-next-image-card-media {
+  .lightsite-editor-image-card-media {
     @apply relative flex w-full items-center justify-center overflow-hidden border;
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border);
+    background: var(--muted);
+    border-color: var(--border);
     border-radius: 10px;
   }
 
-  .lightsite-next-image-card-media:not([data-has-image="true"]) {
+  .lightsite-editor-image-card-media:not([data-has-image="true"]) {
     aspect-ratio: 14 / 9;
   }
 
-  .lightsite-next-image-card-media[data-has-image="true"] {
+  .lightsite-editor-image-card-media[data-has-image="true"] {
     align-self: center;
     background: transparent;
     border: 0;
@@ -2073,956 +1863,905 @@
     min-height: 0;
   }
 
-  .lightsite-next-image-card-media[data-has-image-ratio="true"] {
+  .lightsite-editor-image-card-media[data-has-image-ratio="true"] {
     display: grid;
   }
 
-  .lightsite-next-image-card-media[data-drag-active="true"] {
+  .lightsite-editor-image-card-media[data-drag-active="true"] {
     background: color-mix(in oklab, var(--ring) 14%, transparent);
     border-color: color-mix(in oklab, var(--ring) 78%, transparent);
   }
 
-  .lightsite-next-image-card-img {
+  .lightsite-editor-image-card-img {
     @apply block h-auto w-full object-contain;
     border-radius: 10px;
     line-height: 0;
   }
 
-  .lightsite-next-image-card-replace-button {
+  .lightsite-editor-image-card-replace-button {
     @apply block h-auto w-full border-0 bg-transparent p-0 text-left outline-none;
     border-radius: 10px;
     cursor: pointer;
     line-height: 0;
   }
 
-  .lightsite-next-image-card-media[data-has-image-ratio="true"]
-    .lightsite-next-image-card-replace-button {
+  .lightsite-editor-image-card-media[data-has-image-ratio="true"]
+    .lightsite-editor-image-card-replace-button {
     @apply h-full;
   }
 
-  .lightsite-next-image-card-media[data-has-image-ratio="true"]
-    .lightsite-next-image-card-img {
+  .lightsite-editor-image-card-media[data-has-image-ratio="true"]
+    .lightsite-editor-image-card-img {
     @apply h-full object-cover;
   }
 
-  .lightsite-next-image-card-replace-button:hover,
-  .lightsite-next-image-card-replace-button:focus-visible {
+  .lightsite-editor-image-card-replace-button:hover,
+  .lightsite-editor-image-card-replace-button:focus-visible {
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 62%, transparent);
   }
 
-  .lightsite-next-image-card-empty-button {
+  .lightsite-editor-image-card-empty-button {
     min-height: 100%;
     border-radius: 10px;
     padding: 16px;
   }
 
-  .lightsite-next-image-card-media[data-upload-error="true"]
-    .lightsite-next-image-empty-description {
-    color: var(--lightsite-editor-danger);
+  .lightsite-editor-image-card-media[data-upload-error="true"]
+    .lightsite-editor-image-empty-description {
+    color: var(--destructive);
   }
 
-  .lightsite-next-image-card-copy {
-    @apply flex min-w-0 flex-col items-start justify-center;
-    padding: 20px;
-  }
-
-  .lightsite-next-image-card-content {
+  .lightsite-editor-image-card-content {
     @apply w-full;
     cursor: text;
   }
 
-  .lightsite-next-image-card-cta {
-    @apply mt-3 inline-flex h-[30px] w-fit items-center rounded-lg border px-2.5 text-sm font-medium whitespace-nowrap no-underline outline-none transition;
-    background: transparent;
-    border-color: var(--lightsite-editor-border-strong);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-image-card-cta:hover,
+  .lightsite-editor-image-card-cta:focus-visible {
+    background: var(--accent);
+    border-color: var(--border);
+    color: var(--accent-foreground);
   }
 
-  .lightsite-next-image-card-cta:hover,
-  .lightsite-next-image-card-cta:focus-visible {
-    background: var(--lightsite-editor-surface-hover);
-    border-color: color-mix(in oklab, var(--foreground) 28%, var(--background));
-    color: var(--lightsite-editor-fg-strong);
-  }
-
-  .lightsite-next-button-block {
-    @apply inline-flex min-h-8 max-w-full items-center justify-center rounded-lg px-3 text-center text-sm font-medium no-underline outline-none transition;
-    background: var(--primary);
-    color: var(--primary-foreground);
-    cursor: pointer;
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 16%, transparent);
-  }
-
-  .lightsite-next-button-block:hover {
-    background: color-mix(in oklab, var(--primary) 88%, var(--background));
-  }
-
-  .lightsite-next-button-block[data-link-empty="true"] {
+  .lightsite-editor-button-block[data-link-empty="true"] {
     box-shadow:
       0 0 0 1px color-mix(in oklab, var(--primary) 18%, transparent),
       0 0 0 3px color-mix(in oklab, var(--ring) 10%, transparent);
   }
 
-  .lightsite-next-button-block-full {
-    @apply flex min-h-9 w-full;
+  .lightsite-editor-button-block {
+    cursor: pointer;
+    outline: none;
   }
 
-  .lightsite-next-button-label {
+  .lightsite-editor-button-label {
     @apply inline-block min-w-5 max-w-full outline-none;
     cursor: text;
   }
 
-  .lightsite-next-button-settings {
-    @apply fixed z-50 w-[320px] rounded-lg border p-3 shadow-xl;
+  .lightsite-editor-button-settings {
+    @apply fixed z-50 w-[320px] overflow-y-auto rounded-lg border p-3 shadow-xl;
     background: var(--popover);
-    border-color: var(--lightsite-editor-popover-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-button-settings-label {
+  .lightsite-editor-button-settings-label {
     @apply mb-1.5 block text-xs font-medium leading-4;
-    color: color-mix(in oklab, var(--popover-foreground) 62%, var(--popover));
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-button-settings-field + .lightsite-next-button-settings-label {
+  .lightsite-editor-button-settings-field + .lightsite-editor-button-settings-label {
     @apply mt-3;
   }
 
-  .lightsite-next-button-settings-error + .lightsite-next-button-settings-label {
+  .lightsite-editor-button-settings-error + .lightsite-editor-button-settings-label {
     @apply mt-3;
   }
 
-  .lightsite-next-button-settings-field {
+  .lightsite-editor-button-settings-field {
     @apply flex h-9 items-center gap-2 rounded-md border px-2;
-    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover));
-    border-color: var(--lightsite-editor-popover-border);
+    background: var(--input);
+    border-color: var(--border);
   }
 
-  .lightsite-next-button-settings-field-textarea {
+  .lightsite-editor-button-settings-field-textarea {
     @apply h-auto items-start py-2;
   }
 
-  .lightsite-next-button-settings-field:focus-within {
+  .lightsite-editor-button-settings-field:focus-within {
     border-color: color-mix(in oklab, var(--ring) 72%, var(--popover));
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, var(--popover));
   }
 
-  .lightsite-next-button-settings-field svg {
+  .lightsite-editor-button-settings-field svg {
     @apply size-4 shrink-0;
-    color: var(--lightsite-editor-popover-muted);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-button-settings-field input {
+  .lightsite-editor-button-settings-field input {
     @apply h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none;
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-button-settings-field textarea {
+  .lightsite-editor-button-settings-field textarea {
     @apply min-h-16 min-w-0 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-5 outline-none;
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-button-settings-field input::placeholder,
-  .lightsite-next-button-settings-field textarea::placeholder {
-    color: var(--lightsite-editor-popover-faint);
+  .lightsite-editor-button-settings-field input::placeholder,
+  .lightsite-editor-button-settings-field textarea::placeholder {
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-button-settings-error {
+  .lightsite-editor-button-settings-error {
     @apply mt-1 text-xs leading-4;
     color: var(--destructive);
   }
 
-  .lightsite-next-button-settings-toggle {
+  .lightsite-editor-button-settings-toggle {
     @apply mt-3 flex w-full items-center gap-2 rounded-md border-0 bg-transparent px-2 py-2 text-left outline-none transition;
-    color: color-mix(in oklab, var(--popover-foreground) 78%, var(--popover));
-  }
-
-  .lightsite-next-button-settings-toggle:hover,
-  .lightsite-next-button-settings-toggle:focus-visible,
-  .lightsite-next-button-settings-toggle[aria-pressed="true"] {
-    background: var(--lightsite-editor-popover-hover);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-button-settings-toggle > svg {
+  .lightsite-editor-button-settings-toggle:hover,
+  .lightsite-editor-button-settings-toggle:focus-visible,
+  .lightsite-editor-button-settings-toggle[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--popover-foreground);
+  }
+
+  .lightsite-editor-button-settings-toggle > svg {
     @apply size-4 shrink-0;
   }
 
-  .lightsite-next-button-settings-toggle-copy {
+  .lightsite-editor-button-settings-toggle-copy {
     @apply flex min-w-0 flex-1 flex-col;
   }
 
-  .lightsite-next-button-settings-toggle-copy span:first-child {
+  .lightsite-editor-button-settings-toggle-copy span:first-child {
     @apply text-sm font-medium leading-5;
   }
 
-  .lightsite-next-button-settings-toggle-copy span:last-child {
+  .lightsite-editor-button-settings-toggle-copy span:last-child {
     @apply text-xs leading-4;
-    color: var(--lightsite-editor-popover-muted);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-button-settings-switch {
+  .lightsite-editor-button-settings-switch {
     @apply relative h-5 w-9 shrink-0 rounded-full transition;
-    background: color-mix(in oklab, var(--popover-foreground) 18%, var(--popover));
+    background: var(--input);
   }
 
-  .lightsite-next-button-settings-switch::after {
+  .lightsite-editor-button-settings-switch::after {
     content: "";
     @apply absolute top-0.5 left-0.5 size-4 rounded-full transition;
     background: var(--popover);
   }
 
-  .lightsite-next-button-settings-switch-on {
+  .lightsite-editor-button-settings-switch-on {
     background: var(--primary);
   }
 
-  .lightsite-next-button-settings-switch-on::after {
+  .lightsite-editor-button-settings-switch-on::after {
     transform: translateX(16px);
   }
 
-  .lightsite-next-button-settings-actions {
+  .lightsite-editor-button-settings-actions {
     @apply mt-3 flex justify-end gap-1;
   }
 
-  .lightsite-next-button-settings-action {
+  .lightsite-editor-button-settings-action {
     @apply h-8 rounded-md border-0 bg-transparent px-2.5 text-sm font-medium outline-none transition;
-    color: color-mix(in oklab, var(--popover-foreground) 62%, var(--popover));
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-button-settings-action:hover,
-  .lightsite-next-button-settings-action:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--popover-foreground);
+  .lightsite-editor-button-settings-action:hover,
+  .lightsite-editor-button-settings-action:focus-visible {
+    background: var(--accent);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-button-settings-action-primary {
+  .lightsite-editor-button-settings-action-primary {
     background: var(--primary);
     color: var(--primary-foreground);
   }
 
-  .lightsite-next-button-settings-action-primary:hover,
-  .lightsite-next-button-settings-action-primary:focus-visible {
+  .lightsite-editor-button-settings-action-primary:hover,
+  .lightsite-editor-button-settings-action-primary:focus-visible {
     background: color-mix(in oklab, var(--primary) 88%, var(--background));
     color: var(--primary-foreground);
   }
 
-  @container (max-width: 520px) {
-    .lightsite-next-image-card {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 0;
-    }
-
-    .lightsite-next-image-card-copy {
-      min-height: 80px;
-      padding: 16px;
-    }
-  }
-
-  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li {
+  .lightsite-editor .ProseMirror ul[data-type="taskList"] > li {
     @apply flex items-start gap-2;
   }
 
-  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li > label {
+  .lightsite-editor .ProseMirror ul[data-type="taskList"] > li > label {
     @apply flex h-[26px] shrink-0 items-center;
   }
 
-  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li > label input {
+  .lightsite-editor .ProseMirror ul[data-type="taskList"] > li > label input {
     @apply size-4 cursor-pointer rounded border;
     accent-color: var(--ring);
   }
 
-  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li > div {
+  .lightsite-editor .ProseMirror ul[data-type="taskList"] > li > div {
     @apply min-w-0 flex-1;
   }
 
-  .lightsite-editor-next .ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div {
-    color: var(--lightsite-editor-fg-muted);
+  .lightsite-editor .ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div {
+    color: var(--tertiary-foreground);
     text-decoration: line-through;
   }
 
-  .lightsite-editor-next .ProseMirror a {
+  .lightsite-editor .ProseMirror a {
     @apply underline underline-offset-2;
-    color: var(--lightsite-editor-link);
+    color: var(--chart-1);
   }
 
-  .lightsite-editor-next .ProseMirror a.lightsite-next-image-card-cta {
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor .ProseMirror a.lightsite-editor-image-card-cta {
+    color: var(--foreground);
     text-decoration-line: none;
   }
 
-  .lightsite-editor-next .ProseMirror code {
+  .lightsite-editor .ProseMirror code {
     @apply inline rounded-md border px-1.5 py-0.5 font-mono text-[0.875em] font-medium tracking-normal;
-    background: color-mix(in oklab, var(--foreground) 8%, transparent);
-    border-color: var(--lightsite-editor-border);
-    color: var(--lightsite-editor-fg-strong);
+    background: var(--muted);
+    border-color: var(--border);
+    color: var(--foreground);
     line-height: calc(1em + 4px);
   }
 
-  .lightsite-editor-next .ProseMirror > blockquote {
+  .lightsite-editor .ProseMirror > blockquote {
     @apply border-l-4 py-1.5 pr-0 pl-4 text-base leading-[26px];
-    border-color: var(--lightsite-editor-border-strong);
-    color: var(--lightsite-editor-fg-soft);
+    border-color: var(--border);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-editor-next .ProseMirror > blockquote p {
+  .lightsite-editor .ProseMirror > blockquote p {
     @apply m-0;
   }
 
-  .lightsite-editor-next .ProseMirror > pre {
+  .lightsite-editor .ProseMirror > pre {
     @apply overflow-x-auto rounded-md border px-4 py-4 text-sm leading-6;
-    background: var(--lightsite-editor-surface-muted);
-    border-color: var(--lightsite-editor-border);
-    color: var(--lightsite-editor-fg);
+    background: var(--muted);
+    border-color: var(--border);
+    color: var(--foreground);
   }
 
-  .lightsite-editor-next .ProseMirror > pre code {
+  .lightsite-editor .ProseMirror > pre code {
     @apply block rounded-none border-0 bg-transparent p-0 text-[inherit] font-normal;
     color: inherit;
     line-height: inherit;
   }
 
-  .lightsite-editor-next .ProseMirror > hr {
+  .lightsite-editor .ProseMirror > hr {
     @apply h-6 border-0 p-0;
     background: linear-gradient(
       to bottom,
       transparent calc(50% - 0.5px),
-      var(--lightsite-editor-border) calc(50% - 0.5px),
-      var(--lightsite-editor-border) calc(50% + 0.5px),
+      var(--border) calc(50% - 0.5px),
+      var(--border) calc(50% + 0.5px),
       transparent calc(50% + 0.5px)
     );
     margin-top: 36px;
     margin-bottom: 0;
   }
 
-  .lightsite-editor-next .ProseMirror > hr.ProseMirror-selectednode,
-  .lightsite-editor-next .ProseMirror > hr.ProseMirror-selectednoderange {
+  .lightsite-editor .ProseMirror > hr.ProseMirror-selectednode,
+  .lightsite-editor .ProseMirror > hr.ProseMirror-selectednoderange {
     background:
       linear-gradient(
         to bottom,
         transparent calc(50% - 0.5px),
-        var(--lightsite-editor-border) calc(50% - 0.5px),
-        var(--lightsite-editor-border) calc(50% + 0.5px),
+        var(--border) calc(50% - 0.5px),
+        var(--border) calc(50% + 0.5px),
         transparent calc(50% + 0.5px)
       ),
-      var(--lightsite-editor-selection);
+      var(--selection-background);
   }
 
-  .lightsite-editor-next .is-empty::before {
+  .lightsite-editor .is-empty::before {
     content: attr(data-placeholder);
     @apply pointer-events-none float-left h-0;
-    color: var(--lightsite-editor-fg-faint);
+    color: var(--muted-faint);
   }
 
-  .lightsite-editor-next[data-editor-next-mode="preview"] .is-empty::before,
-  .lightsite-editor-next[data-editor-next-mode="preview"]
-    .lightsite-next-card-placeholder-empty::before,
-  .lightsite-editor-next[data-editor-next-mode="preview"]
+  .lightsite-editor[data-editor-mode="preview"] .is-empty::before,
+  .lightsite-editor[data-editor-mode="preview"]
+    .lightsite-editor-card-placeholder-empty::before,
+  .lightsite-editor[data-editor-mode="preview"]
     [data-lightsite-logo-grid-title].is-empty::before {
     content: none;
     display: none;
   }
 
-  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror {
+  .lightsite-editor[data-editor-mode="preview"] .ProseMirror {
     cursor: default;
     user-select: text;
   }
 
-  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror-selectednode,
-  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror-selectednoderange,
-  .lightsite-editor-next[data-editor-next-mode="preview"] .has-focus {
+  .lightsite-editor[data-editor-mode="preview"] .ProseMirror-selectednode,
+  .lightsite-editor[data-editor-mode="preview"] .ProseMirror-selectednoderange,
+  .lightsite-editor[data-editor-mode="preview"] .has-focus {
     background: transparent;
   }
 
-  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror > [data-lightsite-gif-empty],
-  .lightsite-editor-next[data-editor-next-mode="preview"] .ProseMirror > [data-lightsite-image-empty],
-  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-image-card-media:not([data-has-image="true"]),
-  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-calendar-embed-empty,
-  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-video-embed-empty {
+  .lightsite-editor[data-editor-mode="preview"] .ProseMirror > [data-lightsite-gif-empty],
+  .lightsite-editor[data-editor-mode="preview"] .ProseMirror > [data-lightsite-image-empty],
+  .lightsite-editor[data-editor-mode="preview"] .lightsite-editor-image-card-media:not([data-has-image="true"]),
+  .lightsite-editor[data-editor-mode="preview"] .lightsite-editor-calendar-embed-empty,
+  .lightsite-editor[data-editor-mode="preview"] .lightsite-editor-video-embed-empty {
     display: none;
   }
 
-  .lightsite-editor-next[data-editor-next-mode="preview"] [data-resize-handle],
-  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-image-card-replace-button:hover,
-  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-image-card-replace-button:focus-visible {
+  .lightsite-editor[data-editor-mode="preview"] [data-resize-handle],
+  .lightsite-editor[data-editor-mode="preview"] .lightsite-editor-image-card-replace-button:hover,
+  .lightsite-editor[data-editor-mode="preview"] .lightsite-editor-image-card-replace-button:focus-visible {
     box-shadow: none;
   }
 
-  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-button-block,
-  .lightsite-editor-next[data-editor-next-mode="preview"] .lightsite-next-button-label {
+  .lightsite-editor[data-editor-mode="preview"] .lightsite-editor-button-block,
+  .lightsite-editor[data-editor-mode="preview"] .lightsite-editor-button-label {
     cursor: pointer;
   }
 
-  .lightsite-editor-next .lightsite-next-card-placeholder-empty::before {
-    color: var(--lightsite-editor-fg-muted);
+  .lightsite-editor .lightsite-editor-card-placeholder-empty::before {
+    color: var(--muted-faint);
   }
 
-  .lightsite-editor-next
-    .lightsite-next-logo-grid-title-content
+  .lightsite-editor
+    .lightsite-editor-logo-grid-title-content
     [data-lightsite-logo-grid-title].is-empty::before {
     display: block;
     float: none;
     height: 0;
     text-align: center;
-    color: var(--muted-foreground);
+    color: var(--muted-faint);
   }
 
-  .lightsite-editor-next .ProseMirror-selectednode,
-  .lightsite-editor-next .ProseMirror-selectednoderange {
+  .lightsite-editor .ProseMirror-selectednode,
+  .lightsite-editor .ProseMirror-selectednoderange {
     @apply rounded-lg outline-none;
-    background: var(--lightsite-editor-selection);
+    background: var(--selection-background);
   }
 
-  .lightsite-editor-next .ProseMirror-noderangeselection::selection {
+  .lightsite-editor .ProseMirror-noderangeselection::selection {
     background: transparent;
   }
 
-  .lightsite-editor-next .has-focus:not(.ProseMirror-selectednode):not(.ProseMirror-selectednoderange) {
+  .lightsite-editor .has-focus:not(.ProseMirror-selectednode):not(.ProseMirror-selectednoderange) {
     background: transparent;
   }
 
-  .lightsite-editor-next .ProseMirror-dropcursor {
-    border-color: var(--lightsite-editor-drop);
+  .lightsite-editor .ProseMirror-dropcursor {
+    border-color: var(--selection-border);
     border-width: 1px;
   }
 
-  .lightsite-editor-next .lightsite-next-marquee-active {
+  .lightsite-editor .lightsite-editor-marquee-active {
     @apply cursor-default select-none;
   }
 
-  .lightsite-next-marquee-box {
+  .lightsite-editor-marquee-box {
     @apply pointer-events-none fixed z-40 rounded-sm border;
-    background: rgba(199, 210, 254, 0.22);
-    border-color: rgba(67, 56, 202, 0.95);
-    box-shadow: 0 0 0 1px rgba(199, 210, 254, 0.12);
+    background: var(--selection-background);
+    border-color: var(--selection-border);
+    box-shadow: 0 0 0 1px var(--selection-background);
   }
 
-  .lightsite-next-hero-content > h1 {
+  .lightsite-editor-hero-content > h1 {
     @apply m-0 text-[38px] leading-[42px] font-medium tracking-normal;
   }
 
-  .lightsite-next-hero-content > p {
+  .lightsite-editor-hero-content > p {
     @apply mt-3 text-base leading-6 text-muted-foreground;
   }
 
-  .lightsite-next-card-content :where(h1, h2) {
-    @apply m-0 text-base leading-6 font-medium tracking-normal;
-  }
-
-  .lightsite-next-card-content :where(h3),
-  .lightsite-next-card-content [data-lightsite-icon-card-title],
-  .lightsite-next-card-content [data-lightsite-image-card-title] {
-    @apply m-0 text-base leading-6 font-semibold tracking-normal;
-    color: var(--lightsite-editor-fg-strong);
-  }
-
-  .lightsite-next-card-content :where(p),
-  .lightsite-next-card-content [data-lightsite-icon-card-body] {
-    @apply m-0 text-sm leading-5;
-    color: var(--lightsite-editor-fg-soft);
-  }
-
-  .lightsite-next-card-content [data-lightsite-image-card-body] {
-    @apply m-0 text-sm leading-6 tracking-normal;
-    color: var(--lightsite-editor-fg-soft);
-  }
-
-  .lightsite-editor-next .lightsite-next-image-card-cta {
+  .lightsite-editor .lightsite-editor-image-card-cta {
     text-decoration-line: none;
   }
 
-  .lightsite-next-variable-wrapper {
+  .lightsite-editor-variable-wrapper {
     @apply relative inline-flex align-baseline;
   }
 
-  .lightsite-next-variable-token {
-    @apply inline-flex h-[1.45em] max-w-[280px] items-center gap-1 rounded-md border px-1.5 align-baseline text-[0.92em] font-medium outline-none transition;
+  .lightsite-editor-variable-token {
+    @apply inline-flex h-[1.45em] max-w-[280px] items-center gap-1 rounded-md border px-1 align-baseline text-[0.92em] font-medium outline-none transition;
     background: var(--variable-background);
-    border-color: color-mix(in oklab, var(--variable-foreground) 18%, transparent);
+    border-color: var(--variable-border);
     color: var(--variable-foreground);
     font: inherit;
     line-height: inherit;
   }
 
-  .lightsite-next-variable-token:hover,
-  .lightsite-next-variable-token:focus-visible {
-    background: color-mix(in oklab, var(--variable-background) 78%, var(--variable-foreground));
+  .lightsite-editor-variable-token:hover,
+  .lightsite-editor-variable-token:focus-visible {
+    background: var(--variable-background-hover);
   }
 
-  .lightsite-next-variable-token[data-missing="true"] {
-    color: color-mix(in oklab, var(--variable-foreground) 72%, var(--background));
-  }
-
-  .lightsite-next-variable-token svg {
+  .lightsite-editor-variable-token svg {
     @apply size-3.5 shrink-0;
   }
 
-  .lightsite-next-variable-token span {
+  .lightsite-editor-variable-token span {
     @apply truncate;
   }
 
-  .lightsite-next-variable-popover {
+  .lightsite-editor-variable-popover {
     @apply absolute top-[calc(100%+6px)] left-0 z-50 grid w-[320px] gap-3 rounded-lg border p-3 text-sm shadow-xl;
     background: var(--popover);
-    border-color: var(--lightsite-editor-popover-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-variable-popover-header {
+  .lightsite-editor-variable-popover-header {
     @apply flex min-w-0 items-center justify-between gap-2;
   }
 
-  .lightsite-next-variable-popover-title {
+  .lightsite-editor-variable-popover-title {
     @apply inline-flex min-w-0 items-center gap-1.5 text-sm font-semibold leading-5;
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-variable-popover-title svg {
+  .lightsite-editor-variable-popover-title svg {
     @apply size-4 shrink-0;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-variable-popover-delete {
+  .lightsite-editor-variable-popover-delete {
     @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-xs font-medium outline-none transition;
     color: var(--destructive);
   }
 
-  .lightsite-next-variable-popover-delete:hover,
-  .lightsite-next-variable-popover-delete:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
+  .lightsite-editor-variable-popover-delete:hover,
+  .lightsite-editor-variable-popover-delete:focus-visible {
+    background: var(--accent);
   }
 
-  .lightsite-next-variable-popover-delete svg {
+  .lightsite-editor-variable-popover-delete svg {
     @apply size-3.5;
   }
 
-  .lightsite-next-variable-field {
+  .lightsite-editor-variable-field {
     @apply grid gap-1.5 text-xs font-medium;
-    color: color-mix(in oklab, var(--popover-foreground) 62%, var(--popover));
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-variable-control[data-slot] {
+  .lightsite-editor-variable-control[data-slot] {
     border-radius: var(--radius-md) !important;
-    border-color: var(--lightsite-editor-popover-border) !important;
-    background: color-mix(in oklab, var(--popover-foreground) 5%, var(--popover)) !important;
+    border-color: var(--border) !important;
+    background: var(--input) !important;
     color: var(--popover-foreground) !important;
     box-shadow: none !important;
     font-size: 0.875rem !important;
   }
 
-  .lightsite-next-variable-control[data-slot="input"] {
+  .lightsite-editor-variable-control[data-slot="input"] {
     height: 36px !important;
     padding: 0 8px !important;
   }
 
-  .lightsite-next-variable-control[data-slot="textarea"] {
+  .lightsite-editor-variable-control[data-slot="textarea"] {
     padding: 8px !important;
   }
 
-  .lightsite-next-variable-control[data-slot]::placeholder {
-    color: var(--lightsite-editor-popover-faint);
+  .lightsite-editor-variable-control[data-slot]::placeholder {
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-variable-control[data-slot]:focus,
-  .lightsite-next-variable-control[data-slot]:focus-visible {
+  .lightsite-editor-variable-control[data-slot]:focus,
+  .lightsite-editor-variable-control[data-slot]:focus-visible {
     border-color: color-mix(in oklab, var(--ring) 72%, var(--popover)) !important;
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, var(--popover)) !important;
   }
 
-  .lightsite-next-variable-popover-actions {
+  .lightsite-editor-variable-popover-actions {
     @apply flex justify-end gap-1.5;
   }
 
-  .lightsite-next-variable-popover-note {
+  .lightsite-editor-variable-popover-note {
     @apply text-sm;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-variable-create {
-    @apply fixed z-50 w-[416px] rounded-lg border p-3 text-sm shadow-xl;
+  .lightsite-editor-variable-create {
+    @apply fixed z-50 w-[416px] overflow-y-auto rounded-lg border p-3 text-sm shadow-xl;
     background: var(--popover);
-    border-color: var(--lightsite-editor-popover-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-variable-cancel[data-slot="button"] {
-    color: var(--lightsite-editor-fg-muted);
+  .lightsite-editor-variable-cancel[data-slot="button"] {
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-variable-cancel[data-slot="button"]:hover,
-  .lightsite-next-variable-cancel[data-slot="button"]:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--popover-foreground);
+  .lightsite-editor-variable-cancel[data-slot="button"]:hover,
+  .lightsite-editor-variable-cancel[data-slot="button"]:focus-visible {
+    background: var(--accent);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-variable-create-header {
+  .lightsite-editor-variable-create-header {
     @apply flex items-center gap-1.5 text-sm font-medium;
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-variable-create-header svg {
+  .lightsite-editor-variable-create-header svg {
     @apply size-4;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-variable-create-description {
+  .lightsite-editor-variable-create-description {
     @apply -mt-1 text-sm leading-5;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-variable-create-error {
+  .lightsite-editor-variable-create-error {
     @apply text-xs leading-4;
     color: var(--destructive);
   }
 
-  .lightsite-next-drag-handle {
+  .lightsite-editor-drag-handle {
     @apply z-50 flex h-8 w-12 -translate-x-0.5 cursor-grab items-center justify-start rounded-md bg-transparent active:cursor-grabbing;
-    color: var(--lightsite-editor-fg-faint);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-side-button {
+  .lightsite-editor-side-button {
     @apply flex size-6 items-center justify-center rounded-md border-0 bg-transparent p-0 opacity-70 transition-opacity;
     color: inherit;
   }
 
-  .lightsite-next-side-button:hover,
-  .lightsite-next-side-button:focus-visible {
-    background: var(--lightsite-editor-surface-hover);
-    color: var(--lightsite-editor-fg);
+  .lightsite-editor-side-button:hover,
+  .lightsite-editor-side-button:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
     opacity: 1;
   }
 
-  .lightsite-next-side-button svg {
+  .lightsite-editor-side-button svg {
     @apply size-3.5;
   }
 
-  .lightsite-next-block-menu {
+  .lightsite-editor-block-menu {
     @apply fixed z-50 max-h-[min(480px,calc(100vh-24px))] w-[278px] overflow-y-auto rounded-lg border p-1 shadow-xl;
     background: var(--popover);
-    border-color: var(--lightsite-editor-popover-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-block-menu-label {
+  .lightsite-editor-block-menu-label {
     @apply px-2 py-1.5 text-xs font-medium leading-4;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-block-menu-item {
+  .lightsite-editor-block-menu-item {
     @apply flex min-h-8 w-full items-center gap-1.5 rounded-md border-0 bg-transparent px-2 py-1.5 text-left outline-none;
-    color: var(--lightsite-editor-fg);
+    color: var(--foreground);
   }
 
-  .lightsite-next-block-menu-item:hover,
-  .lightsite-next-block-menu-item:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-block-menu-item:hover,
+  .lightsite-editor-block-menu-item:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-block-menu-item[data-active="true"] {
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-block-menu-item[data-active="true"] {
+    color: var(--foreground);
   }
 
-  .lightsite-next-block-menu-item svg {
+  .lightsite-editor-block-menu-item svg {
     @apply size-4 shrink-0;
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-block-menu-item-copy {
+  .lightsite-editor-block-menu-item-copy {
     @apply flex min-w-0 flex-1 items-center;
   }
 
-  .lightsite-next-block-menu-item-label {
-    @apply truncate text-sm font-medium leading-5;
+  .lightsite-editor-block-menu-item-label {
+    @apply truncate text-sm leading-5;
   }
 
-  .lightsite-next-block-menu-item-check {
+  .lightsite-editor-block-menu-item-check {
     color: var(--ring);
   }
 
-  .lightsite-next-block-menu-switch {
+  .lightsite-editor-block-menu-switch {
     @apply relative h-5 w-9 shrink-0 rounded-full transition;
-    background: var(--lightsite-editor-popover-border);
+    background: var(--border);
   }
 
-  .lightsite-next-block-menu-switch::after {
+  .lightsite-editor-block-menu-switch::after {
     content: "";
     @apply absolute top-0.5 left-0.5 size-4 rounded-full transition;
     background: var(--popover);
-    box-shadow: 0 0 0 1px var(--lightsite-editor-popover-border);
+    box-shadow: 0 0 0 1px var(--border);
   }
 
-  .lightsite-next-block-menu-switch-on {
+  .lightsite-editor-block-menu-switch-on {
     background: var(--primary);
   }
 
-  .lightsite-next-block-menu-switch-on::after {
+  .lightsite-editor-block-menu-switch-on::after {
     transform: translateX(16px);
   }
 
-  .lightsite-next-block-menu-item-danger {
+  .lightsite-editor-block-menu-item-danger {
     color: var(--destructive);
   }
 
-  .lightsite-next-block-menu-item-danger:hover,
-  .lightsite-next-block-menu-item-danger:focus-visible {
+  .lightsite-editor-block-menu-item-danger:hover,
+  .lightsite-editor-block-menu-item-danger:focus-visible {
     color: var(--destructive);
   }
 
-  .lightsite-next-block-menu-separator {
+  .lightsite-editor-block-menu-item-danger svg {
+    color: var(--destructive);
+  }
+
+  .lightsite-editor-block-menu-separator {
     @apply my-1 h-px;
-    background: var(--lightsite-editor-popover-separator);
+    background: var(--border-subtle);
   }
 
-  .lightsite-next-block-menu-url-form {
+  .lightsite-editor-block-menu-url-form {
     @apply px-2 py-2;
   }
 
-  .lightsite-next-block-menu-url-input {
+  .lightsite-editor-block-menu-url-input {
     @apply h-8 w-full rounded-md border bg-transparent px-2 text-sm outline-none;
-    border-color: var(--lightsite-editor-popover-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-block-menu-url-input::placeholder {
-    color: var(--lightsite-editor-fg-faint);
+  .lightsite-editor-block-menu-url-input::placeholder {
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-block-menu-url-input:focus-visible {
+  .lightsite-editor-block-menu-url-input:focus-visible {
     border-color: color-mix(in oklab, var(--ring) 70%, transparent);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 20%, transparent);
   }
 
-  .lightsite-next-block-menu-url-error {
+  .lightsite-editor-block-menu-url-error {
     @apply mt-1 text-xs leading-4;
     color: var(--destructive);
   }
 
-  .lightsite-next-block-menu-url-actions {
+  .lightsite-editor-block-menu-url-actions {
     @apply mt-2 flex items-center justify-end gap-1;
   }
 
-  .lightsite-next-block-menu-url-button {
+  .lightsite-editor-block-menu-url-button {
     @apply h-7 rounded-md border-0 bg-transparent px-2 text-xs font-medium outline-none;
-    color: var(--lightsite-editor-fg-soft);
+    color: var(--muted-foreground);
   }
 
-  .lightsite-next-block-menu-url-button:hover,
-  .lightsite-next-block-menu-url-button:focus-visible {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-block-menu-url-button-cancel {
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-bubble-menu-shell {
+  .lightsite-editor-block-menu-url-button:hover,
+  .lightsite-editor-block-menu-url-button:focus-visible {
+    background: var(--accent);
+    color: var(--foreground);
+  }
+
+  .lightsite-editor-block-menu-url-button-cancel:hover,
+  .lightsite-editor-block-menu-url-button-cancel:focus-visible {
+    color: var(--tertiary-foreground);
+  }
+
+  .lightsite-editor-bubble-menu-shell {
     @apply relative;
   }
 
-  .lightsite-next-bubble-menu {
+  .lightsite-editor-bubble-menu {
     @apply flex items-center gap-0.5 rounded-lg bg-popover p-1 text-popover-foreground shadow-xl ring-1 ring-foreground/10;
   }
 
-  .lightsite-next-bubble-menu-separator {
+  .lightsite-editor-bubble-menu-separator {
     @apply mx-0.5 h-5 w-px;
-    background: var(--lightsite-editor-popover-separator);
+    background: var(--border-subtle);
   }
 
-  .lightsite-next-color-trigger-glyph {
+  .lightsite-editor-color-trigger-glyph {
     @apply relative flex size-5 items-center justify-center rounded-full text-sm font-medium leading-none;
-    color: var(--lightsite-next-current-text-color);
-    background: var(--lightsite-next-current-highlight-color);
+    color: var(--lightsite-editor-current-text-color);
+    background: var(--lightsite-editor-current-highlight-color);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 80%, transparent);
   }
 
-  .lightsite-next-bubble-panel {
+  .lightsite-editor-bubble-panel {
     @apply absolute top-[calc(100%+6px)] z-50 max-h-[min(420px,calc(100vh-24px))] overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-xl ring-1 ring-foreground/10;
   }
 
-  .lightsite-next-bubble-panel-type,
-  .lightsite-next-bubble-panel-more {
+  .lightsite-editor-bubble-panel-type,
+  .lightsite-editor-bubble-panel-more {
     @apply left-0 w-[278px];
   }
 
-  .lightsite-next-bubble-panel-row {
+  .lightsite-editor-bubble-panel-row {
     @apply flex min-h-8 w-full items-center gap-1.5 rounded-md border-0 bg-transparent px-2 py-1.5 text-left text-popover-foreground/80 outline-none transition-colors;
   }
 
-  .lightsite-next-bubble-panel-row:hover,
-  .lightsite-next-bubble-panel-row:focus-visible,
-  .lightsite-next-bubble-panel-row[data-active="true"] {
+  .lightsite-editor-bubble-panel-row:hover,
+  .lightsite-editor-bubble-panel-row:focus-visible,
+  .lightsite-editor-bubble-panel-row[data-active="true"] {
     @apply bg-accent text-accent-foreground;
   }
 
-  .lightsite-next-bubble-panel-row:disabled {
+  .lightsite-editor-bubble-panel-row:disabled {
     @apply cursor-default opacity-45;
   }
 
-  .lightsite-next-bubble-panel-row-icon {
+  .lightsite-editor-bubble-panel-row-icon {
     @apply size-4 shrink-0;
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-bubble-panel-row-copy {
+  .lightsite-editor-bubble-panel-row-copy {
     @apply flex min-w-0 flex-1 items-center;
   }
 
-  .lightsite-next-bubble-panel-row-label {
-    @apply truncate text-sm font-medium leading-5;
+  .lightsite-editor-bubble-panel-row-label {
+    @apply truncate text-sm leading-5;
   }
 
-  .lightsite-next-bubble-panel-row-check {
+  .lightsite-editor-bubble-panel-row-check {
     @apply size-4 shrink-0;
     color: var(--ring);
   }
 
-  .lightsite-next-color-panel {
+  .lightsite-editor-color-panel {
     @apply right-0 w-[196px] p-3;
   }
 
-  .lightsite-next-color-section + .lightsite-next-color-section {
+  .lightsite-editor-color-section + .lightsite-editor-color-section {
     @apply mt-4;
   }
 
-  .lightsite-next-color-section-label {
+  .lightsite-editor-color-section-label {
     @apply mb-2 text-xs font-medium leading-4 text-muted-foreground;
   }
 
-  .lightsite-next-color-grid {
+  .lightsite-editor-color-grid {
     @apply grid gap-2;
     grid-template-columns: repeat(5, 1.75rem);
   }
 
-  .lightsite-next-text-color-button,
-  .lightsite-next-highlight-color-button {
+  .lightsite-editor-text-color-button,
+  .lightsite-editor-highlight-color-button {
     @apply flex size-7 items-center justify-center rounded-full border-0 bg-transparent p-0 text-sm font-medium outline-none transition;
   }
 
-  .lightsite-next-text-color-button {
-    color: var(--lightsite-next-color-value);
-    box-shadow: inset 0 0 0 1.5px var(--lightsite-next-color-ring);
+  .lightsite-editor-text-color-button {
+    color: var(--lightsite-editor-color-value);
+    box-shadow: inset 0 0 0 1.5px var(--lightsite-editor-color-ring);
   }
 
-  .lightsite-next-highlight-color-button {
-    background: var(--lightsite-next-highlight-swatch);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 12%, transparent);
+  .lightsite-editor-highlight-color-button {
+    background: var(--lightsite-editor-highlight-swatch);
+    box-shadow: inset 0 0 0 1px var(--lightsite-editor-highlight-border);
   }
 
-  .lightsite-next-highlight-color-button[data-empty="true"] {
+  .lightsite-editor-highlight-color-button[data-empty="true"] {
     @apply relative overflow-hidden;
     background: transparent;
     box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--popover-foreground) 54%, transparent);
   }
 
-  .lightsite-next-highlight-color-button[data-empty="true"]::after {
+  .lightsite-editor-highlight-color-button[data-empty="true"]::after {
     content: "";
     @apply absolute left-1/2 top-1/2 h-px w-5 -translate-x-1/2 -translate-y-1/2 rotate-[-35deg] rounded-full;
     background: var(--border);
   }
 
-  .lightsite-next-text-color-button:hover,
-  .lightsite-next-text-color-button:focus-visible,
-  .lightsite-next-text-color-button[data-active="true"],
-  .lightsite-next-highlight-color-button:hover,
-  .lightsite-next-highlight-color-button:focus-visible,
-  .lightsite-next-highlight-color-button[data-active="true"] {
+  .lightsite-editor-text-color-button:hover,
+  .lightsite-editor-text-color-button:focus-visible,
+  .lightsite-editor-text-color-button[data-active="true"],
+  .lightsite-editor-highlight-color-button:hover,
+  .lightsite-editor-highlight-color-button:focus-visible,
+  .lightsite-editor-highlight-color-button[data-active="true"] {
     box-shadow:
       0 0 0 2px var(--popover),
       0 0 0 4px color-mix(in oklab, var(--ring) 70%, transparent);
   }
 
-  .lightsite-next-link-panel {
+  .lightsite-editor-link-panel {
     @apply left-1/2 w-[300px] -translate-x-1/2;
   }
 
-  .lightsite-next-link-panel-label {
+  .lightsite-editor-link-panel-label {
     @apply mb-1.5 block px-1 text-xs font-medium text-muted-foreground;
   }
 
-  .lightsite-next-link-panel-field {
+  .lightsite-editor-link-panel-field {
     @apply h-10 rounded-lg border-border bg-muted/50;
   }
 
-  .lightsite-next-link-editor-icon {
+  .lightsite-editor-link-editor-icon {
     @apply size-4 shrink-0 text-muted-foreground;
   }
 
-  .lightsite-next-link-panel-actions {
+  .lightsite-editor-link-panel-actions {
     @apply mt-2 flex items-center justify-end gap-1;
   }
 
-  .lightsite-next-suggestion-menu {
+  .lightsite-editor-suggestion-menu {
     @apply flex max-h-72 w-[300px] flex-col gap-0.5 overflow-auto rounded-lg border p-1 shadow-xl;
     background: var(--popover);
-    border-color: var(--lightsite-editor-popover-border);
+    border-color: var(--border);
     color: var(--popover-foreground);
   }
 
-  .lightsite-next-suggestion-category {
+  .lightsite-editor-suggestion-category {
     @apply px-2 py-1.5 text-xs font-medium leading-4;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-suggestion-category[data-separated="true"] {
+  .lightsite-editor-suggestion-category[data-separated="true"] {
     @apply mt-1 pt-2;
-    border-top: 1px solid var(--lightsite-editor-popover-border);
+    border-top: 1px solid var(--border);
   }
 
-  .lightsite-next-suggestion-item {
+  .lightsite-editor-suggestion-item {
     @apply flex min-h-8 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left outline-none;
-    color: var(--lightsite-editor-fg);
+    color: var(--foreground);
   }
 
-  .lightsite-next-suggestion-leading {
+  .lightsite-editor-suggestion-leading {
     @apply flex size-5 shrink-0 items-center justify-center text-base leading-none;
   }
 
-  .lightsite-next-suggestion-icon {
+  .lightsite-editor-suggestion-icon {
     @apply flex size-4 shrink-0 items-center justify-center;
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-suggestion-icon svg {
+  .lightsite-editor-suggestion-icon svg {
     @apply size-4;
   }
 
-  .lightsite-next-suggestion-copy {
+  .lightsite-editor-suggestion-copy {
     @apply flex min-w-0 flex-1 items-center;
   }
 
-  .lightsite-next-suggestion-item:hover,
-  .lightsite-next-suggestion-item:focus-visible,
-  .lightsite-next-suggestion-item[data-active="true"] {
-    background: var(--lightsite-editor-popover-hover);
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-suggestion-item:hover,
+  .lightsite-editor-suggestion-item:focus-visible,
+  .lightsite-editor-suggestion-item[data-active="true"] {
+    background: var(--accent);
+    color: var(--foreground);
   }
 
-  .lightsite-next-suggestion-item[data-tone="primary"] {
-    color: var(--lightsite-editor-fg-strong);
+  .lightsite-editor-suggestion-item[data-tone="primary"] {
+    color: var(--foreground);
   }
 
-  .lightsite-next-suggestion-item[data-tone="primary"] .lightsite-next-suggestion-icon {
-    @apply rounded-md;
-    background: var(--primary);
-    color: var(--primary-foreground);
+  .lightsite-editor-suggestion-item[data-tone="primary"] .lightsite-editor-suggestion-icon {
+    color: var(--tertiary-foreground);
   }
 
-  .lightsite-next-suggestion-item[data-tone="primary"] .lightsite-next-suggestion-icon svg {
-    @apply size-3.5;
-  }
-
-  .lightsite-next-suggestion-item[data-tone="variable"] .lightsite-next-suggestion-icon {
-    color: var(--variable-foreground);
-  }
-
-  .dark .lightsite-next-suggestion-item[data-tone="variable"] .lightsite-next-suggestion-icon {
-    color: var(--variable-background);
-  }
-
-  .lightsite-next-suggestion-item[data-tone="variable"] .lightsite-next-suggestion-icon svg {
+  .lightsite-editor-suggestion-item[data-tone="primary"] .lightsite-editor-suggestion-icon svg {
     @apply size-4;
   }
 
-  .lightsite-next-suggestion-label {
-    @apply text-sm font-medium leading-5;
+  .lightsite-editor-suggestion-item[data-tone="variable"] .lightsite-editor-suggestion-icon {
+    color: var(--variable-foreground);
   }
 
-  .lightsite-next-suggestion-empty {
+  .lightsite-editor-suggestion-item[data-tone="variable"] .lightsite-editor-suggestion-icon svg {
+    @apply size-4;
+  }
+
+  .lightsite-editor-suggestion-label {
+    @apply text-sm leading-5;
+  }
+
+  .lightsite-editor-suggestion-empty {
     @apply text-xs leading-4;
-    color: var(--lightsite-editor-fg-muted);
+    color: var(--tertiary-foreground);
   }
 }

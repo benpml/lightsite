@@ -18,11 +18,15 @@ export const devWorkspace = {
   name: "Lightsite Dev",
   slug: "lightsite-dev",
   websiteDomain: "lightsite.app",
-  plan: "pro",
+  plan: "core",
 } as const;
 
 export function isDevAuthBypassRequest(request: Request) {
   return isDevAuthBypassEnabled() && request.header(DEV_AUTH_BYPASS_HEADER) === "1";
+}
+
+export function isDevAuthBypassHeaders(headers: Headers) {
+  return isDevAuthBypassEnabled() && headers.get(DEV_AUTH_BYPASS_HEADER) === "1";
 }
 
 export function isDevAuthBypassEnabled() {

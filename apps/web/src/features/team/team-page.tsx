@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { LIGHTSITE_TEXT_LIMITS } from "@lightsite/domain"
 import {
   IconDotsVertical,
   IconMailForward,
@@ -228,7 +229,12 @@ function InviteUserDialog() {
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="invite-email">Work email</FieldLabel>
-              <Input id="invite-email" placeholder="name@company.com" type="email" />
+              <Input
+                id="invite-email"
+                maxLength={LIGHTSITE_TEXT_LIMITS.email}
+                placeholder="name@company.com"
+                type="email"
+              />
               <FieldDescription>
                 The invite can only be accepted by this exact email address.
               </FieldDescription>

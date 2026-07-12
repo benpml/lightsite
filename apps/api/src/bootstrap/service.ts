@@ -1,3 +1,4 @@
+import { validateTextLimit } from "@lightsite/domain";
 import type { CurrentActor } from "../auth/current-actor";
 import type {
   BootstrapRepository,
@@ -27,7 +28,7 @@ export type BootstrapWorkspaceSwitcherItem = {
   name: string;
   websiteDomain: string;
   logoUrl: string | null;
-  plan: "basic" | "pro";
+  plan: "free" | "core" | "pro";
   role: "admin" | "user";
   membershipId: string;
 };
@@ -48,6 +49,15 @@ export class WorkspaceMembershipRequiredError extends Error {
   constructor() {
     super("Workspace is not available for the current user.");
     this.name = "WorkspaceMembershipRequiredError";
+  }
+}
+
+export class AccountSetupValidationError extends Error {
+  readonly code = "account.display_name_invalid";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "AccountSetupValidationError";
   }
 }
 
@@ -92,14 +102,26 @@ export function createBootstrapService(repository: BootstrapRepository): Bootstr
     getBootstrap,
 
     async completeAccountSetup(input) {
+      const displayNameResult = validateTextLimit(
+        input.displayName.trim(),
+        "accountDisplayName",
+        "Name",
+      );
+
+      if (!displayNameResult.ok || !displayNameResult.value.trim()) {
+        throw new AccountSetupValidationError(
+          displayNameResult.ok ? "Name is required." : displayNameResult.message,
+        );
+      }
+
       await repository.completeAccountSetup({
         userId: input.actor.userId,
-        displayName: input.displayName,
+        displayName: displayNameResult.value,
       });
 
       return getBootstrap({
         ...input.actor,
-        name: input.displayName,
+        name: displayNameResult.value,
       });
     },
 

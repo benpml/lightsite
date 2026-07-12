@@ -12,6 +12,8 @@
       "@lightsite/db": ["../../packages/db/src/index.ts"],
       "@lightsite/db/schema": ["../../packages/db/src/schema.ts"],
       "@lightsite/domain": ["../../packages/domain/src/index.ts"],
+      "@lightsite/site-document": ["../../packages/site-document/src/index.ts"],
+      "@lightsite/site-document/*": ["../../packages/site-document/src/*"],
       "@lightsite/tracking-schema": ["../../packages/tracking-schema/src/index.ts"]
     },
     "ignoreDeprecations": "6.0"
@@ -23,6 +25,7 @@
     "../../packages/contracts/src",
     "../../packages/db/src",
     "../../packages/domain/src",
+    "../../packages/site-document/src",
     "../../packages/tracking-schema/src"
   ]
 }

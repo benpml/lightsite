@@ -19,7 +19,7 @@ describe("public site API client", () => {
   })
 
   it("fetches public payloads without credentials and normalizes the response", async () => {
-    const payload = getDemoPublishedSite("mira")
+    const payload = getDemoPublishedSite("acme")
     const fetch = vi.fn(async () =>
       new Response(JSON.stringify({ payload, requestId: "request_123" }), {
         status: 200,
@@ -38,7 +38,7 @@ describe("public site API client", () => {
       status: "available",
       payload: {
         workspace: {
-          slug: "lightsite",
+          slug: "acme",
         },
         selectedVariant: {
           slug: "mira",

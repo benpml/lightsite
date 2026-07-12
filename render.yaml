@@ -6,8 +6,8 @@ services:
     region: oregon
     autoDeploy: true
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @lightsite/api build
-    startCommand: pnpm --filter @lightsite/api start
+    buildCommand: pnpm install --frozen-lockfile && PLAYWRIGHT_BROWSERS_PATH=0 pnpm --filter @lightsite/api exec playwright install chromium --only-shell && pnpm --filter @lightsite/api build
+    startCommand: pnpm --filter @lightsite/db db:migrate && pnpm --filter @lightsite/api start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -18,6 +18,8 @@ services:
         value: 10000
       - key: API_JSON_BODY_LIMIT
         value: 256kb
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: "0"
       - key: DATABASE_POOL_MAX
         value: 5
       - key: TRUST_PROXY

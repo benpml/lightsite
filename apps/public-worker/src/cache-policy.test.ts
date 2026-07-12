@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildPublicHtmlSnapshotKey,
+  buildRecipientPreviewKey,
   classifyPublicRoute,
+  isPublicSiteScreenshotPath,
   isPublicSitePath,
   isSnapshotFresh,
   readPositiveInteger,
@@ -11,13 +13,25 @@ describe("public worker cache policy", () => {
   it("classifies public site paths without catching API or assets", () => {
     expect(classifyPublicRoute("/acme/overview")).toBe("public-site");
     expect(classifyPublicRoute("/acme/overview/mira")).toBe("public-site");
+    expect(classifyPublicRoute("/acme/overview/embed.jpg")).toBe("screenshot");
+    expect(classifyPublicRoute("/acme/overview/mira/embed.jpg")).toBe("screenshot");
     expect(classifyPublicRoute("/api/tracking/events")).toBe("api");
     expect(classifyPublicRoute("/editor-assets/site-avatar.png")).toBe("asset");
+    expect(classifyPublicRoute("/fonts/geist-latin-wght-normal.woff2")).toBe("asset");
     expect(classifyPublicRoute("/lightsite-logo.svg")).toBe("asset");
+    expect(classifyPublicRoute("/site-runtime.v3.js")).toBe("asset");
     expect(classifyPublicRoute("/health")).toBe("health");
     expect(classifyPublicRoute("/api")).toBe("api");
     expect(classifyPublicRoute("/acme")).toBe("not-found");
     expect(classifyPublicRoute("/api/site/page")).toBe("api");
+  });
+
+  it("recognizes only canonical site and recipient screenshot paths", () => {
+    expect(isPublicSiteScreenshotPath("/workspace/site/embed.jpg")).toBe(true);
+    expect(isPublicSiteScreenshotPath("/workspace/site/recipient/embed.jpg")).toBe(true);
+    expect(isPublicSiteScreenshotPath("/workspace/site/recipient/embed.png")).toBe(true);
+    expect(isPublicSiteScreenshotPath("/workspace/site/recipient/other.png")).toBe(false);
+    expect(isPublicSiteScreenshotPath("/api/site/embed.png")).toBe(false);
   });
 
   it("allows only stable public site segments", () => {
@@ -35,6 +49,21 @@ describe("public worker cache policy", () => {
     expect(buildPublicHtmlSnapshotKey("/acme/overview/")).toBe(
       "public-html/v1/acme/overview/index.html",
     );
+  });
+
+  it("builds immutable recipient preview keys only for valid versioned JPEGs", () => {
+    expect(buildRecipientPreviewKey(
+      "/acme/overview/ada/embed.jpg",
+      "2026-07-11T17:00:00.000Z.4",
+    )).toBe(
+      "recipient-previews/v1/acme/overview/ada/2026-07-11T17:00:00.000Z.4/embed.jpg",
+    );
+    expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", "version-7")).toBe(
+      "recipient-previews/v1/acme/overview/version-7/embed.jpg",
+    );
+    expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", null)).toBeNull();
+    expect(buildRecipientPreviewKey("/acme/overview/embed.png", "version-7")).toBeNull();
+    expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", "../version-7")).toBeNull();
   });
 
   it("parses cache seconds defensively", () => {

@@ -1,9 +1,19 @@
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import {
-  IconCards,
   IconCirclePlus,
   IconDotsVertical,
+  IconMoon,
+  IconRobot,
+  IconSearch,
+  IconShare3,
+  IconSun,
+  IconUserPlus,
+  IconWorldLongitude,
 } from "@tabler/icons-react"
 import { Link, useLocation } from "@tanstack/react-router"
+import { useTheme } from "next-themes"
+import type { SiteListItem } from "@lightsite/contracts"
 import type { AppBootstrapResponse } from "@lightsite/contracts"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -13,8 +23,18 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Sidebar,
   SidebarContent,
@@ -27,22 +47,49 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { primaryNavItems } from "@/data/sample-data"
+import { listSites } from "@/features/sites/api"
+import { CreateSiteDialog } from "@/features/sites/components/create-site-dialog"
+import { SiteShareDialog } from "@/features/sites/components/site-share-dialog"
+import { queryKeys } from "@/lib/api/query-keys"
 
 type AppShellProps = {
   bootstrap: AppBootstrapResponse
   children: React.ReactNode
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ bootstrap, children }: AppShellProps) {
+  const activeWorkspace = bootstrap.activeWorkspace
+  const [createSiteOpen, setCreateSiteOpen] = useState(false)
+  const [shareTarget, setShareTarget] = useState<SiteListItem | null>(null)
+  const sitesQuery = useQuery({
+    queryKey: activeWorkspace
+      ? queryKeys.sites(activeWorkspace.id)
+      : ["sites", "inactive"],
+    queryFn: ({ signal }) => listSites(signal),
+    enabled: Boolean(activeWorkspace),
+  })
+  const shareableSites = sitesQuery.data?.sites ?? []
+
   return (
     <SidebarProvider className="bg-page-background">
-      <Sidebar collapsible="none" className="shrink-0">
+      <Sidebar collapsible="offcanvas" className="shrink-0 group-data-[side=left]:border-r-0">
         <SidebarHeader>
-          <Link to="/sites" className="flex h-8 w-full items-center px-1.5">
-            <img src="/lightsite-logo.svg" alt="Lightsite" className="h-[17px] w-[83px]" />
-          </Link>
+          <div className="flex h-8 w-full items-center gap-2 px-1.5">
+            <Link to="/sites" className="flex min-w-0 flex-1 items-center" aria-label="Lightsite">
+              <span
+                aria-hidden="true"
+                className="h-[17px] w-[83px] bg-foreground"
+                style={{
+                  WebkitMask: "url('/lightsite-logo.svg') center / contain no-repeat",
+                  mask: "url('/lightsite-logo.svg') center / contain no-repeat",
+                }}
+              />
+            </Link>
+            <AppThemeToggle />
+          </div>
         </SidebarHeader>
 
         <div className="px-2.5">
@@ -50,26 +97,69 @@ export function AppShell({ children }: AppShellProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="compact" className="w-full">
                 <IconCirclePlus data-icon="inline-start" />
-                Create
+                Actions
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuGroup>
+                {activeWorkspace ? (
+                  <CreateSiteDialog
+                    open={createSiteOpen}
+                    onOpenChange={setCreateSiteOpen}
+                    workspaceId={activeWorkspace.id}
+                    workspaceSlug={activeWorkspace.slug}
+                    trigger={
+                      <DropdownMenuItem
+                        onSelect={(event) => {
+                          event.preventDefault()
+                          setCreateSiteOpen(true)
+                        }}
+                      >
+                        <IconCirclePlus />
+                        Create a site
+                      </DropdownMenuItem>
+                    }
+                  />
+                ) : null}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <IconShare3 />
+                    Share a site
+                  </DropdownMenuSubTrigger>
+                  <ShareSiteSubmenu
+                    isLoading={sitesQuery.isLoading}
+                    onSelectSite={setShareTarget}
+                    sites={shareableSites}
+                  />
+                </DropdownMenuSub>
                 <DropdownMenuItem asChild>
-                  <Link to="/editor/$siteId" params={{ siteId: "demo-site" }}>
-                    <IconCirclePlus />
-                    New site
+                  <Link to="/team">
+                    <IconUserPlus />
+                    Invite team member
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/editor/$siteId" params={{ siteId: "demo-site" }}>
-                    <IconCards />
-                    New site variant
-                  </Link>
+                <DropdownMenuItem disabled>
+                  <IconRobot />
+                  Connect your AI
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+          {activeWorkspace && shareTarget ? (
+            <SiteShareDialog
+              onOpenChange={(open) => {
+                if (!open) {
+                  setShareTarget(null)
+                }
+              }}
+              open
+              siteId={shareTarget.id}
+              siteVersion={shareTarget.publishedAt}
+              siteSlug={shareTarget.slug}
+              workspaceId={activeWorkspace.id}
+              workspaceSlug={activeWorkspace.slug}
+            />
+          ) : null}
         </div>
 
         <SidebarContent>
@@ -80,8 +170,8 @@ export function AppShell({ children }: AppShellProps) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="default">
-                <Avatar className="size-4 rounded">
-                  <AvatarFallback className="rounded text-[9px]">BS</AvatarFallback>
+                <Avatar size="2xs" shape="square">
+                  <AvatarFallback>BS</AvatarFallback>
                 </Avatar>
                 <span className="truncate font-semibold">User Name</span>
                 <IconDotsVertical className="ml-auto" />
@@ -94,17 +184,116 @@ export function AppShell({ children }: AppShellProps) {
       <SidebarInset className="bg-page-background">
         <div
           data-app-main-pane-frame
-          className="flex h-svh min-w-0 flex-1 flex-col py-1.5 pr-1.5"
+          className="flex h-svh min-w-0 flex-1 flex-col gap-1.5 p-1.5 md:gap-0 md:py-1.5 md:pr-1.5 md:pl-0"
         >
+          <div className="flex h-9 shrink-0 items-center gap-2 rounded-xl border bg-background px-2.5 md:hidden">
+            <SidebarTrigger className="-ml-1" />
+            <Link to="/sites" className="flex min-w-0 flex-1 items-center" aria-label="Lightsite">
+              <span
+                aria-hidden="true"
+                className="h-[17px] w-[83px] bg-foreground"
+                style={{
+                  WebkitMask: "url('/lightsite-logo.svg') center / contain no-repeat",
+                  mask: "url('/lightsite-logo.svg') center / contain no-repeat",
+                }}
+              />
+            </Link>
+            <AppThemeToggle />
+          </div>
           <div
             data-app-main-pane
-            className="min-h-0 flex-1 overflow-auto rounded-xl border bg-background"
+            className="min-h-0 flex-1 overflow-auto rounded-xl border bg-background md:border-border-subtle"
           >
             {children}
           </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+function ShareSiteSubmenu({
+  isLoading,
+  onSelectSite,
+  sites,
+}: {
+  isLoading: boolean
+  onSelectSite: (site: SiteListItem) => void
+  sites: SiteListItem[]
+}) {
+  const [query, setQuery] = useState("")
+  const normalizedQuery = query.trim().toLocaleLowerCase()
+  const visibleSites = normalizedQuery
+    ? sites.filter((site) => site.name.toLocaleLowerCase().includes(normalizedQuery))
+    : sites
+
+  return (
+    <DropdownMenuSubContent className="w-60 p-0">
+      <InputGroup
+        className="h-[34px] rounded-none border-0 bg-transparent px-3 shadow-none has-[[data-slot=input-group-control]:focus-visible]:border-transparent has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-transparent"
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <InputGroupAddon className="p-0 pr-1.5 [&>svg]:size-3.5!">
+          <IconSearch />
+        </InputGroupAddon>
+        <InputGroupInput
+          aria-label="Search sites to share"
+          className="h-full p-0"
+          placeholder="Search sites"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </InputGroup>
+      <DropdownMenuSeparator className="m-0" />
+      <ScrollArea className="max-h-64 [&_[data-slot=scroll-area-viewport]]:max-h-64">
+        <DropdownMenuGroup className="flex flex-col gap-0.5 p-1 pb-2">
+          {isLoading ? (
+            <DropdownMenuItem className="gap-2 px-2 py-1.5" disabled>
+              Loading sites
+            </DropdownMenuItem>
+          ) : null}
+          {!isLoading && sites.length === 0 ? (
+            <DropdownMenuItem className="gap-2 px-2 py-1.5" disabled>
+              No sites yet
+            </DropdownMenuItem>
+          ) : null}
+          {!isLoading && sites.length > 0 && visibleSites.length === 0 ? (
+            <DropdownMenuItem className="gap-2 px-2 py-1.5" disabled>
+              No matching sites
+            </DropdownMenuItem>
+          ) : null}
+          {visibleSites.map((site) => (
+            <DropdownMenuItem
+              className="gap-2 px-2 py-1.5"
+              key={site.id}
+              onSelect={() => onSelectSite(site)}
+            >
+              <IconWorldLongitude />
+              <span className="truncate">{site.name}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+      </ScrollArea>
+    </DropdownMenuSubContent>
+  )
+}
+
+function AppThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+  const nextTheme = isDark ? "light" : "dark"
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon-compact"
+      className="translate-x-1"
+      aria-label={`Switch app to ${nextTheme} mode`}
+      onClick={() => setTheme(nextTheme)}
+    >
+      {isDark ? <IconSun /> : <IconMoon />}
+    </Button>
   )
 }
 

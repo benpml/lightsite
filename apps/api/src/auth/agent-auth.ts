@@ -6,7 +6,7 @@ export type AgentAuthContext = {
   actor: CurrentActor;
   workspace: {
     id: string;
-    plan: "basic" | "pro";
+    plan: "free" | "core" | "pro";
     role: "admin" | "user";
   };
 };
@@ -37,7 +37,7 @@ export function getAgentAuthContext(request: Request): AgentAuthContext | null {
     },
     workspace: {
       id: workspaceId,
-      plan: process.env.LIGHTSITE_AGENT_WORKSPACE_PLAN === "basic" ? "basic" : "pro",
+      plan: resolveAgentWorkspacePlan(),
       role: process.env.LIGHTSITE_AGENT_WORKSPACE_ROLE === "user" ? "user" : "admin",
     },
   };
@@ -48,4 +48,10 @@ function secureEquals(left: string, right: string) {
   const rightBuffer = Buffer.from(right);
 
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function resolveAgentWorkspacePlan(): AgentAuthContext["workspace"]["plan"] {
+  const plan = process.env.LIGHTSITE_AGENT_WORKSPACE_PLAN;
+
+  return plan === "free" || plan === "pro" ? plan : "core";
 }

@@ -7,8 +7,11 @@ import { Router } from "express";
 import type { CurrentActorProvider } from "../auth/current-actor";
 import { getDevAppBootstrap, isDevAuthBypassRequest } from "../auth/dev-auth";
 import { requireAuthenticatedActor } from "../auth/require-authenticated-actor";
-import type { BootstrapService } from "../bootstrap/service";
-import { WorkspaceMembershipRequiredError } from "../bootstrap/service";
+import {
+  AccountSetupValidationError,
+  WorkspaceMembershipRequiredError,
+  type BootstrapService,
+} from "../bootstrap/service";
 import { asyncHandler } from "../http/async-handler";
 import { AppError, issuesFromZodError } from "../http/errors";
 
@@ -59,10 +62,24 @@ export function createMeRouter(options: MeRouterOptions) {
       });
     }
 
-    const appBootstrap = await options.bootstrapService.completeAccountSetup({
-      actor,
-      displayName: result.data.displayName,
-    });
+    let appBootstrap;
+
+    try {
+      appBootstrap = await options.bootstrapService.completeAccountSetup({
+        actor,
+        displayName: result.data.displayName,
+      });
+    } catch (error) {
+      if (error instanceof AccountSetupValidationError) {
+        throw new AppError({
+          code: error.code,
+          message: error.message,
+          status: 400,
+        });
+      }
+
+      throw error;
+    }
 
     response.json(appBootstrapResponseSchema.parse({
       ...appBootstrap,

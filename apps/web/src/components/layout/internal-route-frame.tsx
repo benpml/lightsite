@@ -114,7 +114,7 @@ function InternalLoadingState({ chrome }: { chrome: InternalRouteFrameProps["chr
 
   return (
     <div className="flex min-h-dvh bg-page-background">
-      <aside className="hidden w-60 shrink-0 border-r bg-sidebar p-3 md:flex md:flex-col md:gap-4">
+      <aside className="hidden w-60 shrink-0 bg-sidebar p-3 md:flex md:flex-col md:gap-4">
         <Skeleton className="h-8 w-24" />
         <Skeleton className="h-8 w-full" />
         <div className="flex flex-col gap-2 pt-2">

@@ -1,5 +1,13 @@
-import { slugifyName, validateSiteSlug } from "@lightsite/domain";
+import {
+  LIGHTSITE_COLLECTION_LIMITS,
+  LIGHTSITE_TEXT_LIMITS,
+  normalizeWebsiteDomain,
+  slugifyName,
+  validateSiteSlug,
+  validateTextLimit,
+} from "@lightsite/domain";
 import { normalizeSiteContent } from "@lightsite/db";
+import { SITE_DOCUMENT_SCHEMA_VERSION } from "@lightsite/site-document";
 import {
   SiteSlugConflictError,
   type SiteRecord,
@@ -8,17 +16,24 @@ import {
   type SiteVersionKind,
   type SiteVersionRecord,
 } from "./repository";
+import type { SiteContentCoordinator } from "../collaboration/server";
 
 export type SiteListItem = {
   id: string;
   name: string;
   slug: string;
   status: "draft" | "published" | "archived";
+  recipientCount?: number;
+  thumbnail: SiteThumbnailPreview;
   visibility: "private" | "team";
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
   archivedAt: string | null;
+};
+
+type SiteThumbnailPreview = {
+  content: SiteRecord["draftContent"];
 };
 
 export type SitePermissions = {
@@ -53,7 +68,7 @@ export type SiteVersionSummary = {
 
 export type SiteWorkspaceContext = {
   id: string;
-  plan: "basic" | "pro";
+  plan: "free" | "core" | "pro";
   role: "admin" | "user";
 };
 
@@ -115,6 +130,10 @@ export type BatchUpsertSiteVariantsInput = SiteMutationInput & {
   }>;
 };
 
+export type DeleteSiteVariantInput = SiteMutationInput & {
+  variantId: string;
+};
+
 export interface SiteService {
   listSites(input: ListSitesInput): Promise<{
     sites: SiteListItem[];
@@ -141,12 +160,14 @@ export interface SiteService {
   batchUpsertSiteVariants(input: BatchUpsertSiteVariantsInput): Promise<{
     variants: SiteVariant[];
   }>;
+  deleteSiteVariant(input: DeleteSiteVariantInput): Promise<void>;
   publishSite(input: SiteMutationInput): Promise<{
     site: SiteDetail;
     version: SiteVersionSummary;
   }>;
   unpublishSite(input: SiteMutationInput): Promise<{ site: SiteDetail }>;
   archiveSite(input: SiteMutationInput): Promise<{ site: SiteDetail }>;
+  deleteSite(input: SiteMutationInput): Promise<void>;
   restoreSite(input: SiteMutationInput): Promise<{ site: SiteDetail }>;
   listSiteVersions(input: SiteMutationInput): Promise<{
     versions: SiteVersionSummary[];
@@ -161,12 +182,12 @@ export interface SiteService {
 }
 
 export class SiteValidationError extends Error {
-  readonly code: "site.slug_invalid";
+  readonly code: "site.invalid" | "site.slug_invalid";
 
-  constructor(message: string) {
+  constructor(message: string, code: "site.invalid" | "site.slug_invalid" = "site.invalid") {
     super(message);
     this.name = "SiteValidationError";
-    this.code = "site.slug_invalid";
+    this.code = code;
   }
 }
 
@@ -184,9 +205,16 @@ export class SitePlanLimitError extends Error {
   readonly limit: number;
 
   constructor(limit: number) {
-    super(`This workspace can create up to ${limit} site${limit === 1 ? "" : "s"} on its current plan.`);
+    super(`Free workspaces can create up to ${limit} draft sites. Upgrade to publish more.`);
     this.name = "SitePlanLimitError";
     this.limit = limit;
+  }
+}
+
+export class SitePublishPlanError extends Error {
+  constructor() {
+    super("Upgrade to Core to publish this site.");
+    this.name = "SitePublishPlanError";
   }
 }
 
@@ -257,34 +285,16 @@ export class SitePublishValidationError extends Error {
 const LIST_SITES_LIMIT = 50;
 const LIST_SITE_VERSIONS_LIMIT = 100;
 const LIST_SITE_VARIANTS_LIMIT = 100;
-const SITE_PLAN_LIMITS = {
-  basic: 1,
-  pro: 100,
+const FREE_SITE_LIMIT = 10;
+const SITE_PLAN_LIMITS: Record<SiteWorkspaceContext["plan"], number | null> = {
+  free: FREE_SITE_LIMIT,
+  core: null,
+  pro: null,
 } as const;
-const SUPPORTED_DRAFT_BLOCK_TYPES = new Set([
-  "title",
-  "heading",
-  "text",
-  "divider",
-  "bullet-list",
-  "number-list",
-  "icon-list",
-  "image",
-  "gif",
-  "image-card",
-  "icon-card",
-  "button",
-  "calendar",
-  "accordion",
-  "video",
-  "testimonial",
-  "logo-grid",
-  "cta",
-  "quote",
-  "logo_strip",
-]);
-
-export function createSiteService(repository: SiteRepository): SiteService {
+export function createSiteService(
+  repository: SiteRepository,
+  options: { contentCoordinator?: SiteContentCoordinator } = {},
+): SiteService {
   return {
     async listSites(input) {
       const records = await repository.listAccessibleSites({
@@ -293,25 +303,40 @@ export function createSiteService(repository: SiteRepository): SiteService {
         role: input.workspace.role,
         limit: LIST_SITES_LIMIT,
       });
+      const recipientCounts = await repository.countActiveVariantsBySiteIds({
+        workspaceId: input.workspace.id,
+        siteIds: records.map((record) => record.id),
+      });
 
       return {
-        sites: records.map(serializeSite),
+        sites: records.map((record) =>
+          serializeSite(record, recipientCounts.get(record.id) ?? 0)
+        ),
         nextCursor: null,
       };
     },
 
     async createSite(input) {
+      const nameResult = validateTextLimit(input.name.trim(), "siteName", "Site name");
+
+      if (!nameResult.ok || !nameResult.value.trim()) {
+        throw new SiteValidationError(nameResult.ok ? "Site name is required." : nameResult.message);
+      }
+
       const slugResult = validateSiteSlug(input.slug ?? slugifyName(input.name));
 
       if (!slugResult.ok) {
-        throw new SiteValidationError(slugResult.message);
+        throw new SiteValidationError(slugResult.message, "site.slug_invalid");
       }
 
       const limit = SITE_PLAN_LIMITS[input.workspace.plan];
-      const currentSiteCount = await repository.countWorkspaceSites(input.workspace.id);
 
-      if (currentSiteCount >= limit) {
-        throw new SitePlanLimitError(limit);
+      if (limit !== null) {
+        const currentSiteCount = await repository.countWorkspaceSites(input.workspace.id);
+
+        if (currentSiteCount >= limit) {
+          throw new SitePlanLimitError(limit);
+        }
       }
 
       const existingSite = await repository.findByWorkspaceAndSlug({
@@ -327,7 +352,7 @@ export function createSiteService(repository: SiteRepository): SiteService {
         const site = await repository.createSite({
           workspaceId: input.workspace.id,
           createdByUserId: input.userId,
-          name: input.name,
+          name: nameResult.value,
           slug: slugResult.slug,
         });
 
@@ -369,9 +394,16 @@ export function createSiteService(repository: SiteRepository): SiteService {
       }
 
       const nextSlug = input.slug ? validateSiteSlug(input.slug) : null;
+      const nextName = input.name === undefined
+        ? null
+        : validateTextLimit(input.name.trim(), "siteName", "Site name");
+
+      if (nextName && (!nextName.ok || !nextName.value.trim())) {
+        throw new SiteValidationError(nextName.ok ? "Site name is required." : nextName.message);
+      }
 
       if (nextSlug && !nextSlug.ok) {
-        throw new SiteValidationError(nextSlug.message);
+        throw new SiteValidationError(nextSlug.message, "site.slug_invalid");
       }
 
       if (nextSlug?.ok && nextSlug.slug !== site.slug) {
@@ -393,10 +425,12 @@ export function createSiteService(repository: SiteRepository): SiteService {
         workspaceId: input.workspace.id,
         siteId: input.siteId,
         updatedByUserId: input.userId,
-        ...(input.name ? { name: input.name } : {}),
+        ...(nextName?.ok ? { name: nextName.value } : {}),
         ...(nextSlug?.ok && nextSlug.slug !== site.slug ? { slug: nextSlug.slug } : {}),
         ...(input.visibility ? { visibility: input.visibility } : {}),
       });
+
+      options.contentCoordinator?.broadcastSiteChanged(input.siteId);
 
       return {
         site: serializeSiteDetail(updatedSite, resolvePermissions(updatedSite, input)),
@@ -426,14 +460,31 @@ export function createSiteService(repository: SiteRepository): SiteService {
       }
 
       const draftContent = normalizeSiteContent(input.draftContent);
+      const draftIssues = validateDraftSafetyContent(draftContent);
 
-      const updatedSite = await repository.updateSiteContent({
-        workspaceId: input.workspace.id,
-        siteId: input.siteId,
-        updatedByUserId: input.userId,
-        draftContent,
-        ...(input.expectedDraftRevision ? { expectedDraftRevision: input.expectedDraftRevision } : {}),
-      });
+      if (draftIssues.length > 0) {
+        throw new SiteValidationError(draftIssues[0]?.message ?? "Site content is invalid.");
+      }
+
+      const updatedSite = options.contentCoordinator
+        ? await options.contentCoordinator.replaceContent({
+            workspaceId: input.workspace.id,
+            siteId: input.siteId,
+            userId: input.userId,
+            draftContent,
+            ...(input.expectedDraftRevision
+              ? { expectedDraftRevision: input.expectedDraftRevision }
+              : {}),
+          })
+        : await repository.updateSiteContent({
+            workspaceId: input.workspace.id,
+            siteId: input.siteId,
+            updatedByUserId: input.userId,
+            draftContent,
+            ...(input.expectedDraftRevision
+              ? { expectedDraftRevision: input.expectedDraftRevision }
+              : {}),
+          });
 
       if (!updatedSite) {
         throw new SiteDraftRevisionConflictError();
@@ -456,18 +507,29 @@ export function createSiteService(repository: SiteRepository): SiteService {
     },
 
     async duplicateSite(input) {
-      const site = await requireViewableSite(repository, input);
+      let site = await requireViewableSite(repository, input);
       const permissions = resolvePermissions(site, input);
 
       if (!permissions.canDuplicate) {
         throw new SitePermissionError("You do not have permission to duplicate this site.");
       }
 
-      const limit = SITE_PLAN_LIMITS[input.workspace.plan];
-      const currentSiteCount = await repository.countWorkspaceSites(input.workspace.id);
+      if (options.contentCoordinator) {
+        site = await options.contentCoordinator.flushSite({
+          workspaceId: input.workspace.id,
+          siteId: input.siteId,
+          userId: input.userId,
+        }) ?? site;
+      }
 
-      if (currentSiteCount >= limit) {
-        throw new SitePlanLimitError(limit);
+      const limit = SITE_PLAN_LIMITS[input.workspace.plan];
+
+      if (limit !== null) {
+        const currentSiteCount = await repository.countWorkspaceSites(input.workspace.id);
+
+        if (currentSiteCount >= limit) {
+          throw new SitePlanLimitError(limit);
+        }
       }
 
       const { name, slug } = await getAvailableCopyIdentity(repository, input.workspace.id, site);
@@ -533,10 +595,49 @@ export function createSiteService(repository: SiteRepository): SiteService {
 
       const seenSlugs = new Set<string>();
       const variants = input.variants.map((variant) => {
+        const variableValues = withRecipientLogo(variant.variableValues);
         const slugResult = validateSiteSlug(variant.slug);
+        const nameResult = validateTextLimit(variant.name.trim(), "variableName", "Variant name");
+        const variantValueIssues = validateUnknownStringFields(variableValues, [
+          "variants",
+          variant.slug,
+          "variableValues",
+        ]);
 
         if (!slugResult.ok) {
-          throw new SiteValidationError(slugResult.message);
+          throw new SiteValidationError(slugResult.message, "site.slug_invalid");
+        }
+
+        if (!nameResult.ok || !nameResult.value.trim()) {
+          throw new SiteValidationError(nameResult.ok ? "Variant name is required." : nameResult.message);
+        }
+
+        if (variant.recipientName) {
+          const recipientNameResult = validateTextLimit(
+            variant.recipientName,
+            "recipientName",
+            "Recipient name",
+          );
+
+          if (!recipientNameResult.ok) {
+            throw new SiteValidationError(recipientNameResult.message);
+          }
+        }
+
+        if (variant.recipientCompany) {
+          const recipientCompanyResult = validateTextLimit(
+            variant.recipientCompany,
+            "recipientCompany",
+            "Recipient company",
+          );
+
+          if (!recipientCompanyResult.ok) {
+            throw new SiteValidationError(recipientCompanyResult.message);
+          }
+        }
+
+        if (variantValueIssues.length > 0) {
+          throw new SiteValidationError(variantValueIssues[0]?.message ?? "Variant values are invalid.");
         }
 
         if (seenSlugs.has(slugResult.slug)) {
@@ -547,7 +648,9 @@ export function createSiteService(repository: SiteRepository): SiteService {
 
         return {
           ...variant,
+          name: nameResult.value,
           slug: slugResult.slug,
+          variableValues,
         };
       });
 
@@ -571,8 +674,31 @@ export function createSiteService(repository: SiteRepository): SiteService {
       }
     },
 
-    async publishSite(input) {
+    async deleteSiteVariant(input) {
       const site = await requireViewableSite(repository, input);
+      const permissions = resolvePermissions(site, input);
+
+      if (site.status === "archived") {
+        throw new SiteArchivedError();
+      }
+
+      if (!permissions.canEdit) {
+        throw new SitePermissionError();
+      }
+
+      const deleted = await repository.deleteVariant({
+        workspaceId: input.workspace.id,
+        siteId: input.siteId,
+        variantId: input.variantId,
+      });
+
+      if (!deleted) {
+        throw new SiteNotFoundError();
+      }
+    },
+
+    async publishSite(input) {
+      let site = await requireViewableSite(repository, input);
       const permissions = resolvePermissions(site, input);
 
       if (site.status === "archived") {
@@ -581,6 +707,18 @@ export function createSiteService(repository: SiteRepository): SiteService {
 
       if (!permissions.canPublish) {
         throw new SitePermissionError("You do not have permission to publish this site.");
+      }
+
+      if (input.workspace.plan === "free") {
+        throw new SitePublishPlanError();
+      }
+
+      if (options.contentCoordinator) {
+        site = await options.contentCoordinator.flushSite({
+          workspaceId: input.workspace.id,
+          siteId: input.siteId,
+          userId: input.userId,
+        }) ?? site;
       }
 
       const validationIssues = validatePublishableSite(site);
@@ -598,6 +736,8 @@ export function createSiteService(repository: SiteRepository): SiteService {
       if (!published) {
         throw new SiteNotFoundError();
       }
+
+      options.contentCoordinator?.broadcastSiteChanged(input.siteId);
 
       return {
         site: serializeSiteDetail(published.site, resolvePermissions(published.site, input)),
@@ -633,17 +773,27 @@ export function createSiteService(repository: SiteRepository): SiteService {
         throw new SiteNotFoundError();
       }
 
+      options.contentCoordinator?.broadcastSiteChanged(input.siteId);
+
       return {
         site: serializeSiteDetail(unpublishedSite, resolvePermissions(unpublishedSite, input)),
       };
     },
 
     async archiveSite(input) {
-      const site = await requireViewableSite(repository, input);
+      let site = await requireViewableSite(repository, input);
       const permissions = resolvePermissions(site, input);
 
       if (!permissions.canArchive) {
         throw new SitePermissionError();
+      }
+
+      if (options.contentCoordinator) {
+        site = await options.contentCoordinator.flushSite({
+          workspaceId: input.workspace.id,
+          siteId: input.siteId,
+          userId: input.userId,
+        }) ?? site;
       }
 
       if (site.status === "archived") {
@@ -658,9 +808,31 @@ export function createSiteService(repository: SiteRepository): SiteService {
         archivedByUserId: input.userId,
       });
 
+      options.contentCoordinator?.closeSite(input.siteId);
+
       return {
         site: serializeSiteDetail(archivedSite, resolvePermissions(archivedSite, input)),
       };
+    },
+
+    async deleteSite(input) {
+      const site = await requireViewableSite(repository, input);
+      const permissions = resolvePermissions(site, input);
+
+      if (!permissions.canArchive) {
+        throw new SitePermissionError();
+      }
+
+      const deleted = await repository.deleteSite({
+        workspaceId: input.workspace.id,
+        siteId: input.siteId,
+      });
+
+      if (!deleted) {
+        throw new SiteNotFoundError();
+      }
+
+      options.contentCoordinator?.closeSite(input.siteId);
     },
 
     async restoreSite(input) {
@@ -735,6 +907,17 @@ export function createSiteService(repository: SiteRepository): SiteService {
         throw new SiteVersionNotFoundError();
       }
 
+      if (options.contentCoordinator) {
+        await options.contentCoordinator.replaceContent({
+          workspaceId: input.workspace.id,
+          siteId: input.siteId,
+          userId: input.userId,
+          draftContent: restored.site.draftContent,
+          expectedDraftRevision: restored.site.draftRevision,
+          skipFlush: true,
+        });
+      }
+
       return {
         site: serializeSiteDetail(restored.site, resolvePermissions(restored.site, input)),
         version: serializeVersion(restored.version),
@@ -743,18 +926,49 @@ export function createSiteService(repository: SiteRepository): SiteService {
   };
 }
 
-function serializeSite(site: SiteRecord): SiteListItem {
-  return {
+function withRecipientLogo(values: Record<string, unknown>) {
+  const nextValues = { ...values };
+  const website = nextValues.recipient_website;
+  const normalized = typeof website === "string"
+    ? normalizeWebsiteDomain(website)
+    : null;
+
+  if (!normalized?.ok) {
+    delete nextValues["var-company-logo"];
+    return nextValues;
+  }
+
+  const params = new URLSearchParams({
+    domain: normalized.domain,
+    theme: "light",
+    size: "64",
+  });
+  nextValues["var-company-logo"] = `/api/workspaces/logo-preview/image?${params.toString()}`;
+
+  return nextValues;
+}
+
+function serializeSite(site: SiteRecord, recipientCount?: number): SiteListItem {
+  const serializedSite: SiteListItem = {
     id: site.id,
     name: site.name,
     slug: site.slug,
     status: site.status,
+    thumbnail: {
+      content: normalizeSiteContent(site.draftContent),
+    },
     visibility: site.visibility,
     createdAt: site.createdAt.toISOString(),
     updatedAt: site.updatedAt.toISOString(),
     publishedAt: site.publishedAt?.toISOString() ?? null,
     archivedAt: site.archivedAt?.toISOString() ?? null,
   };
+
+  if (recipientCount !== undefined) {
+    serializedSite.recipientCount = recipientCount;
+  }
+
+  return serializedSite;
 }
 
 function serializeSiteDetail(site: SiteRecord, permissions: SitePermissions): SiteDetail {
@@ -862,19 +1076,19 @@ function validateDraftContent(
   draftContent: SiteRecord["draftContent"],
   pathPrefix: Array<string | number> = [],
 ): SitePublishValidationIssue[] {
-  const issues: SitePublishValidationIssue[] = [];
+  const issues: SitePublishValidationIssue[] = validateDraftSafetyContent(draftContent, pathPrefix);
 
-  if (draftContent.schemaVersion !== 2) {
+  if (draftContent.schemaVersion !== SITE_DOCUMENT_SCHEMA_VERSION) {
     issues.push({
       path: [...pathPrefix, "schemaVersion"],
       message: "Draft content schema is not supported for publishing.",
     });
   }
 
-  if (!draftContent.chrome.hero.title.trim()) {
+  if (!draftContent.pages.some((page) => page.status === "visible")) {
     issues.push({
-      path: [...pathPrefix, "chrome", "hero", "title"],
-      message: "Site title is required before publishing.",
+      path: [...pathPrefix, "pages"],
+      message: "At least one visible page is required before publishing.",
     });
   }
 
@@ -891,104 +1105,85 @@ function validateDraftContent(
     variableKeys.add(variable.key);
   });
 
-  const blockIds = new Set<string>();
+  const pageIds = new Set<string>();
+  const pageSlugs = new Set<string>();
 
-  draftContent.blocks.forEach((block, index) => {
-    if (blockIds.has(block.id)) {
+  draftContent.pages.forEach((page, index) => {
+    if (pageIds.has(page.id)) {
       issues.push({
-        path: [...pathPrefix, "blocks", index, "id"],
-        message: `Block id must be unique: ${block.id}`,
+        path: [...pathPrefix, "pages", index, "id"],
+        message: `Page id must be unique: ${page.id}`,
       });
     }
-
-    blockIds.add(block.id);
-    issues.push(...validateDraftBlock(block, [...pathPrefix, "blocks", index]));
+    if (pageSlugs.has(page.slug)) {
+      issues.push({
+        path: [...pathPrefix, "pages", index, "slug"],
+        message: `Page slug must be unique: ${page.slug}`,
+      });
+    }
+    pageIds.add(page.id);
+    pageSlugs.add(page.slug);
   });
 
   return issues;
 }
 
-function validateDraftBlock(
-  block: SiteRecord["draftContent"]["blocks"][number],
-  pathPrefix: Array<string | number>,
+function validateDraftSafetyContent(
+  draftContent: SiteRecord["draftContent"],
+  pathPrefix: Array<string | number> = [],
 ): SitePublishValidationIssue[] {
   const issues: SitePublishValidationIssue[] = [];
 
-  if (!SUPPORTED_DRAFT_BLOCK_TYPES.has(block.type)) {
-    return [
-      {
-        path: [...pathPrefix, "type"],
-        message: `Unsupported block type: ${block.type}`,
-      },
-    ];
-  }
+  draftContent.variables.forEach((variable, index) => {
+    issues.push(
+      ...validateUnknownStringFields(variable, [...pathPrefix, "variables", index]),
+    );
+  });
 
-  if (block.type === "title" || block.type === "heading") {
-    const text = getNonEmptyStringField(block.fields, "text") ?? getNonEmptyStringField(block.fields, "title");
+  draftContent.pages.forEach((page, index) => {
+    issues.push(
+      ...validateUnknownStringFields(page.document, [...pathPrefix, "pages", index, "document"]),
+    );
+  });
 
-    if (!text) {
-      issues.push({
-        path: [...pathPrefix, "fields", "text"],
-        message: "Heading blocks require text.",
-      });
-    }
-  }
-
-  if (block.type === "text") {
-    const text = getNonEmptyStringField(block.fields, "text") ?? getNonEmptyStringField(block.fields, "body");
-
-    if (!text) {
-      issues.push({
-        path: [...pathPrefix, "fields", "text"],
-        message: "Text blocks require text.",
-      });
-    }
-  }
-
-  if (block.type === "cta" || block.type === "button" || block.type === "calendar") {
-    if (!getNonEmptyStringField(block.fields, "label") && !getNonEmptyStringField(block.fields, "text")) {
-      issues.push({
-        path: [...pathPrefix, "fields", "label"],
-        message: "Button blocks require a label.",
-      });
-    }
-
-    if (!getNonEmptyStringField(block.fields, "href") && !getNonEmptyStringField(block.fields, "url")) {
-      issues.push({
-        path: [...pathPrefix, "fields", "href"],
-        message: "Button blocks require an href.",
-      });
-    }
-  }
-
-  if ((block.type === "quote" || block.type === "testimonial") && !getNonEmptyStringField(block.fields, "quote")) {
-    issues.push({
-      path: [...pathPrefix, "fields", "quote"],
-      message: "Quote blocks require quote text.",
-    });
-  }
-
-  if ((block.type === "bullet-list" || block.type === "number-list") && !Array.isArray(block.fields.items)) {
-    issues.push({
-      path: [...pathPrefix, "fields", "items"],
-      message: "List blocks require items.",
-    });
-  }
-
-  if ((block.type === "accordion" || block.type === "icon-list" || block.type === "logo-grid") && !Array.isArray(block.fields.items) && !Array.isArray(block.fields.logos)) {
-    issues.push({
-      path: [...pathPrefix, "fields"],
-      message: "This block requires an item array.",
-    });
-  }
+  issues.push(
+    ...validateUnknownStringFields(draftContent.sidebar, [...pathPrefix, "sidebar"]),
+  );
 
   return issues;
 }
 
-function getNonEmptyStringField(record: Record<string, unknown>, key: string) {
-  const value = record[key];
+function validateUnknownStringFields(
+  value: unknown,
+  path: Array<string | number>,
+): SitePublishValidationIssue[] {
+  const issues: SitePublishValidationIssue[] = [];
 
-  return typeof value === "string" && value.trim().length > 0 ? value : null;
+  if (typeof value === "string") {
+    if (value.length > LIGHTSITE_TEXT_LIMITS.blockText) {
+      issues.push({
+        path,
+        message: `Text must be ${LIGHTSITE_TEXT_LIMITS.blockText.toLocaleString("en-US")} characters or fewer.`,
+      });
+    }
+
+    return issues;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      issues.push(...validateUnknownStringFields(item, [...path, index]));
+    });
+    return issues;
+  }
+
+  if (value && typeof value === "object") {
+    Object.entries(value).forEach(([key, item]) => {
+      issues.push(...validateUnknownStringFields(item, [...path, key]));
+    });
+  }
+
+  return issues;
 }
 
 async function getAvailableCopyIdentity(

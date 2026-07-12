@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createPublicSiteService } from "./service";
 import type { PublicSiteLookupInput, PublicSiteRepository } from "./repository";
-import { createHmacTrackingContextTokenService } from "../tracking/context-token";
+import { createEncryptedTrackingV2ContextTokenService } from "../tracking/v2/context-token";
 
 function createRecordingRepository(record: { payload: unknown } | null) {
   const calls: PublicSiteLookupInput[] = [];
@@ -84,35 +84,44 @@ describe("public site service", () => {
     });
   });
 
-  it("signs public tracking context before returning a published payload", async () => {
-    const trackingContextTokens = createHmacTrackingContextTokenService(
-      "tracking-secret-at-least-32-characters",
-      { nowSeconds: () => 100 },
-    );
-    const { repository } = createRecordingRepository({
-      payload: {
-        schemaVersion: 1,
-        tracking: {
-          workspaceId: "workspace_test_123",
-          siteId: "site_test_123",
-          publishedVersionId: "version_test_123",
-          variantId: null,
-          variantRevision: null,
-          mode: "engagement",
-        },
+  it("adds an opaque v2 tracking bootstrap when v2 tracking is enabled", async () => {
+    const trackingV2ContextTokens = createEncryptedTrackingV2ContextTokenService(
+      "tracking-v2-context-secret-at-least-32-characters",
+      {
+        keyId: "service-test",
+        now: () => new Date("2026-07-09T12:00:00.000Z"),
+        randomBytes: (size) => Buffer.alloc(size, 7),
       },
-    });
-    const service = createPublicSiteService(repository, { trackingContextTokens });
+    );
+    const payload = {
+      schemaVersion: 1,
+      tracking: {
+        version: 2,
+        workspaceId: "11111111-1111-4111-8111-111111111111",
+        siteId: "22222222-2222-4222-8222-222222222222",
+        publishedVersionId: "33333333-3333-4333-8333-333333333333",
+        recipientId: "44444444-4444-4444-8444-444444444444",
+        recipientRevision: 3,
+        trackingMode: "events_and_recording",
+      },
+    };
+    const { repository } = createRecordingRepository({ payload });
+    const service = createPublicSiteService(repository, { trackingV2ContextTokens });
     const result = await service.resolve({
       workspaceSlug: "acme",
       siteSlug: "rollout-brief",
+      variantSlug: "mira",
     });
 
     expect(result).toMatchObject({
       status: "available",
       payload: {
-        tracking: {
-          token: expect.any(String),
+        trackingV2: {
+          version: 2,
+          trackingMode: "events_and_recording",
+          contextToken: expect.any(String),
+          issuedAt: "2026-07-09T12:00:00.000Z",
+          expiresAt: "2026-07-10T12:00:00.000Z",
         },
       },
     });
@@ -121,14 +130,15 @@ describe("public site service", () => {
       throw new Error("Expected public site to resolve.");
     }
 
-    expect(trackingContextTokens.verify({
-      workspaceId: "workspace_test_123",
-      siteId: "site_test_123",
-      publishedVersionId: "version_test_123",
-      variantId: null,
-      variantRevision: null,
-      mode: "engagement",
-      token: String(result.payload.tracking && (result.payload.tracking as { token?: unknown }).token),
-    })).toBe(true);
+    const trackingV2 = result.payload.trackingV2 as { contextToken: string };
+    expect(trackingV2.contextToken).not.toContain("11111111-1111-4111-8111-111111111111");
+    expect(trackingV2ContextTokens.verify(trackingV2.contextToken)).toMatchObject({
+      workspaceId: "11111111-1111-4111-8111-111111111111",
+      siteId: "22222222-2222-4222-8222-222222222222",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
+      recipientId: "44444444-4444-4444-8444-444444444444",
+      recipientRevision: 3,
+      trackingMode: "events_and_recording",
+    });
   });
 });

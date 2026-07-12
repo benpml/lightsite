@@ -4,6 +4,7 @@ import type {
   CompleteAccountSetupRequest,
   OnboardingNextStep,
   SetActiveWorkspaceRequest,
+  WorkspacePlan,
   WorkspaceRole,
 } from "@lightsite/contracts"
 
@@ -35,6 +36,7 @@ export function completeAccountSetup(input: CompleteAccountSetupRequest) {
 }
 
 const workspaceRoles = new Set<WorkspaceRole>(["admin", "user"])
+const workspacePlans = new Set<WorkspacePlan>(["free", "core", "pro"])
 const onboardingNextSteps = new Set<OnboardingNextStep>([
   "verify_email",
   "account_setup",
@@ -96,6 +98,8 @@ function parseWorkspaceSwitcherItem(value: unknown): BootstrapWorkspaceSwitcherI
     typeof object.slug !== "string" ||
     typeof object.name !== "string" ||
     typeof object.websiteDomain !== "string" ||
+    typeof object.plan !== "string" ||
+    !workspacePlans.has(object.plan as WorkspacePlan) ||
     typeof object.role !== "string" ||
     !workspaceRoles.has(object.role as WorkspaceRole) ||
     typeof object.membershipId !== "string"
@@ -109,6 +113,7 @@ function parseWorkspaceSwitcherItem(value: unknown): BootstrapWorkspaceSwitcherI
     name: object.name,
     websiteDomain: object.websiteDomain,
     logoUrl: typeof object.logoUrl === "string" ? object.logoUrl : null,
+    plan: object.plan as WorkspacePlan,
     role: object.role as WorkspaceRole,
     membershipId: object.membershipId,
   }

@@ -1,6 +1,7 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
+import { bearer } from "better-auth/plugins";
 import { validateWorkEmail } from "@lightsite/domain";
 import { env } from "./env";
 import { db } from "@lightsite/db";
@@ -14,6 +15,7 @@ export const auth = betterAuth({
     provider: "pg",
     schema: databaseSchema,
   }),
+  plugins: [bearer()],
   emailAndPassword: {
     enabled: true,
   },

@@ -5,6 +5,7 @@ import {
   IconChartBar,
   IconClock,
   IconCopy,
+  IconCreditCard,
   IconEye,
   IconMouse,
   IconPalette,
@@ -25,10 +26,12 @@ export type SiteStatus = "draft" | "published" | "archived"
 export type SiteVisibility = "private" | "team"
 export type SiteAccessLevel = "admin" | "edit" | "view_copy"
 export type TrackingEventType =
-  | "site_viewed"
-  | "button_clicked"
-  | "link_preview_loaded"
-  | "scroll_depth"
+  | "site_visit"
+  | "button_click"
+  | "link_click"
+  | "tab_switch"
+  | "slack_share"
+  | "webhook_send"
 
 export type WorkspaceSummary = {
   id: string
@@ -129,6 +132,7 @@ export const primaryNavItems: NavItem[] = [
   { title: "Sites", href: "/sites", icon: IconWorldLongitude },
   { title: "Tracking", href: "/tracking", icon: IconScanPosition },
   { title: "Team", href: "/team", icon: IconUsersGroup },
+  { title: "Billing", href: "/billing", icon: IconCreditCard },
   { title: "Settings", href: "/settings", icon: IconSettings2 },
 ]
 
@@ -213,9 +217,9 @@ export const sites: SiteRecord[] = [
 export const trackingEvents: TrackingEventRecord[] = [
   {
     id: "event-1",
-    type: "site_viewed",
+    type: "site_visit",
     siteId: "site-acme-rollout",
-    eventName: "Site viewed",
+    eventName: "Site visit",
     siteName: "Acme rollout brief",
     variantName: "Mira at Acme",
     target: "Variant link",
@@ -223,7 +227,7 @@ export const trackingEvents: TrackingEventRecord[] = [
   },
   {
     id: "event-2",
-    type: "button_clicked",
+    type: "button_click",
     siteId: "site-acme-rollout",
     eventName: "Button clicked",
     siteName: "Acme rollout brief",
@@ -233,7 +237,7 @@ export const trackingEvents: TrackingEventRecord[] = [
   },
   {
     id: "event-3",
-    type: "link_preview_loaded",
+    type: "slack_share",
     siteId: "site-acme-rollout",
     eventName: "Slack preview loaded",
     siteName: "Acme rollout brief",
@@ -244,9 +248,9 @@ export const trackingEvents: TrackingEventRecord[] = [
   },
   {
     id: "event-4",
-    type: "scroll_depth",
+    type: "tab_switch",
     siteId: "site-orbit-security",
-    eventName: "Reached 75%",
+    eventName: "Tab switched",
     siteName: "Orbit security follow-up",
     variantName: "Default link",
     target: "Public page",
@@ -382,13 +386,17 @@ export const quickLinks: NavItem[] = [
 
 export function getEventIcon(type: TrackingEventType) {
   switch (type) {
-    case "site_viewed":
+    case "site_visit":
       return IconEye
-    case "button_clicked":
+    case "button_click":
       return IconMouse
-    case "link_preview_loaded":
+    case "link_click":
+      return IconWorldLongitude
+    case "tab_switch":
+      return IconScanPosition
+    case "slack_share":
       return IconCopy
-    case "scroll_depth":
+    case "webhook_send":
       return IconChartBar
   }
 }

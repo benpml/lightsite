@@ -183,7 +183,7 @@ export function createWorkspaceRouter(options: WorkspaceRouterOptions) {
     } catch (error) {
       if (error instanceof WorkspaceValidationError) {
         throw new AppError({
-          code: error.code === "workspace.slug_invalid" ? "slug.invalid" : "workspace.website_invalid",
+          code: error.code === "workspace.slug_invalid" ? "slug.invalid" : error.code,
           message: error.message,
           status: 400,
         });

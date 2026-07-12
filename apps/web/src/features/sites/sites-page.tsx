@@ -1,8 +1,8 @@
 import { useDeferredValue, useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
+import { LIGHTSITE_TEXT_LIMITS } from "@lightsite/domain"
 import {
-  IconArchive,
   IconCirclePlus,
   IconCopy,
   IconDotsVertical,
@@ -10,9 +10,13 @@ import {
   IconFilter,
   IconRefresh,
   IconSearch,
+  IconShare3,
+  IconTrash,
   IconWorldLongitude,
 } from "@tabler/icons-react"
-import type { SiteListItem, SiteStatus } from "@lightsite/contracts"
+import type { SiteListItem } from "@lightsite/contracts"
+import { useTheme } from "next-themes"
+import { toast } from "sonner"
 
 import { SiteStatusBadge } from "@/components/common/status-badge"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -51,8 +55,13 @@ import { useActiveWorkspace } from "@/features/app-bootstrap/app-bootstrap-hooks
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
 
-import { listSites } from "./api"
+import { deleteSite, listSites } from "./api"
 import { CreateSiteDialog } from "./components/create-site-dialog"
+import { DeleteSiteDialog } from "./components/delete-site-dialog"
+import { SitePreviewDocumentFrame } from "./components/site-detail-ui"
+import { SiteShareDialog } from "./components/site-share-dialog"
+import { formatRelativeTime } from "./site-date-format"
+import { createSitePreviewPayload } from "./site-preview-payload"
 
 export function SitesPage() {
   const [query, setQuery] = useState("")
@@ -93,7 +102,7 @@ export function SitesPage() {
             trigger={
               <Button size="compact">
                 <IconCirclePlus data-icon="inline-start" />
-                New Site
+                Create a site
               </Button>
             }
           />
@@ -106,6 +115,7 @@ export function SitesPage() {
             <IconSearch />
           </InputGroupAddon>
           <InputGroupInput
+            maxLength={LIGHTSITE_TEXT_LIMITS.searchQuery}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search sites"
@@ -138,28 +148,31 @@ export function SitesPage() {
 
 function SitesTable({ sites, workspaceSlug }: { sites: SiteListItem[]; workspaceSlug: string }) {
   const navigate = useNavigate()
+  const activeWorkspace = useActiveWorkspace()
+  const { resolvedTheme } = useTheme()
+  const previewTheme = resolvedTheme === "dark" ? "dark" : "light"
 
   return (
-    <div className="min-w-0 overflow-x-auto">
-      <Table className="min-w-[720px] border-separate border-spacing-y-0.5">
+    <div className="min-w-0 overflow-hidden">
+      <Table className="table-fixed border-separate border-spacing-y-0.5">
         <colgroup>
           <col />
-          <col className="w-[140px]" />
-          <col className="w-[140px]" />
-          <col className="w-[48px]" />
+          <col className="w-[96px]" />
+          <col className="w-[76px]" />
+          <col className="w-[96px]" />
+          <col className="w-[84px]" />
         </colgroup>
         <TableHeader>
-          <TableRow className="border-b hover:bg-transparent">
-            <TableHead className="h-7 border-b border-border-subtle px-2 py-1 text-sm font-medium leading-5 text-muted-foreground">
-              Name
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="px-1 text-right">
+              <span className="block text-right">Recipients</span>
             </TableHead>
-            <TableHead className="h-7 border-b border-border-subtle px-2 py-1 text-sm font-medium leading-5 text-muted-foreground">
-              Status
+            <TableHead className="text-right">
+              <span className="block text-right">Updated</span>
             </TableHead>
-            <TableHead className="h-7 border-b border-border-subtle px-2 py-1 text-sm font-medium leading-5 text-muted-foreground">
-              Updated
-            </TableHead>
-            <TableHead className="h-7 border-b border-border-subtle px-0 py-1" />
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className="[&:before]:block [&:before]:h-0.5 [&:before]:content-[''] [&_tr:last-child]:border-0">
@@ -180,7 +193,7 @@ function SitesTable({ sites, workspaceSlug }: { sites: SiteListItem[]; workspace
                 }
 
                 void navigate({
-                  to: "/editor/$siteId",
+                  to: "/sites/$siteId",
                   params: { siteId: site.id },
                 })
               }}
@@ -191,37 +204,48 @@ function SitesTable({ sites, workspaceSlug }: { sites: SiteListItem[]; workspace
 
                 event.preventDefault()
                 void navigate({
-                  to: "/editor/$siteId",
+                  to: "/sites/$siteId",
                   params: { siteId: site.id },
                 })
               }}
               className="group h-16 border-0 cursor-pointer hover:bg-transparent focus-visible:outline-none"
             >
-              <TableCell className="rounded-l-lg bg-background py-2 pr-2 pl-2 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
+              <TableCell className="min-w-0 overflow-hidden rounded-l-lg py-2 pr-2 pl-2 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
                 <div className="flex min-w-0 items-center gap-4">
-                  <SiteThumbnail status={site.status} />
-                  <div className="flex min-w-0 flex-col justify-center gap-0.5 text-sm leading-5">
-                    <div className="max-w-[280px] truncate font-medium text-foreground">
+                  <SiteThumbnail
+                    site={site}
+                    themeMode={previewTheme}
+                    workspace={activeWorkspace}
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-sm leading-5">
+                    <div className="truncate font-medium text-foreground">
                       {site.name}
                     </div>
-                    <div className="max-w-[320px] truncate text-muted-foreground">
+                    <div className="truncate text-muted-foreground">
                       /{workspaceSlug}/{site.slug}
                     </div>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="bg-background px-2 py-2 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
+              <TableCell className="px-2 py-2 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
                 <SiteStatusBadge status={site.status} />
               </TableCell>
-              <TableCell className="bg-background px-2 py-2 text-sm leading-5 text-tertiary-foreground transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
-                {formatSiteDate(site)}
+              <TableCell className="px-1 py-2 text-right text-sm leading-5 text-tertiary-foreground tabular-nums transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
+                {site.recipientCount}
+              </TableCell>
+              <TableCell className="px-2 py-2 text-right text-sm leading-5 text-tertiary-foreground tabular-nums transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary">
+                {formatRelativeTime(site.updatedAt ?? site.createdAt)}
               </TableCell>
               <TableCell
-                className="rounded-r-lg bg-background py-2 pr-2 pl-0 transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary"
+                className="rounded-r-lg py-2 pr-2 pl-6 text-right transition-colors group-hover:bg-secondary group-focus-visible:bg-secondary"
                 onClick={(event) => event.stopPropagation()}
                 onKeyDown={(event) => event.stopPropagation()}
               >
-                <SiteActions site={site} />
+                <SiteActions
+                  site={site}
+                  workspaceId={activeWorkspace.id}
+                  workspaceSlug={workspaceSlug}
+                />
               </TableCell>
             </TableRow>
           ))}
@@ -231,36 +255,78 @@ function SitesTable({ sites, workspaceSlug }: { sites: SiteListItem[]; workspace
   )
 }
 
-function SiteActions({ site }: { site: SiteListItem }) {
+function SiteActions({
+  site,
+  workspaceId,
+  workspaceSlug,
+}: {
+  site: SiteListItem
+  workspaceId: string
+  workspaceSlug: string
+}) {
+  const queryClient = useQueryClient()
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const deleteSiteMutation = useMutation({
+    mutationFn: () => deleteSite(site.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sites(workspaceId) })
+      toast.success("Site deleted")
+    },
+  })
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-field" aria-label={`Actions for ${site.name}`}>
-          <IconDotsVertical />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link to="/editor/$siteId" params={{ siteId: site.id }}>
-              <IconEdit />
-              Open editor
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <IconCopy />
-            Duplicate
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem disabled={site.status === "archived"}>
-            <IconArchive />
-            Archive
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-field" aria-label={`Actions for ${site.name}`}>
+            <IconDotsVertical />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+              <Link to="/edit/$siteId" params={{ siteId: site.id }}>
+                <IconEdit />
+                Open editor
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+              <IconShare3 />
+              Share
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <IconCopy />
+              Duplicate
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
+              <IconTrash />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <SiteShareDialog
+        onOpenChange={setShareOpen}
+        open={shareOpen}
+        siteId={site.id}
+        siteVersion={site.publishedAt}
+        siteSlug={site.slug}
+        workspaceId={workspaceId}
+        workspaceSlug={workspaceSlug}
+      />
+      <DeleteSiteDialog
+        key={deleteOpen ? `delete-${site.id}` : `delete-${site.id}-closed`}
+        isDeleting={deleteSiteMutation.isPending}
+        onDeleteSite={() => deleteSiteMutation.mutateAsync().then(() => undefined)}
+        onOpenChange={setDeleteOpen}
+        open={deleteOpen}
+        siteName={site.name}
+      />
+    </>
   )
 }
 
@@ -346,40 +412,45 @@ function SitesFilteredEmptyState({
   )
 }
 
-function SiteThumbnail({ status }: { status: SiteStatus }) {
+function SiteThumbnail({
+  site,
+  themeMode,
+  workspace,
+}: {
+  site: SiteListItem
+  themeMode: "dark" | "light"
+  workspace: ReturnType<typeof useActiveWorkspace>
+}) {
+  const payload = useMemo(() => {
+    if (!site.thumbnail) {
+      return null
+    }
+
+    return createSitePreviewPayload({
+      content: {
+        ...site.thumbnail.content,
+        themeMode,
+      },
+      site,
+      workspace,
+    })
+  }, [site, themeMode, workspace])
+
   return (
-    <div className="relative h-12 w-[38px] shrink-0 overflow-hidden rounded-md border bg-background">
-      <div className="absolute inset-x-[9px] top-1.5 flex justify-center gap-1">
-        <span className="size-0.5 rounded-full bg-muted-foreground" />
-        <span className="size-0.5 rounded-full bg-muted-foreground" />
-      </div>
-      <div className="absolute top-[15px] left-[8px] h-0.5 w-[22px] rounded-full bg-muted" />
-      <div className="absolute top-[20px] left-[8px] h-0.5 w-4 rounded-full bg-muted" />
-      <div className="absolute right-[5px] bottom-[5px] left-[5px] h-3 rounded-sm bg-foreground" />
-      <div className="absolute right-[7px] bottom-[7px] left-[7px] h-1 rounded-[2px] bg-background/20" />
-      <span
-        className="absolute top-1 right-1 size-1.5 rounded-full bg-muted-foreground"
-        data-status={status}
-      />
+    <div
+      aria-hidden="true"
+      className="relative h-12 w-[38px] shrink-0 overflow-hidden rounded-md border bg-card"
+    >
+      {payload ? (
+        <SitePreviewDocumentFrame
+          canvasClassName="scale-[0.04167]"
+          className="absolute top-1 left-1/2 h-12 w-[30px] -translate-x-1/2 rounded-[3px]"
+          loading="lazy"
+          payload={payload}
+        />
+      ) : (
+        <Skeleton className="absolute top-1 left-1/2 h-12 w-[30px] -translate-x-1/2 rounded-[3px]" />
+      )}
     </div>
   )
-}
-
-function formatSiteDate(site: SiteListItem) {
-  const value = site.updatedAt ?? site.createdAt
-
-  if (!value) {
-    return "Just now"
-  }
-
-  const timestamp = Date.parse(value)
-
-  if (!Number.isFinite(timestamp)) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp)
 }

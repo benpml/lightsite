@@ -7,9 +7,10 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@lightsite/config": ["../config/src/index.ts"]
+      "@lightsite/config": ["../config/src/index.ts"],
+      "@lightsite/site-document": ["../site-document/src/index.ts"]
     },
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src", "drizzle.config.ts", "../config/src"]
+  "include": ["src", "drizzle.config.ts", "../config/src", "../site-document/src", "../domain/src", "../tracking-schema/src"]
 }

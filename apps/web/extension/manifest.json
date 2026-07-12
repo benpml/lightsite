@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Lightsite for Gmail",
+  "description": "Create and share personalized Lightsites from Gmail.",
+  "version": "0.1.0",
+  "permissions": ["identity", "storage"],
+  "host_permissions": [
+    "http://localhost:3011/*",
+    "http://localhost:5173/*",
+    "https://lightsite.io/*",
+    "https://*.lightsite.io/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["panel.html", "assets/*", "lightsite-logo.svg"],
+      "matches": ["https://mail.google.com/*"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

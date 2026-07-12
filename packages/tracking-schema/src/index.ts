@@ -1,35 +1,4 @@
-export const TRACKING_SCRIPT_VERSION = "2026-06-14.v1" as const;
-
-export const TRACKING_SCRIPT_ENDPOINT = `/track/${TRACKING_SCRIPT_VERSION}/script.js` as const;
-export const TRACKING_INGEST_ENDPOINT = "/api/public/tracking/events" as const;
-
-export const TRACKING_HEARTBEAT_INTERVAL_MS = 15_000;
-export const TRACKING_MAX_BATCH_EVENTS = 5;
-export const TRACKING_MAX_REQUEUED_EVENTS = 20;
-export const TRACKING_MAX_ID_LENGTH = 160;
-export const TRACKING_MAX_CONTEXT_TOKEN_LENGTH = 1_024;
-export const TRACKING_MAX_CLICK_LABEL_LENGTH = 160;
-export const TRACKING_MAX_URL_LENGTH = 2_000;
-export const TRACKING_MAX_REFERRER_HOST_LENGTH = 253;
-export const TRACKING_MAX_HEARTBEAT_SECONDS = 60;
-
-export const trackingScrollThresholds = [25, 50, 75, 90, 100] as const;
-
-export const trackingEventTypes = [
-  "site_viewed",
-  "heartbeat",
-  "scroll_depth_reached",
-  "element_clicked",
-  "button_clicked",
-  "link_clicked",
-  "calendar_booked",
-  "link_preview_loaded",
-] as const;
-
-export type TrackingEventType = (typeof trackingEventTypes)[number];
-export type TrackingScrollThreshold = (typeof trackingScrollThresholds)[number];
-
-export type TrackingMode = "off" | "essential_only" | "engagement";
+export * from "./v2";
 
 export const previewPlatforms = [
   "slack",
@@ -45,78 +14,6 @@ export const previewPlatforms = [
 
 export const previewResources = ["html", "og_image"] as const;
 
-export type TrackingContext = {
-  workspaceId: string;
-  siteId: string;
-  publishedVersionId: string;
-  variantId: string | null;
-  variantRevision: number | null;
-  mode: TrackingMode;
-  token: string | null;
-};
-
-export type UnsignedTrackingContext = Omit<TrackingContext, "token">;
-
-export type TrackingEventBase = {
-  eventId: string;
-  type: TrackingEventType;
-  occurredAt: string;
-  sessionId: string;
-  context: TrackingContext;
-  scriptVersion: typeof TRACKING_SCRIPT_VERSION;
-};
-
-export type SiteViewedEvent = TrackingEventBase & {
-  type: "site_viewed";
-  viewport: {
-    width: number;
-    height: number;
-  };
-  referrerHost: string | null;
-};
-
-export type HeartbeatEvent = TrackingEventBase & {
-  type: "heartbeat";
-  engagedSeconds: number;
-  maxScrollDepthPercent: number;
-};
-
-export type ScrollDepthReachedEvent = TrackingEventBase & {
-  type: "scroll_depth_reached";
-  depthPercent: TrackingScrollThreshold;
-};
-
-export type ElementClickedEvent = TrackingEventBase & {
-  type: "element_clicked" | "button_clicked" | "link_clicked" | "calendar_booked";
-  elementId: string;
-  label: string;
-  href: string | null;
-};
-
-export type LinkPreviewLoadedEvent = TrackingEventBase & {
-  type: "link_preview_loaded";
-  platform: PreviewPlatform;
-  resource: PreviewResource;
-  userAgentFamily: string;
-};
-
-export type TrackingEvent =
-  | SiteViewedEvent
-  | HeartbeatEvent
-  | ScrollDepthReachedEvent
-  | ElementClickedEvent
-  | LinkPreviewLoadedEvent;
-
-export type TrackingBatch = {
-  batchId: string;
-  sentAt: string;
-  events: TrackingEvent[];
-};
-
-export function isTrackingEventType(value: string): value is TrackingEventType {
-  return trackingEventTypes.includes(value as TrackingEventType);
-}
-
 export type PreviewPlatform = (typeof previewPlatforms)[number];
 
 export type PreviewResource = (typeof previewResources)[number];
@@ -127,6 +24,9 @@ export type PreviewClassification = {
   userAgentFamily: string;
   resource: PreviewResource;
 };
+
+const MAX_TRACKED_URL_LENGTH = 2_000;
+const MAX_TRACKED_LABEL_LENGTH = 180;
 
 export type PublicCacheKeyInput = {
   workspaceSlug: string;
@@ -210,7 +110,7 @@ export function sanitizeTrackedUrl(value: string | null | undefined): string | n
     url.search = "";
 
     const sanitized = url.toString();
-    return sanitized.length > TRACKING_MAX_URL_LENGTH ? null : sanitized;
+    return sanitized.length > MAX_TRACKED_URL_LENGTH ? null : sanitized;
   } catch {
     return null;
   }
@@ -231,7 +131,7 @@ export function extractReferrerHost(value: string | null | undefined): string | 
 
 export function truncateTrackingLabel(value: string | null | undefined): string {
   const label = value?.trim() || "Clicked element";
-  return label.length > TRACKING_MAX_CLICK_LABEL_LENGTH ? label.slice(0, TRACKING_MAX_CLICK_LABEL_LENGTH) : label;
+  return label.length > MAX_TRACKED_LABEL_LENGTH ? label.slice(0, MAX_TRACKED_LABEL_LENGTH) : label;
 }
 
 function normalizeSlugPart(value: string): string {

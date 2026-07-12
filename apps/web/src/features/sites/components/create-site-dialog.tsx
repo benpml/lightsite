@@ -2,8 +2,9 @@ import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { IconCirclePlus } from "@tabler/icons-react"
+import { LIGHTSITE_TEXT_LIMITS } from "@lightsite/domain"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,25 +18,31 @@ import {
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
-import { getApiErrorMessage, getApiFieldError } from "@/lib/api/errors"
+import { getApiErrorMessage, getApiFieldError, isApiClientError } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
 
 import { createSite } from "../api"
 
 type CreateSiteDialogProps = {
+  onOpenChange?: (open: boolean) => void
+  open?: boolean
   trigger?: React.ReactNode
   workspaceId: string
   workspaceSlug: string
 }
 
 export function CreateSiteDialog({
+  onOpenChange,
+  open: controlledOpen,
   trigger,
   workspaceId,
   workspaceSlug,
 }: CreateSiteDialogProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = onOpenChange ?? setUncontrolledOpen
   const [name, setName] = useState("")
   const slug = slugify(name) || "new-site"
   const createSiteMutation = useMutation({
@@ -45,13 +52,15 @@ export function CreateSiteDialog({
       setOpen(false)
       setName("")
       await navigate({
-        to: "/editor/$siteId",
+        to: "/edit/$siteId",
         params: { siteId: data.site.id },
       })
     },
   })
   const nameError = getApiFieldError(createSiteMutation.error, "name")
   const hasNameError = Boolean(nameError)
+  const isPlanLimitError =
+    isApiClientError(createSiteMutation.error) && createSiteMutation.error.code === "site.limit_reached"
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -59,7 +68,7 @@ export function CreateSiteDialog({
         {trigger ?? (
           <Button size="compact">
             <IconCirclePlus data-icon="inline-start" />
-            New site
+            Create a site
           </Button>
         )}
       </DialogTrigger>
@@ -82,6 +91,7 @@ export function CreateSiteDialog({
               <FieldLabel htmlFor="site-name">Site name</FieldLabel>
               <Input
                 id="site-name"
+                maxLength={LIGHTSITE_TEXT_LIMITS.siteName}
                 value={name}
                 onChange={(event) => {
                   setName(event.target.value)
@@ -105,12 +115,25 @@ export function CreateSiteDialog({
               <AlertDescription>
                 {getApiErrorMessage(createSiteMutation.error, "Try again in a moment.")}
               </AlertDescription>
+              {isPlanLimitError ? (
+                <AlertAction>
+                  <Button
+                    size="compact"
+                    variant="outline"
+                    type="button"
+                    onClick={() => void navigate({ to: "/billing" })}
+                  >
+                    View plans
+                  </Button>
+                </AlertAction>
+              ) : null}
             </Alert>
           ) : null}
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
+              className="text-tertiary-foreground hover:text-tertiary-foreground focus-visible:text-tertiary-foreground"
               disabled={createSiteMutation.isPending}
               onClick={() => setOpen(false)}
             >

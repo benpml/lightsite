@@ -1,13 +1,16 @@
 import request from "supertest";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  TRACKING_INGEST_ENDPOINT,
-  TRACKING_MAX_HEARTBEAT_SECONDS,
-  TRACKING_SCRIPT_ENDPOINT,
-  TRACKING_SCRIPT_VERSION,
-  type TrackingBatch,
-  type UnsignedTrackingContext,
-} from "@lightsite/tracking-schema";
+  LIGHTSITE_COLLECTION_LIMITS,
+  LIGHTSITE_TEXT_LIMITS,
+} from "@lightsite/domain";
+import {
+  createDefaultSiteContent,
+  PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
+  type PublishedSitePayload,
+  type SiteContent,
+  type TiptapNode,
+} from "@lightsite/site-document";
 import { createApp } from "./app";
 import type { CurrentActor } from "./auth/current-actor";
 import { DEV_AUTH_BYPASS_HEADER } from "./auth/dev-auth";
@@ -18,6 +21,7 @@ import {
   type MemoryBootstrapRepositoryInput,
 } from "./bootstrap/repository";
 import { createBootstrapService } from "./bootstrap/service";
+import type { BillingService } from "./billing/service";
 import {
   createMemoryWorkspaceRepository,
   type WorkspaceRecord,
@@ -30,6 +34,7 @@ import {
   buildMemorySiteVersion,
   createMemorySiteRepository,
   type SiteRecord,
+  type SiteVariantRecord,
   type SiteVersionRecord,
 } from "./sites/repository";
 import { createSiteService } from "./sites/service";
@@ -37,22 +42,7 @@ import {
   createLogoDevPreviewService,
   type WorkspaceLogoPreviewService,
 } from "./workspaces/logo-preview";
-import {
-  createHmacTrackingContextTokenService,
-  type TrackingContextTokenService,
-} from "./tracking/context-token";
-import type {
-  TrackingEventSink,
-  TrackingEventSinkRecordOptions,
-} from "./tracking/event-sink";
-import {
-  createMemoryTrackingRateLimiter,
-  type TrackingRateLimiter,
-} from "./tracking/rate-limit";
-import type { TrackingService } from "./tracking/service";
-import { PUBLIC_TRACKING_SCRIPT_CACHE_CONTROL } from "./tracking/public-script";
 import { createWorkspaceService } from "./workspaces/service";
-import { logger } from "./lib/logger";
 
 const testActor: CurrentActor = {
   userId: "user_test_123",
@@ -60,73 +50,33 @@ const testActor: CurrentActor = {
   emailVerified: true,
   name: "Jane Doe",
 };
-const testTrackingContextTokens = createHmacTrackingContextTokenService(
-  "test-tracking-signing-secret-at-least-32-chars",
-  { nowSeconds: () => Date.parse("2026-06-14T18:00:00.000Z") / 1000 },
-);
-
 function createTestApp(input: {
   initialWorkspaces?: WorkspaceRecord[];
   bootstrap?: MemoryBootstrapRepositoryInput;
   logoPreview?: WorkspaceLogoPreviewService;
   publicSites?: PublicSiteService;
+  billing?: BillingService;
   publicSiteOrigin?: string;
   sites?: SiteRecord[];
+  siteVariants?: SiteVariantRecord[];
   siteVersions?: SiteVersionRecord[];
-  trackingContextTokens?: TrackingContextTokenService;
-  trackingEvents?: TrackingEventSink;
-  trackingRateLimiter?: TrackingRateLimiter;
   actor?: CurrentActor | null;
 } = {}) {
   const actor = "actor" in input ? (input.actor ?? null) : testActor;
-  const trackingContextTokens = input.trackingContextTokens ?? testTrackingContextTokens;
-  const trackingService: TrackingService = {
-    async trackingContextIsCurrentlyAcceptable() {
-      return true;
-    },
-    async record(batch, options) {
-      await input.trackingEvents?.record(batch, options);
-    },
-    async listEvents() {
-      return {
-        events: [],
-        nextCursor: null,
-      };
-    },
-    async getSummary() {
-      return {
-        metrics: {
-          humanVisits: 0,
-          uniqueSessions: 0,
-          averageTimeSpentSeconds: 0,
-          maxScrollDepth: 0,
-          ctaClicks: 0,
-          linkClicks: 0,
-          previewLoads: 0,
-          lastEngagedAt: null,
-        },
-        topClickedElements: [],
-        variants: [],
-      };
-    },
-  };
 
   return createApp({
+    ...(input.billing ? { billing: input.billing } : {}),
     bootstrap: createBootstrapService(createMemoryBootstrapRepository(input.bootstrap)),
     ...(input.logoPreview ? { logoPreview: input.logoPreview } : {}),
     publicSites:
       input.publicSites ??
-      createPublicSiteService(createUnavailablePublicSiteRepository(), {
-        trackingContextTokens,
-      }),
+      createPublicSiteService(createUnavailablePublicSiteRepository()),
     publicSiteOrigin: input.publicSiteOrigin ?? "https://pages.lightsite.test",
-    sites: createSiteService(createMemorySiteRepository(input.sites, input.siteVersions)),
-    trackingContextTokens,
-    trackingService,
-    ...(input.trackingEvents ? { trackingEvents: input.trackingEvents } : {}),
-    ...(input.trackingRateLimiter
-      ? { trackingRateLimiter: input.trackingRateLimiter }
-      : {}),
+    sites: createSiteService(createMemorySiteRepository(
+      input.sites,
+      input.siteVersions,
+      input.siteVariants,
+    )),
     workspaces: createWorkspaceService(createMemoryWorkspaceRepository(input.initialWorkspaces)),
     getCurrentActor: async () => actor,
   });
@@ -141,7 +91,7 @@ function buildWorkspace(overrides: Partial<WorkspaceRecord> = {}): WorkspaceReco
     slug: "acme",
     websiteDomain: "acme.com",
     logoAssetId: null,
-    plan: "basic",
+    plan: "free",
     status: "active",
     createdAt: now,
     updatedAt: now,
@@ -177,13 +127,17 @@ function buildBootstrapMembership(
 function createTestAppWithActiveWorkspace(input: {
   workspace?: WorkspaceRecord;
   role?: "admin" | "user";
+  billing?: BillingService;
   sites?: SiteRecord[];
+  siteVariants?: SiteVariantRecord[];
   siteVersions?: SiteVersionRecord[];
 } = {}) {
-  const workspace = input.workspace ?? buildWorkspace({ plan: "pro" });
+  const workspace = input.workspace ?? buildWorkspace({ plan: "core" });
 
   return createTestApp({
+    billing: input.billing,
     sites: input.sites,
+    siteVariants: input.siteVariants,
     siteVersions: input.siteVersions,
     bootstrap: {
       profiles: [
@@ -219,20 +173,40 @@ function createFakeLogoPreviewService(): WorkspaceLogoPreviewService {
   };
 }
 
-function createRecordingTrackingEventSink() {
-  const records: Array<{
-    batch: TrackingBatch;
-    options: TrackingEventSinkRecordOptions;
-  }> = [];
-  const sink: TrackingEventSink = {
-    async record(batch, options) {
-      records.push({ batch, options });
-    },
-  };
-
+function createFakeBillingService(): BillingService {
   return {
-    records,
-    sink,
+    async getSummary(input) {
+      return {
+        workspaceId: input.workspace.id,
+        plan: input.workspace.plan,
+        canPublish: input.workspace.plan !== "free",
+        canManageBilling: input.workspace.role === "admin",
+        hasStripeCustomer: true,
+        subscription: {
+          status: "active",
+          interval: "month",
+          seatCount: 1,
+          currentPeriodEnd: "2026-02-01T00:00:00.000Z",
+          cancelAtPeriodEnd: false,
+        },
+      };
+    },
+
+    async createCheckoutSession() {
+      return {
+        url: "https://billing.stripe.test/checkout",
+      };
+    },
+
+    async createPortalSession() {
+      return {
+        url: "https://billing.stripe.test/portal",
+      };
+    },
+
+    async handleWebhook() {
+      return undefined;
+    },
   };
 }
 
@@ -247,153 +221,108 @@ function restoreEnv(values: Record<string, string | undefined>) {
   }
 }
 
-function buildTrackingContext(
-  overrides: Partial<UnsignedTrackingContext> = {},
-) {
-  const context = {
-    workspaceId: "workspace_test_123",
-    siteId: "site_test_123",
-    publishedVersionId: "version_test_123",
-    variantId: "variant_test_123",
-    variantRevision: 3,
-    mode: "engagement" as const,
-    ...overrides,
-  };
-
-  return {
-    ...context,
-    token: testTrackingContextTokens.sign(context),
-  };
-}
-
-function buildTrackingViewBatch(
-  overrides: {
-    batchId?: string;
-    eventId?: string;
-    sessionId?: string;
-  } = {},
-) {
-  return {
-    batchId: overrides.batchId ?? "batch_test_123",
-    sentAt: "2026-06-14T18:00:00.000Z",
-    events: [
-      {
-        eventId: overrides.eventId ?? "event_test_123",
-        type: "site_viewed",
-        occurredAt: "2026-06-14T18:00:00.000Z",
-        sessionId: overrides.sessionId ?? "session_test_123",
-        context: buildTrackingContext(),
-        scriptVersion: TRACKING_SCRIPT_VERSION,
-        viewport: {
-          width: 1440,
-          height: 900,
-        },
-        referrerHost: "slack.com",
-      },
-    ],
-  };
-}
-
-type DraftContentOverrides = {
-  schemaVersion?: SiteRecord["draftContent"]["schemaVersion"];
-  chrome?: {
-    siteHeader?: Partial<SiteRecord["draftContent"]["chrome"]["siteHeader"]>;
-    hero?: Partial<SiteRecord["draftContent"]["chrome"]["hero"]>;
-  };
-  settings?: Partial<SiteRecord["draftContent"]["settings"]>;
-  variables?: SiteRecord["draftContent"]["variables"];
-  blocks?: SiteRecord["draftContent"]["blocks"];
+type DraftContentOverrides = Omit<Partial<SiteContent>, "pages" | "settings"> & {
+  document?: TiptapNode;
+  pages?: SiteContent["pages"];
+  settings?: Partial<SiteContent["settings"]>;
 };
 
 function buildDraftContent(overrides: DraftContentOverrides = {}): SiteRecord["draftContent"] {
   const base = structuredClone(buildMemorySite().draftContent);
-  const overrideChrome = overrides.chrome ?? {};
-  const overrideSiteHeader = overrideChrome.siteHeader ?? {};
-  const overrideHero = overrideChrome.hero ?? {};
+  const { document, pages, settings, ...contentOverrides } = overrides;
 
   return {
     ...base,
-    ...overrides,
-    chrome: {
-      ...base.chrome,
-      ...overrideChrome,
-      siteHeader: {
-        ...base.chrome.siteHeader,
-        ...overrideSiteHeader,
-      },
-      hero: {
-        ...base.chrome.hero,
-        ...overrideHero,
-      },
-    },
+    ...contentOverrides,
     settings: {
       ...base.settings,
-      ...overrides.settings,
+      ...(settings && typeof settings === "object" && !Array.isArray(settings)
+        ? settings
+        : {}),
     },
-    variables: overrides.variables ?? base.variables,
-    blocks: overrides.blocks ?? base.blocks,
+    pages: pages ?? [{
+      ...base.pages[0]!,
+      document: document ?? base.pages[0]!.document,
+    }],
   };
 }
 
-function buildPublicHtmlPayload() {
+function buildPublicHtmlPayload(): PublishedSitePayload {
+  const content = createDefaultSiteContent("Rollout brief")
+  content.variables.push(
+    {
+      id: "company_name",
+      key: "company_name",
+      label: "Company name",
+      type: "text",
+      defaultValue: "your team",
+    },
+    {
+      id: "primary_cta_url",
+      key: "primary_cta_url",
+      label: "Primary CTA URL",
+      type: "url",
+      defaultValue: "https://cal.com/lightsite/implementation-review",
+    },
+  )
+  content.pages[0]!.document = {
+    type: "doc",
+    content: [
+      {
+        type: "pageTitleSection",
+        attrs: { id: "hero", align: "center" },
+        content: [
+          {
+            type: "pageTitleTitle",
+            content: [
+              { type: "text", text: "A focused rollout plan for " },
+              { type: "variableToken", attrs: { variableId: "company_name" } },
+            ],
+          },
+          {
+            type: "pageTitleSubtitle",
+            content: [{ type: "text", text: "A short page for the buying team." }],
+          },
+        ],
+      },
+      {
+        type: "paragraph",
+        attrs: { id: "text-context" },
+        content: [{ type: "text", text: "{{company_name}} can move faster with one clean source of truth." }],
+      },
+      {
+        type: "buttonBlock",
+        attrs: { id: "cta-primary", href: "{{primary_cta_url}}" },
+        content: [{ type: "text", text: "Book implementation review" }],
+      },
+    ],
+  }
+
   return {
-    schemaVersion: 1,
+    schemaVersion: PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
     workspace: {
-      id: "workspace_test_123",
+      id: "11111111-1111-4111-8111-111111111111",
       slug: "acme",
       name: "Acme",
       websiteDomain: "acme.com",
+      logoUrl: null,
     },
     site: {
-      id: "site_test_123",
+      id: "22222222-2222-4222-8222-222222222222",
       slug: "rollout-brief",
       name: "Rollout brief",
-      publishedVersionId: "version_test_123",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
       publishedAt: "2026-06-14T18:00:00.000Z",
-        },
-        metadata: {
-          title: "Rollout brief for {{company_name}}",
-          description: "A concise implementation plan for {{company_name}}.",
-          ogImage: null,
-          robots: "noindex,nofollow",
-        },
-        chrome: {
-          siteHeader: {
-            brandName: "Lightsite",
-            logoUrl: null,
-            primaryButtonText: "Book implementation review",
-            primaryButtonHref: "{{primary_cta_url}}",
-            secondaryButtonText: null,
-            secondaryButtonHref: null,
-            showSecondaryButton: false,
-          },
-          hero: {
-            avatarMode: "single",
-            avatarImageUrl: null,
-            avatarImageSecondaryUrl: null,
-            avatarImageAlt: null,
-            avatarImageSecondaryAlt: null,
-            eyebrow: "July rollout",
-            title: "A focused rollout plan for {{company_name}}",
-            subtitle: "A short page for the buying team.",
-          },
-        },
-        variables: [
-          {
-            id: "company_name",
-        name: "Company name",
-        type: "text",
-        defaultValue: "your team",
-      },
-      {
-        id: "primary_cta_url",
-        name: "Primary CTA URL",
-        type: "url",
-        defaultValue: "https://cal.com/lightsite/implementation-review",
-      },
-    ],
+    },
+    metadata: {
+      title: "Rollout brief for Acme",
+      description: "A concise implementation plan for Acme.",
+      ogImageUrl: null,
+      robots: "noindex,nofollow",
+    },
+    content,
     selectedVariant: {
-      id: "variant_test_123",
+      id: "44444444-4444-4444-8444-444444444444",
       slug: "mira",
       name: "Mira at Acme",
       recipientName: "Mira",
@@ -401,23 +330,18 @@ function buildPublicHtmlPayload() {
       revisionNumber: 3,
       variableValues: {
         company_name: "Acme",
+        recipient_website: "linear.app",
       },
     },
-    blocks: [
-      {
-        id: "text-context",
-        type: "text",
-        text: "{{company_name}} can move faster with one clean source of truth.",
-      },
-      {
-        id: "cta-primary",
-        type: "cta",
-        label: "Book implementation review",
-        href: "{{primary_cta_url}}",
-        style: "primary",
-      },
-    ],
-    tracking: buildTrackingContext(),
+    tracking: {
+      version: 2,
+      workspaceId: "11111111-1111-4111-8111-111111111111",
+      siteId: "22222222-2222-4222-8222-222222222222",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
+      recipientId: "44444444-4444-4444-8444-444444444444",
+      recipientRevision: 3,
+      trackingMode: "events_and_recording",
+    },
   };
 }
 
@@ -559,6 +483,7 @@ describe("Lightsite API", () => {
         name: "Beta",
         websiteDomain: "beta.com",
         logoUrl: null,
+        plan: "free",
         role: "admin",
         membershipId: `membership_${betaWorkspace.id}`,
       },
@@ -569,6 +494,7 @@ describe("Lightsite API", () => {
           name: "Acme",
           websiteDomain: "acme.com",
           logoUrl: null,
+          plan: "free",
           role: "user",
           membershipId: `membership_${acmeWorkspace.id}`,
         },
@@ -578,6 +504,7 @@ describe("Lightsite API", () => {
           name: "Beta",
           websiteDomain: "beta.com",
           logoUrl: null,
+          plan: "free",
           role: "admin",
           membershipId: `membership_${betaWorkspace.id}`,
         },
@@ -726,6 +653,7 @@ describe("Lightsite API", () => {
       name: "Beta",
       websiteDomain: "beta.com",
       logoUrl: null,
+      plan: "free",
       role: "admin",
       membershipId: `membership_${betaWorkspace.id}`,
     });
@@ -839,8 +767,59 @@ describe("Lightsite API", () => {
     });
   });
 
+  it("derives list thumbnails from the first visible site page", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const draftContent = buildDraftContent({
+      themeMode: "light",
+      document: {
+        type: "doc",
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 1 },
+            content: [{ type: "text", text: "Launch plan" }],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "A focused rollout for the team." }],
+          },
+          { type: "horizontalRule" },
+          {
+            type: "bulletList",
+            content: [
+              {
+                type: "listItem",
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "First step" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      sites: [
+        buildMemorySite({
+          workspaceId: workspace.id,
+          draftContent,
+        }),
+      ],
+    });
+
+    const response = await request(app).get("/api/sites").expect(200);
+
+    expect(response.body.sites[0].thumbnail).toEqual({
+      content: draftContent,
+    });
+  });
+
   it("lists only sites accessible to a non-admin workspace member", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const app = createTestAppWithActiveWorkspace({
       workspace,
       role: "user",
@@ -887,7 +866,7 @@ describe("Lightsite API", () => {
   it("allows configured bearer-token agents to manage the configured workspace", async () => {
     const workspace = buildWorkspace({
       id: "workspace_agent_123",
-      plan: "pro",
+      plan: "core",
     });
     const site = buildMemorySite({
       workspaceId: workspace.id,
@@ -935,17 +914,6 @@ describe("Lightsite API", () => {
         draftRevision: site.draftRevision,
         draftContent: site.draftContent,
       });
-
-      await request(app)
-        .get(`/api/workspaces/${workspace.id}/tracking/summary`)
-        .set("authorization", "Bearer agent-test-token")
-        .expect(200)
-        .expect((response) => {
-          expect(response.body.metrics).toMatchObject({
-            humanVisits: 0,
-            ctaClicks: 0,
-          });
-        });
     } finally {
       restoreEnv(previousEnv);
     }
@@ -954,7 +922,7 @@ describe("Lightsite API", () => {
   it("rejects incorrect bearer-token agent credentials", async () => {
     const workspace = buildWorkspace({
       id: "workspace_agent_456",
-      plan: "pro",
+      plan: "core",
     });
     const app = createTestApp({
       actor: null,
@@ -1005,6 +973,10 @@ describe("Lightsite API", () => {
         name: "Acme rollout brief",
         slug: "acme-rollout-brief",
         status: "draft",
+        recipientCount: 0,
+        thumbnail: {
+          content: createDefaultSiteContent(),
+        },
         visibility: "private",
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
@@ -1036,7 +1008,7 @@ describe("Lightsite API", () => {
   });
 
   it("returns site detail with effective permissions", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       name: "Board deck",
@@ -1066,19 +1038,13 @@ describe("Lightsite API", () => {
   });
 
   it("reads, validates, and updates site JSON content with draft revision protection", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({ workspaceId: workspace.id });
     const app = createTestAppWithActiveWorkspace({
       workspace,
       sites: [site],
     });
     const draftContent = buildDraftContent({
-      chrome: {
-        hero: {
-          title: "Acme rollout plan",
-          subtitle: "A short plan for the buying committee.",
-        },
-      },
       variables: [
         {
           id: "var_company_name",
@@ -1088,25 +1054,21 @@ describe("Lightsite API", () => {
           defaultValue: "Acme",
         },
       ],
-      blocks: [
-        {
-          id: "heading-overview",
-          type: "heading",
-          fields: {
-            level: 2,
-            text: "Why this matters now",
+      document: {
+        type: "doc",
+        content: [
+          {
+            type: "heading",
+            attrs: { id: "heading-overview", level: 2 },
+            content: [{ type: "text", text: "Why this matters now" }],
           },
-        },
-        {
-          id: "cta-primary",
-          type: "cta",
-          fields: {
-            label: "Book implementation review",
-            href: "{{primary_cta_url}}",
-            style: "primary",
+          {
+            type: "buttonBlock",
+            attrs: { id: "cta-primary", href: "{{primary_cta_url}}" },
+            content: [{ type: "text", text: "Book implementation review" }],
           },
-        },
-      ],
+        ],
+      },
     });
 
     const contentResponse = await request(app)
@@ -1139,23 +1101,9 @@ describe("Lightsite API", () => {
       })
       .expect(200);
 
-    const normalizedDraftContent = {
-      ...draftContent,
-      variables: [
-        {
-          id: "recipient_website",
-          key: "recipient_website",
-          label: "Recipient website",
-          type: "url",
-          defaultValue: "",
-        },
-        ...draftContent.variables,
-      ],
-    };
-
     expect(updateResponse.body).toMatchObject({
       draftRevision: 2,
-      draftContent: normalizedDraftContent,
+      draftContent,
       requestId: expect.any(String),
     });
 
@@ -1174,22 +1122,18 @@ describe("Lightsite API", () => {
   });
 
   it("returns validation issues for structurally valid but unpublishable site JSON", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({ workspaceId: workspace.id });
     const app = createTestAppWithActiveWorkspace({
       workspace,
       sites: [site],
     });
+    const duplicatePage = structuredClone(site.draftContent.pages[0]!);
 
     const response = await request(app)
       .post(`/api/sites/${site.id}/content/validate`)
       .send({
         draftContent: buildDraftContent({
-          chrome: {
-            hero: {
-              title: "",
-            },
-          },
           variables: [
             {
               id: "var_one",
@@ -1206,18 +1150,7 @@ describe("Lightsite API", () => {
               defaultValue: "Acme",
             },
           ],
-          blocks: [
-            {
-              id: "block-one",
-              type: "text",
-              fields: { text: "One" },
-            },
-            {
-              id: "block-one",
-              type: "text",
-              fields: { text: "Two" },
-            },
-          ],
+          pages: [duplicatePage, structuredClone(duplicatePage)],
         }),
       })
       .expect(200);
@@ -1225,106 +1158,120 @@ describe("Lightsite API", () => {
     expect(response.body.valid).toBe(false);
     expect(response.body.issues).toEqual([
       {
-        path: ["chrome", "hero", "title"],
-        message: "Site title is required before publishing.",
-      },
-      {
-        path: ["variables", 2, "key"],
+        path: ["variables", 1, "key"],
         message: "Variable key must be unique: company_name",
       },
       {
-        path: ["blocks", 1, "id"],
-        message: "Block id must be unique: block-one",
+        path: ["pages", 1, "id"],
+        message: `Page id must be unique: ${duplicatePage.id}`,
+      },
+      {
+        path: ["pages", 1, "slug"],
+        message: `Page slug must be unique: ${duplicatePage.slug}`,
       },
     ]);
   });
 
-  it("blocks unsupported or incomplete draft blocks before publish", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+  it("rejects unsupported Tiptap nodes at the content boundary", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({ workspaceId: workspace.id });
     const app = createTestAppWithActiveWorkspace({
       workspace,
       sites: [site],
     });
     const draftContent = buildDraftContent({
-      chrome: {
-        hero: {
-          title: "Procurement plan",
-        },
+      document: {
+        type: "doc",
+        content: [{ type: "unsupportedBlock" }],
       },
-      variables: [],
-      blocks: [
-        {
-          id: "unsupported-proof",
-          type: "unsupported_block",
-          fields: {},
-        },
-        {
-          id: "cta-primary",
-          type: "button",
-          fields: {
-            label: "",
-          },
-        },
-      ],
     });
 
     const validateResponse = await request(app)
       .post(`/api/sites/${site.id}/content/validate`)
       .send({ draftContent })
-      .expect(200);
+      .expect(400);
 
-    expect(validateResponse.body).toMatchObject({
-      valid: false,
-      issues: [
-        {
-          path: ["blocks", 0, "type"],
-          message: "Unsupported block type: unsupported_block",
-        },
-        {
-          path: ["blocks", 1, "fields", "label"],
-          message: "Button blocks require a label.",
-        },
-        {
-          path: ["blocks", 1, "fields", "href"],
-          message: "Button blocks require an href.",
-        },
-      ],
+    expect(validateResponse.body.error).toMatchObject({
+      code: "site.invalid_payload",
     });
 
-    await request(app)
+    const updateResponse = await request(app)
       .put(`/api/sites/${site.id}/content`)
       .send({
         expectedDraftRevision: 1,
         draftContent,
       })
-      .expect(200);
-
-    const publishResponse = await request(app)
-      .post(`/api/sites/${site.id}/publish`)
       .expect(400);
 
-    expect(publishResponse.body.error).toMatchObject({
-      code: "site.publish_invalid",
-      issues: [
-        {
-          path: ["draftContent", "blocks", 0, "type"],
-          message: "Unsupported block type: unsupported_block",
-        },
-        {
-          path: ["draftContent", "blocks", 1, "fields", "label"],
-          message: "Button blocks require a label.",
-        },
-        {
-          path: ["draftContent", "blocks", 1, "fields", "href"],
-          message: "Button blocks require an href.",
-        },
-      ],
+    expect(updateResponse.body.error).toMatchObject({
+      code: "site.invalid_payload",
+    });
+  });
+
+  it("blocks oversized draft content before saving", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const site = buildMemorySite({ workspaceId: workspace.id });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      sites: [site],
+    });
+
+    const response = await request(app)
+      .put(`/api/sites/${site.id}/content`)
+      .send({
+        expectedDraftRevision: 1,
+        draftContent: buildDraftContent({
+          document: {
+            type: "doc",
+            content: [{
+              type: "paragraph",
+              content: [{ type: "text", text: "x".repeat(LIGHTSITE_TEXT_LIMITS.blockText + 1) }],
+            }],
+          },
+        }),
+      })
+      .expect(400);
+
+    expect(response.body.error).toMatchObject({
+      code: "site.invalid_payload",
+    });
+  });
+
+  it("blocks drafts with too many tab blocks before saving", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const site = buildMemorySite({ workspaceId: workspace.id });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      sites: [site],
+    });
+
+    const response = await request(app)
+      .put(`/api/sites/${site.id}/content`)
+      .send({
+        expectedDraftRevision: 1,
+        draftContent: buildDraftContent({
+          document: {
+            type: "doc",
+            content: Array.from(
+              { length: LIGHTSITE_COLLECTION_LIMITS.blocksPerTab + 1 },
+              (_, index) => ({
+                type: "paragraph",
+                attrs: { id: `block-${index}` },
+                content: [{ type: "text", text: `Block ${index}` }],
+              }),
+            ),
+          },
+        }),
+      })
+      .expect(400);
+
+    expect(response.body.error).toMatchObject({
+      code: "site.invalid_payload",
     });
   });
 
   it("batch creates and updates site variants by slug", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({ workspaceId: workspace.id });
     const app = createTestAppWithActiveWorkspace({
       workspace,
@@ -1344,6 +1291,7 @@ describe("Lightsite API", () => {
             variableValues: {
               company_name: "Acme",
               primary_cta_url: "https://cal.example/acme",
+              recipient_website: "acme.com",
             },
           },
           {
@@ -1364,6 +1312,10 @@ describe("Lightsite API", () => {
       slug: "mira-acme",
       name: "Mira at Acme",
       revisionNumber: 1,
+      variableValues: {
+        recipient_website: "acme.com",
+        "var-company-logo": "/api/workspaces/logo-preview/image?domain=acme.com&theme=light&size=64",
+      },
     });
 
     const updateResponse = await request(app)
@@ -1402,10 +1354,39 @@ describe("Lightsite API", () => {
       "jules-northstar",
       "mira-acme",
     ]);
+
+    const sitesResponse = await request(app).get("/api/sites").expect(200);
+    expect(sitesResponse.body.sites).toEqual([
+      expect.objectContaining({
+        id: site.id,
+        recipientCount: 2,
+      }),
+    ]);
+
+    const recipientToDelete = listResponse.body.variants.find(
+      (variant: { slug: string }) => variant.slug === "jules-northstar",
+    );
+
+    await request(app)
+      .delete(`/api/sites/${site.id}/variants/${recipientToDelete.id}`)
+      .expect(204);
+
+    const variantsAfterDelete = await request(app)
+      .get(`/api/sites/${site.id}/variants`)
+      .expect(200);
+    expect(variantsAfterDelete.body.variants).toHaveLength(1);
+
+    const sitesAfterDelete = await request(app).get("/api/sites").expect(200);
+    expect(sitesAfterDelete.body.sites).toEqual([
+      expect.objectContaining({
+        id: site.id,
+        recipientCount: 1,
+      }),
+    ]);
   });
 
   it("does not reveal inaccessible private sites to non-admin members", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       createdByUserId: "another_user",
@@ -1427,7 +1408,7 @@ describe("Lightsite API", () => {
   });
 
   it("updates draft site metadata and slug", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       name: "Old name",
@@ -1457,7 +1438,7 @@ describe("Lightsite API", () => {
   });
 
   it("blocks slug changes after a site is published", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       status: "published",
@@ -1482,7 +1463,7 @@ describe("Lightsite API", () => {
   });
 
   it("publishes a site through an immutable publish version", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       name: "Publishable brief",
@@ -1526,8 +1507,31 @@ describe("Lightsite API", () => {
     ]);
   });
 
+  it("requires an upgrade before a free workspace can publish", async () => {
+    const workspace = buildWorkspace({ plan: "free" });
+    const site = buildMemorySite({
+      workspaceId: workspace.id,
+      name: "Publishable brief",
+      slug: "publishable-brief",
+    });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      sites: [site],
+    });
+
+    const response = await request(app)
+      .post(`/api/sites/${site.id}/publish`)
+      .expect(402);
+
+    expect(response.body.error).toMatchObject({
+      code: "billing.upgrade_required",
+      message: "Upgrade to Core to publish this site.",
+      requestId: expect.any(String),
+    });
+  });
+
   it("unpublishes a live site without deleting publish history", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       status: "published",
@@ -1574,14 +1578,11 @@ describe("Lightsite API", () => {
     ]);
   });
 
-  it("rejects publish when draft content is not public-renderable", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+  it("rejects publish when no page is publicly visible", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const baseContent = buildDraftContent();
     const invalidContent = buildDraftContent({
-      chrome: {
-        hero: {
-          title: "",
-        },
-      },
+      pages: baseContent.pages.map((page) => ({ ...page, status: "hidden" })),
     });
     const site = buildMemorySite({
       workspaceId: workspace.id,
@@ -1603,14 +1604,14 @@ describe("Lightsite API", () => {
     });
     expect(response.body.error.issues).toEqual([
       {
-        path: ["draftContent", "chrome", "hero", "title"],
-        message: "Site title is required before publishing.",
+        path: ["draftContent", "pages"],
+        message: "At least one visible page is required before publishing.",
       },
     ]);
   });
 
   it("rejects publish for users who can only view a team site", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       createdByUserId: "another_user",
@@ -1634,7 +1635,7 @@ describe("Lightsite API", () => {
   });
 
   it("lets viewable team sites be duplicated without allowing original mutation", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       createdByUserId: "another_user",
@@ -1685,7 +1686,7 @@ describe("Lightsite API", () => {
   });
 
   it("archives published sites as unavailable and restores them as drafts", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       status: "published",
@@ -1729,20 +1730,68 @@ describe("Lightsite API", () => {
     });
   });
 
+  it("permanently deletes sites and their recipient variants", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const site = buildMemorySite({ workspaceId: workspace.id });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      sites: [site],
+    });
+
+    await request(app)
+      .post(`/api/sites/${site.id}/variants/batch`)
+      .send({
+        matchBy: "slug",
+        variants: [
+          {
+            slug: "mira-acme",
+            name: "Mira at Acme",
+            recipientName: "Mira Singh",
+            recipientCompany: "Acme",
+            variableValues: {
+              company_name: "Acme",
+            },
+          },
+        ],
+      })
+      .expect(200);
+
+    const populatedListResponse = await request(app).get("/api/sites").expect(200);
+    expect(populatedListResponse.body.sites).toEqual([
+      expect.objectContaining({
+        id: site.id,
+        recipientCount: 1,
+      }),
+    ]);
+
+    await request(app)
+      .delete(`/api/sites/${site.id}`)
+      .expect(204);
+
+    const listResponse = await request(app).get("/api/sites").expect(200);
+    expect(listResponse.body.sites).toEqual([]);
+
+    await request(app)
+      .get(`/api/sites/${site.id}`)
+      .expect(404);
+
+    await request(app)
+      .get(`/api/sites/${site.id}/variants`)
+      .expect(404);
+  });
+
   it("restores an older site version into draft while preserving history", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const earlierContent = buildDraftContent({
-      chrome: {
-        hero: {
-          title: "Earlier draft",
-        },
+      document: {
+        type: "doc",
+        content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Earlier draft" }] }],
       },
     });
     const currentContent = buildDraftContent({
-      chrome: {
-        hero: {
-          title: "Current draft",
-        },
+      document: {
+        type: "doc",
+        content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Current draft" }] }],
       },
     });
     const site = buildMemorySite({
@@ -1805,7 +1854,7 @@ describe("Lightsite API", () => {
   });
 
   it("blocks version restore while the site is archived", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({
       workspaceId: workspace.id,
       status: "archived",
@@ -1848,7 +1897,7 @@ describe("Lightsite API", () => {
   });
 
   it("rejects duplicate site slugs inside a workspace", async () => {
-    const workspace = buildWorkspace({ plan: "pro" });
+    const workspace = buildWorkspace({ plan: "core" });
     const app = createTestAppWithActiveWorkspace({
       workspace,
       sites: [
@@ -1871,16 +1920,16 @@ describe("Lightsite API", () => {
     });
   });
 
-  it("enforces the basic workspace site limit", async () => {
-    const workspace = buildWorkspace({ plan: "basic" });
+  it("enforces the free workspace site limit", async () => {
+    const workspace = buildWorkspace({ plan: "free" });
     const app = createTestAppWithActiveWorkspace({
       workspace,
-      sites: [
+      sites: Array.from({ length: 10 }, (_, index) =>
         buildMemorySite({
           workspaceId: workspace.id,
-          slug: "existing-site",
+          slug: `existing-site-${index + 1}`,
         }),
-      ],
+      ),
     });
 
     const response = await request(app)
@@ -1890,7 +1939,51 @@ describe("Lightsite API", () => {
 
     expect(response.body.error).toMatchObject({
       code: "site.limit_reached",
-      message: "This workspace can create up to 1 site on its current plan.",
+      message: "Free workspaces can create up to 10 draft sites. Upgrade to publish more.",
+      requestId: expect.any(String),
+    });
+  });
+
+  it("returns the active workspace billing summary", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      billing: createFakeBillingService(),
+    });
+
+    const response = await request(app)
+      .get("/api/billing")
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      workspaceId: workspace.id,
+      plan: "core",
+      canPublish: true,
+      canManageBilling: true,
+      hasStripeCustomer: true,
+      subscription: {
+        status: "active",
+        interval: "month",
+        seatCount: 1,
+      },
+      requestId: expect.any(String),
+    });
+  });
+
+  it("creates a billing checkout session for workspace admins", async () => {
+    const workspace = buildWorkspace({ plan: "free" });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      billing: createFakeBillingService(),
+    });
+
+    const response = await request(app)
+      .post("/api/billing/checkout")
+      .send({ plan: "core", interval: "year" })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      url: "https://billing.stripe.test/checkout",
       requestId: expect.any(String),
     });
   });
@@ -2041,125 +2134,117 @@ describe("Lightsite API", () => {
     expect(response.headers["cache-control"]).toBe("public, max-age=60, stale-while-revalidate=300");
     expect(response.headers["content-security-policy"]).toContain("script-src 'self'");
     expect(response.headers["content-security-policy"]).toContain("connect-src 'self'");
+    expect(response.headers["content-security-policy"]).toContain("font-src 'self'");
+    expect(response.headers["content-security-policy"]).toContain("frame-src https:");
     expect(response.text).toContain("<title>Rollout brief for Acme</title>");
     expect(response.text).toContain('content="https://pages.lightsite.test/acme/rollout-brief/mira"');
     expect(response.text).toContain("A focused rollout plan for Acme");
+    expect(response.text).toContain(
+      'src="/api/public/site-logo/acme/rollout-brief/workspace?theme=dark&amp;variant=mira"',
+    );
+    expect(response.text).toContain(
+      'src="/api/public/site-logo/acme/rollout-brief/recipient?theme=dark&amp;variant=mira"',
+    );
     expect(response.text).toContain("Book implementation review");
-    expect(response.text).toContain('data-track-click-id="cta-primary"');
-    expect(response.text).toContain(`src="${TRACKING_SCRIPT_ENDPOINT}"`);
-    expect(response.text).toContain("data-lightsite-tracking=");
+    expect(response.text).toContain('data-ls-element-id="cta-primary"');
+    expect(response.text).toContain('data-ls-element-label="Book implementation review"');
+    expect(response.text).not.toContain("data-lightsite-tracking-v2=");
+    expect(response.text).not.toContain("/track/2026-06-14.v1/script.js");
   });
 
-  it("records public HTML preview loads for known preview bots without blocking rendering", async () => {
-    const trackingEvents = createRecordingTrackingEventSink();
+  it("serves workspace and recipient logos only through published site context", async () => {
+    const fetchedLogos: Array<{ domain: string; size: number; theme: "dark" | "light" }> = [];
+    const payload = buildPublicHtmlPayload();
+    payload.selectedVariant!.variableValues.recipient_website = "linear.app";
     const app = createTestApp({
-      trackingEvents: trackingEvents.sink,
+      actor: null,
+      logoPreview: {
+        async getPreview() {
+          throw new Error("Public logo delivery must not use the preview URL flow.");
+        },
+        async fetchImage(input) {
+          fetchedLogos.push(input);
+          return {
+            body: Uint8Array.from([1, 2, 3]),
+            contentType: "image/webp",
+            cacheControl: "private, max-age=60",
+          };
+        },
+      },
       publicSites: {
-        async resolve() {
+        async resolve(input) {
+          expect(input.workspaceSlug).toBe("acme");
+          expect(input.siteSlug).toBe("rollout-brief");
           return {
             status: "available",
-            cacheControl: "public, max-age=60, stale-while-revalidate=300",
-            payload: buildPublicHtmlPayload(),
+            cacheControl: "public, max-age=60",
+            payload,
           };
         },
       },
     });
 
-    const response = await request(app)
-      .get("/acme/rollout-brief/mira")
-      .set("user-agent", "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)")
+    const workspaceLogo = await request(app)
+      .get("/api/public/site-logo/acme/rollout-brief/workspace")
+      .query({ theme: "dark" })
+      .expect(200);
+    const recipientLogo = await request(app)
+      .get("/api/public/site-logo/acme/rollout-brief/recipient")
+      .query({ theme: "light", variant: "mira" })
       .expect(200);
 
-    expect(response.text).toContain("<title>Rollout brief for Acme</title>");
-    expect(trackingEvents.records).toHaveLength(1);
-    expect(trackingEvents.records[0]?.options).toEqual({ source: "preview_html" });
-    expect(trackingEvents.records[0]?.batch.events[0]).toMatchObject({
-      type: "link_preview_loaded",
-      platform: "slack",
-      resource: "html",
-      userAgentFamily: "slackbot",
-      context: {
-        workspaceId: "workspace_test_123",
-        siteId: "site_test_123",
-        publishedVersionId: "version_test_123",
-        variantId: "variant_test_123",
-        variantRevision: 3,
-        mode: "engagement",
-      },
-    });
+    expect(workspaceLogo.headers["content-type"]).toContain("image/webp");
+    expect(workspaceLogo.headers["cache-control"]).toBe(
+      "public, max-age=86400, stale-while-revalidate=604800",
+    );
+    expect(workspaceLogo.headers["cross-origin-resource-policy"]).toBe("same-origin");
+    expect(recipientLogo.headers["content-type"]).toContain("image/webp");
+    expect(fetchedLogos).toEqual([
+      { domain: "acme.com", size: 128, theme: "dark" },
+      { domain: "linear.app", size: 128, theme: "light" },
+    ]);
   });
 
-  it("does not record preview events for ordinary public HTML requests", async () => {
-    const trackingEvents = createRecordingTrackingEventSink();
+  it("does not proxy logos for malformed or unavailable public site requests", async () => {
+    let fetchCount = 0;
+    let resolveCount = 0;
     const app = createTestApp({
-      trackingEvents: trackingEvents.sink,
+      actor: null,
+      logoPreview: {
+        async getPreview() {
+          throw new Error("Unexpected preview request.");
+        },
+        async fetchImage() {
+          fetchCount += 1;
+          return null;
+        },
+      },
       publicSites: {
         async resolve() {
+          resolveCount += 1;
           return {
-            status: "available",
-            cacheControl: "public, max-age=60, stale-while-revalidate=300",
-            payload: buildPublicHtmlPayload(),
+            status: "unavailable",
+            cacheControl: "public, max-age=15",
           };
         },
       },
     });
 
     await request(app)
-      .get("/acme/rollout-brief/mira")
-      .set("user-agent", "Mozilla/5.0")
-      .expect(200);
-
-    expect(trackingEvents.records).toEqual([]);
-  });
-
-  it("rate limits repeated public HTML preview events by public page identity", async () => {
-    const trackingEvents = createRecordingTrackingEventSink();
-    const app = createTestApp({
-      trackingEvents: trackingEvents.sink,
-      trackingRateLimiter: createMemoryTrackingRateLimiter({
-        maxEventsPerWindow: 1,
-        windowMs: 60_000,
-        nowMs: () => Date.parse("2026-06-14T18:00:00.000Z"),
-      }),
-      publicSites: {
-        async resolve() {
-          return {
-            status: "available",
-            cacheControl: "public, max-age=60, stale-while-revalidate=300",
-            payload: buildPublicHtmlPayload(),
-          };
-        },
-      },
-    });
-
+      .get("/api/public/site-logo/acme/rollout-brief/arbitrary-domain")
+      .query({ theme: "dark" })
+      .expect(404);
     await request(app)
-      .get("/acme/rollout-brief/mira")
-      .set("user-agent", "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)")
-      .expect(200);
+      .get("/api/public/site-logo/acme/rollout-brief/workspace")
+      .query({ theme: "unknown" })
+      .expect(404);
     await request(app)
-      .get("/acme/rollout-brief/mira")
-      .set("user-agent", "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)")
-      .expect(200);
+      .get("/api/public/site-logo/acme/rollout-brief/workspace")
+      .query({ theme: "dark" })
+      .expect(404);
 
-    expect(trackingEvents.records).toHaveLength(1);
-    expect(trackingEvents.records[0]?.batch.events[0]).toMatchObject({
-      type: "link_preview_loaded",
-      platform: "slack",
-    });
-  });
-
-  it("serves the standalone public tracking script with immutable caching", async () => {
-    const app = createTestApp();
-    const response = await request(app)
-      .get(TRACKING_SCRIPT_ENDPOINT)
-      .expect(200);
-
-    expect(response.headers["content-type"]).toContain("application/javascript");
-    expect(response.headers["cache-control"]).toBe(PUBLIC_TRACKING_SCRIPT_CACHE_CONTROL);
-    expect(response.headers["x-content-type-options"]).toBe("nosniff");
-    expect(response.text).toContain(TRACKING_SCRIPT_VERSION);
-    expect(response.text).toContain(TRACKING_INGEST_ENDPOINT);
-    expect(response.text).toContain("data-lightsite-tracking");
+    expect(resolveCount).toBe(1);
+    expect(fetchCount).toBe(0);
   });
 
   it("serves public renderer assets before the public HTML fallback", async () => {
@@ -2173,6 +2258,21 @@ describe("Lightsite API", () => {
     expect(response.headers["cache-control"]).toContain("max-age=");
     expect(body).toContain("<svg");
     expect(body).not.toContain("This page is unavailable");
+
+    const runtimeResponse = await request(app)
+      .get("/site-runtime.v3.js")
+      .expect(200);
+
+    expect(runtimeResponse.headers["content-type"]).toContain("application/javascript");
+    expect(runtimeResponse.headers["cache-control"]).toContain("immutable");
+    expect(runtimeResponse.text).toContain("data-ls-page-target");
+
+    const fontResponse = await request(app)
+      .get("/fonts/geist-latin-wght-normal.woff2")
+      .expect(200);
+
+    expect(fontResponse.headers["content-type"]).toContain("font/woff2");
+    expect(fontResponse.headers["cache-control"]).toContain("max-age=");
   });
 
   it("renders generic server HTML for unavailable public site links", async () => {
@@ -2197,339 +2297,6 @@ describe("Lightsite API", () => {
     expect(response.headers["content-type"]).toContain("application/json");
     expect(response.body.error).toMatchObject({
       code: "route.not_found",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("accepts valid public tracking batches", async () => {
-    const trackingEvents = createRecordingTrackingEventSink();
-    const app = createTestApp({
-      trackingEvents: trackingEvents.sink,
-    });
-
-    await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send(buildTrackingViewBatch())
-      .expect(204);
-
-    expect(trackingEvents.records).toHaveLength(1);
-    expect(trackingEvents.records[0]?.options).toEqual({ source: "browser" });
-    expect(trackingEvents.records[0]?.batch.events[0]).toMatchObject({
-      type: "site_viewed",
-      sessionId: "session_test_123",
-    });
-  });
-
-  it("accepts valid public tracking batches when the sink is temporarily unavailable", async () => {
-    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-    const app = createTestApp({
-      trackingEvents: {
-        async record() {
-          throw new Error("tracking sink unavailable");
-        },
-      },
-    });
-
-    try {
-      await request(app)
-        .post(TRACKING_INGEST_ENDPOINT)
-        .send(buildTrackingViewBatch())
-        .expect(204);
-
-      expect(warn).toHaveBeenCalledWith(
-        "Tracking event sink failed after batch acceptance.",
-        expect.objectContaining({
-          eventCount: 1,
-          siteId: "site_test_123",
-          publishedVersionId: "version_test_123",
-          variantId: "variant_test_123",
-          source: "browser",
-        }),
-      );
-    } finally {
-      warn.mockRestore();
-    }
-  });
-
-  it("rejects public tracking batches with forged context", async () => {
-    const app = createTestApp();
-    const batch = buildTrackingViewBatch();
-    const event = batch.events[0];
-
-    if (!event) {
-      throw new Error("Expected tracking test batch to include an event.");
-    }
-
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        ...batch,
-        events: [
-          {
-            ...event,
-            context: {
-              ...buildTrackingContext(),
-              siteId: "site_forged_123",
-            },
-          },
-        ],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_context",
-      message: "Invalid tracking context.",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("rejects public tracking batches that mix visitor scopes", async () => {
-    const app = createTestApp();
-    const batch = buildTrackingViewBatch();
-    const event = batch.events[0];
-
-    if (!event) {
-      throw new Error("Expected tracking test batch to include an event.");
-    }
-
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        ...batch,
-        events: [
-          event,
-          {
-            ...event,
-            eventId: "event_test_other_scope",
-            sessionId: "session_other_123",
-          },
-        ],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_context",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("rejects public tracking events when the signed context disables tracking", async () => {
-    const app = createTestApp();
-    const batch = buildTrackingViewBatch();
-    const event = batch.events[0];
-
-    if (!event) {
-      throw new Error("Expected tracking test batch to include an event.");
-    }
-
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        ...batch,
-        events: [
-          {
-            ...event,
-            context: buildTrackingContext({ mode: "off" }),
-          },
-        ],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_context",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("rejects signed public tracking contexts with mismatched variant fields", async () => {
-    const app = createTestApp();
-    const batch = buildTrackingViewBatch();
-    const event = batch.events[0];
-
-    if (!event) {
-      throw new Error("Expected tracking test batch to include an event.");
-    }
-
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        ...batch,
-        events: [
-          {
-            ...event,
-            context: buildTrackingContext({
-              variantId: null,
-              variantRevision: 3,
-            }),
-          },
-        ],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_context",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("rejects engagement events for essential-only signed contexts", async () => {
-    const app = createTestApp();
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        batchId: "batch_test_essential",
-        sentAt: "2026-06-14T18:00:00.000Z",
-        events: [
-          {
-            eventId: "event_test_essential",
-            type: "heartbeat",
-            occurredAt: "2026-06-14T18:00:00.000Z",
-            sessionId: "session_test_123",
-            context: buildTrackingContext({ mode: "essential_only" }),
-            scriptVersion: TRACKING_SCRIPT_VERSION,
-            engagedSeconds: 15,
-            maxScrollDepthPercent: 50,
-          },
-        ],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_context",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("rate limits noisy public tracking sessions without disabling other sessions", async () => {
-    const app = createTestApp({
-      trackingRateLimiter: createMemoryTrackingRateLimiter({
-        maxEventsPerWindow: 1,
-        windowMs: 60_000,
-        nowMs: () => Date.parse("2026-06-14T18:00:00.000Z"),
-      }),
-    });
-
-    await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send(buildTrackingViewBatch())
-      .expect(204);
-
-    const rateLimitedResponse = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send(
-        buildTrackingViewBatch({
-          batchId: "batch_test_456",
-          eventId: "event_test_456",
-        }),
-      )
-      .expect(429);
-
-    expect(rateLimitedResponse.headers["retry-after"]).toBe("60");
-    expect(rateLimitedResponse.body.error).toMatchObject({
-      code: "tracking.rate_limited",
-      message: "Tracking is receiving too many events. Try again shortly.",
-      requestId: expect.any(String),
-    });
-
-    await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send(
-        buildTrackingViewBatch({
-          batchId: "batch_test_789",
-          eventId: "event_test_789",
-          sessionId: "session_other_123",
-        }),
-      )
-      .expect(204);
-  });
-
-  it("rejects invalid public tracking batches", async () => {
-    const app = createTestApp();
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        batchId: "",
-        sentAt: "not-a-date",
-        events: [],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_payload",
-      message: "Invalid tracking payload.",
-      requestId: expect.any(String),
-    });
-    expect(response.body.error.issues.length).toBeGreaterThan(0);
-  });
-
-  it("rejects malformed JSON request bodies with a structured client error", async () => {
-    const app = createTestApp();
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .set("content-type", "application/json")
-      .send("{")
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "request.invalid",
-      message: "Invalid JSON request body.",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("rejects public tracking URLs that contain sensitive URL parts", async () => {
-    const app = createTestApp();
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        batchId: "batch_test_123",
-        sentAt: "2026-06-14T18:00:00.000Z",
-        events: [
-          {
-            eventId: "event_test_123",
-            type: "link_clicked",
-            occurredAt: "2026-06-14T18:00:00.000Z",
-            sessionId: "session_test_123",
-            context: buildTrackingContext(),
-            scriptVersion: TRACKING_SCRIPT_VERSION,
-            elementId: "cta-primary",
-            label: "Book implementation review",
-            href: "https://cal.com/lightsite/review?token=secret#details",
-          },
-        ],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_payload",
-      requestId: expect.any(String),
-    });
-  });
-
-  it("rejects heartbeat windows that would inflate time spent", async () => {
-    const app = createTestApp();
-    const response = await request(app)
-      .post(TRACKING_INGEST_ENDPOINT)
-      .send({
-        batchId: "batch_test_123",
-        sentAt: "2026-06-14T18:00:00.000Z",
-        events: [
-          {
-            eventId: "event_test_123",
-            type: "heartbeat",
-            occurredAt: "2026-06-14T18:00:00.000Z",
-            sessionId: "session_test_123",
-            context: buildTrackingContext(),
-            scriptVersion: TRACKING_SCRIPT_VERSION,
-            engagedSeconds: TRACKING_MAX_HEARTBEAT_SECONDS + 1,
-            maxScrollDepthPercent: 75,
-          },
-        ],
-      })
-      .expect(400);
-
-    expect(response.body.error).toMatchObject({
-      code: "tracking.invalid_payload",
       requestId: expect.any(String),
     });
   });
@@ -2595,7 +2362,7 @@ describe("Lightsite API", () => {
         slug: "acme-sales",
         websiteDomain: "acme.com",
         logoAssetId: null,
-        plan: "basic",
+        plan: "free",
         status: "active",
         createdAt: expect.any(String),
         updatedAt: expect.any(String),

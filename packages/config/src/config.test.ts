@@ -21,9 +21,26 @@ describe("api env parsing", () => {
       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/lightsite",
       NODE_ENV: "development",
       PUBLIC_SITE_ORIGIN: "https://pages.lightsite.test",
+      TRACKING_RECORDING_ENABLED: false,
       TRACKING_SIGNING_SECRET: "a-tracking-signing-secret-long-enough",
+      TRACKING_V2_ENABLED: false,
       TRUST_PROXY: "false",
       WEB_ORIGIN: "http://localhost:5173",
+    });
+  });
+
+  it("parses tracking feature switches from strings", () => {
+    expect(
+      parseApiEnv({
+        ...validEnv,
+        TRACKING_RECORDING_ENABLED: "true",
+        TRACKING_RECORDING_STORAGE_DIR: ".local/tracking-recordings",
+        TRACKING_V2_ENABLED: "true",
+      }),
+    ).toMatchObject({
+      TRACKING_RECORDING_ENABLED: true,
+      TRACKING_RECORDING_STORAGE_DIR: ".local/tracking-recordings",
+      TRACKING_V2_ENABLED: true,
     });
   });
 

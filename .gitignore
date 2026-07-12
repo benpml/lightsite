@@ -1,10 +1,14 @@
 node_modules
 dist
+dist-extension
 .env
 .env.local
 .DS_Store
 *.log
+*.tsbuildinfo
 .vite
+.wrangler/
+screenlog.*
 coverage
 .local/
 .codex/logs/

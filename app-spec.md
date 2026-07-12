@@ -1,10 +1,14 @@
 # Lightsite App Spec
 
-Lightsite is a lightweight sales one-page site builder. It gives sales teams a place to quickly build, edit, personalize, publish, and track sales one-pager sites that can be sent to prospects who ask for more information.
+Lightsite is a lightweight sales site builder. It gives sales teams a place to quickly build, edit, personalize, publish, and track sites that can be sent to prospects who ask for more information.
+
+> **Canonical editor/rendering update:** [site-rendering-architecture.md](./site-rendering-architecture.md) and [site-sidebar-pages-spec.md](./site-sidebar-pages-spec.md) supersede historical references in this document to flat product blocks, root `blocks`, page `blocks`, `chrome` content, or Tiptap being limited to rich-text fields. The implemented source of truth is schema-v3 `SiteContent`: each page owns one canonical Tiptap JSON `document`, and the same Tiptap Static Renderer powers Preview and published HTML. Do not use the historical shapes for implementation.
 
 This document is the living product and architecture spec for the app. It will include feature behavior, user flows, data models, database table structure, backend API architecture, frontend architecture, editor behavior, permissions, publishing, hosting, analytics, and implementation notes.
 
 Note: The prospect-specific sharing model is now defined as **Recipient Sharing** in [recipient-sharing-spec.md](recipient-sharing-spec.md). That model supersedes the older user-facing "variants", "site copies", and detached-copy terminology in this document for new product and implementation work.
+
+Note: The fresh tracking rebuild is now defined in [tracking-implementation-spec.md](tracking-implementation-spec.md). That focused spec supersedes older tracking implementation details in this document until the tracking sections are merged or retired.
 
 ## Product And Architecture Principles
 

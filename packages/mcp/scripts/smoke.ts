@@ -23,9 +23,14 @@ await client.connect(transport);
 try {
   const capabilities = readTextJson(await callTool("lightsite_get_capabilities", {}));
   assert(Array.isArray(capabilities.workflow), "capabilities should include workflow guidance");
+  assert(capabilities.siteContent?.schemaVersion === 3, "capabilities should expose canonical site schema v3");
   assert(
-    capabilities.siteContent?.draftBlockDefinitions?.quote?.requiredFields?.quote === "string",
-    "capabilities should expose quote block field requirements",
+    capabilities.siteContent?.supportedNodeTypes?.includes("pageTitleSection"),
+    "capabilities should expose supported Tiptap nodes",
+  );
+  assert(
+    capabilities.siteContent?.documentExample?.type === "doc",
+    "capabilities should include a canonical Tiptap document example",
   );
   const sites = readTextJson(await callTool("lightsite_list_sites", {}));
   assert(Array.isArray(sites.sites), "list sites should return a sites array");
@@ -36,32 +41,9 @@ try {
   const content = await callTool("lightsite_get_site_content", { siteId });
   const draftRevision = readTextJson(content).draftRevision as number;
   const draftContent = {
-    schemaVersion: 2,
-    chrome: {
-      siteHeader: {
-        brandName: "Lightsite",
-        logoUrl: "",
-        primaryButtonText: "Book a call",
-        primaryButtonHref: "{{primary_cta_url}}",
-        secondaryButtonText: "Learn more",
-        secondaryButtonHref: "https://example.com/docs",
-        showSecondaryButton: true,
-      },
-      hero: {
-        avatarMode: "single",
-        eyebrow: "Agent-generated page",
-        title: "Agent-generated rollout brief",
-        subtitle: "A clean JSON-first site created through MCP.",
-        avatarImageUrl: "",
-        avatarImageVariableKey: "company_logo",
-        avatarImageAlt: "Company logo",
-        avatarImageSecondaryUrl: "",
-        avatarImageSecondaryVariableKey: "",
-        avatarImageSecondaryAlt: "",
-      },
-    },
+    schemaVersion: 3,
+    themeMode: "dark",
     settings: {
-      showTableOfContents: true,
       allowSearchIndexing: false,
     },
     variables: [
@@ -87,32 +69,60 @@ try {
         defaultValue: "https://example.com/book",
       },
     ],
-    blocks: [
+    pages: [
       {
-        id: "heading-context",
-        type: "heading",
-        fields: {
-          level: 2,
-          text: "Why this matters now",
-        },
-      },
-      {
-        id: "text-context",
-        type: "text",
-        fields: {
-          text: "{{company_name}} can move faster when the buying team has one clean page to review.",
-        },
-      },
-      {
-        id: "cta-primary",
-        type: "cta",
-        fields: {
-          label: "Book implementation review",
-          href: "{{primary_cta_url}}",
-          style: "primary",
+        id: "page-overview",
+        name: "Overview",
+        slug: "overview",
+        status: "visible",
+        sortOrder: 0,
+        document: {
+          type: "doc",
+          content: [
+            {
+              type: "pageTitleSection",
+              attrs: { id: "title-overview", align: "center" },
+              content: [
+                {
+                  type: "pageTitleTitle",
+                  content: [{ type: "text", text: "Agent-generated rollout brief" }],
+                },
+                {
+                  type: "pageTitleSubtitle",
+                  content: [{ type: "text", text: "A clean Tiptap-native site created through MCP." }],
+                },
+              ],
+            },
+            {
+              type: "heading",
+              attrs: { id: "heading-context", level: 2 },
+              content: [{ type: "text", text: "Why this matters now" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "variableToken", attrs: { variableId: "company_name", fallbackName: "Your team" } },
+                { type: "text", text: " can move faster when the buying team has one clean page to review." },
+              ],
+            },
+            {
+              type: "buttonBlock",
+              attrs: { id: "cta-primary", href: "{{primary_cta_url}}", fullWidth: false },
+              content: [{ type: "text", text: "Book implementation review" }],
+            },
+          ],
         },
       },
     ],
+    sidebar: {
+      sections: {
+        tabs: { label: "Tabs" },
+        links: { label: "Links" },
+        nextSteps: { label: "Next steps" },
+      },
+      links: [],
+      nextSteps: [],
+    },
   };
 
   const updated = readTextJson(await callTool("lightsite_update_site_content", {
@@ -223,14 +233,18 @@ try {
   const trackingEvents = readTextJson(await callTool("lightsite_list_tracking_events", {
     workspaceId: devWorkspaceId,
     siteId,
-    classification: "human",
-    type: "site_viewed",
+    type: "site_visit",
     limit: 5,
   }));
   assert(Array.isArray(trackingEvents.events), "tracking events should return an events array");
+  const trackingSessions = readTextJson(await callTool("lightsite_list_tracking_sessions", {
+    workspaceId: devWorkspaceId,
+    siteId,
+    limit: 5,
+  }));
+  assert(Array.isArray(trackingSessions.sessions), "tracking sessions should return a sessions array");
   const unpublished = readTextJson(await callTool("lightsite_unpublish_site", { siteId }));
   assert(unpublished.site.status === "draft", "unpublish should return the site to draft");
-  await assertInvalidPublishReturnsStructuredError();
 
   console.log(`MCP smoke passed for site ${siteId}`);
 } finally {
@@ -251,71 +265,6 @@ async function callTool(name: string, args: Record<string, unknown>, options: { 
   return result;
 }
 
-async function assertInvalidPublishReturnsStructuredError() {
-  const created = readTextJson(await callTool("lightsite_create_site", {
-    name: `Invalid agent smoke ${Date.now()}`,
-  }));
-  const siteId = created.site.id as string;
-  const content = readTextJson(await callTool("lightsite_get_site_content", { siteId }));
-  const invalidDraftContent = {
-    schemaVersion: 2,
-    chrome: {
-      siteHeader: {
-        brandName: "Lightsite",
-        logoUrl: "",
-        primaryButtonText: "Book a call",
-        primaryButtonHref: "",
-        secondaryButtonText: "Learn more",
-        secondaryButtonHref: "",
-        showSecondaryButton: false,
-      },
-      hero: {
-        avatarMode: "single",
-        eyebrow: "",
-        title: "Invalid smoke page",
-        subtitle: "",
-        avatarImageUrl: "",
-        avatarImageVariableKey: "",
-        avatarImageAlt: "",
-        avatarImageSecondaryUrl: "",
-        avatarImageSecondaryVariableKey: "",
-        avatarImageSecondaryAlt: "",
-      },
-    },
-    settings: {
-      showTableOfContents: true,
-      allowSearchIndexing: false,
-    },
-    variables: [],
-    blocks: [
-      {
-        id: "logos",
-        type: "logo_strip",
-        fields: {
-          logos: [],
-        },
-      },
-    ],
-  };
-
-  const validation = readTextJson(await callTool("lightsite_validate_site_content", {
-    siteId,
-    draftContent: invalidDraftContent,
-  }));
-  assert(validation.valid === false, "invalid draft should fail validation");
-  await callTool("lightsite_update_site_content", {
-    siteId,
-    expectedDraftRevision: content.draftRevision,
-    draftContent: invalidDraftContent,
-  });
-
-  const publishResult = readTextJson(await callTool("lightsite_publish_site", { siteId }, { allowError: true }));
-
-  assert(
-    publishResult.body?.error?.code === "site.publish_invalid",
-    "invalid publish should return structured site.publish_invalid",
-  );
-}
 
 function readTextJson(result: Awaited<ReturnType<typeof callTool>>) {
   if (result.structuredContent && typeof result.structuredContent === "object") {

@@ -1,6 +1,7 @@
 import {
   normalizeWebsiteDomain,
   slugifyName,
+  validateTextLimit,
   validateWorkspaceSlug,
 } from "@lightsite/domain";
 import {
@@ -15,7 +16,7 @@ export type WorkspaceSummary = {
   slug: string;
   websiteDomain: string;
   logoAssetId: string | null;
-  plan: "basic" | "pro";
+  plan: "free" | "core" | "pro";
   status: "active" | "suspended" | "scheduled_for_deletion" | "deleted";
   createdAt: string;
   updatedAt: string;
@@ -50,7 +51,7 @@ export interface WorkspaceService {
 }
 
 export class WorkspaceValidationError extends Error {
-  readonly code: "workspace.slug_invalid" | "workspace.website_invalid";
+  readonly code: "workspace.name_invalid" | "workspace.slug_invalid" | "workspace.website_invalid";
 
   constructor(input: { code: WorkspaceValidationError["code"]; message: string }) {
     super(input.message);
@@ -92,6 +93,15 @@ export function createWorkspaceService(repository: WorkspaceRepository): Workspa
     },
 
     async createWorkspace(input) {
+      const nameResult = validateTextLimit(input.name.trim(), "workspaceName", "Workspace name");
+
+      if (!nameResult.ok || !nameResult.value.trim()) {
+        throw new WorkspaceValidationError({
+          code: "workspace.name_invalid",
+          message: nameResult.ok ? "Workspace name is required." : nameResult.message,
+        });
+      }
+
       const slugResult = validateWorkspaceSlug(input.slug ?? slugifyName(input.name));
 
       if (!slugResult.ok) {
@@ -118,7 +128,7 @@ export function createWorkspaceService(repository: WorkspaceRepository): Workspa
 
       try {
         const result = await repository.createWorkspaceWithAdmin({
-          name: input.name,
+          name: nameResult.value,
           slug: slugResult.slug,
           websiteDomain: websiteResult.domain,
           ...(input.logoAssetId ? { logoAssetId: input.logoAssetId } : {}),

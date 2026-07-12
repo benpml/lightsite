@@ -38,7 +38,7 @@ export type BootstrapWorkspaceMembershipRecord = {
     slug: string;
     websiteDomain: string | null;
     logoAssetId: string | null;
-    plan: "basic" | "pro";
+    plan: "free" | "core" | "pro";
     status: "active";
   };
 };
@@ -290,7 +290,7 @@ function toActiveMembershipRecord(record: {
     slug: string;
     websiteDomain: string | null;
     logoAssetId: string | null;
-    plan: "basic" | "pro";
+    plan: "free" | "core" | "pro";
     status: "active" | "suspended" | "scheduled_for_deletion" | "deleted";
   };
 }): BootstrapWorkspaceMembershipRecord {

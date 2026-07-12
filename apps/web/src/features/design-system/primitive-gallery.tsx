@@ -149,7 +149,7 @@ export function PrimitiveGallery() {
               <NavigationMenuTrigger>Builder</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <div className="grid w-72 gap-2 p-3">
-                  <NavigationMenuLink className="rounded-md p-2 hover:bg-accent" href="/editor/demo-site">
+                  <NavigationMenuLink className="rounded-md p-2 hover:bg-accent" href="/edit/demo-site">
                     Editor
                   </NavigationMenuLink>
                   <NavigationMenuLink className="rounded-md p-2 hover:bg-accent" href="/design-system">

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { createDefaultSiteContent } from "@lightsite/site-document";
 import {
   appBootstrapResponseSchema,
   apiErrorResponseSchema,
+  billingSummarySchema,
   completeAccountSetupRequestSchema,
   createSiteRequestSchema,
   listSiteVersionsResponseSchema,
@@ -29,6 +31,36 @@ describe("API contracts", () => {
       sites: [],
       nextCursor: null,
       requestId: "request_123",
+    });
+  });
+
+  it("parses content-derived site thumbnails", () => {
+    const content = createDefaultSiteContent("Acme launch");
+
+    expect(
+      listSitesResponseSchema.parse({
+        sites: [
+          {
+            id: "site_123",
+            name: "Acme launch",
+            slug: "acme-launch",
+            status: "draft",
+            thumbnail: {
+              content,
+            },
+          },
+        ],
+        nextCursor: null,
+        requestId: "request_123",
+      }),
+    ).toMatchObject({
+      sites: [
+        {
+          thumbnail: {
+            content,
+          },
+        },
+      ],
     });
   });
 
@@ -60,6 +92,7 @@ describe("API contracts", () => {
           name: "Acme launch",
           slug: "acme-launch",
           status: "draft",
+          recipientCount: 0,
           visibility: "private",
           createdAt: "2026-01-01T00:00:00.000Z",
           updatedAt: "2026-01-01T00:00:00.000Z",
@@ -83,6 +116,7 @@ describe("API contracts", () => {
         name: "Acme launch",
         slug: "acme-launch",
         status: "draft",
+        recipientCount: 0,
         visibility: "private",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
@@ -263,6 +297,7 @@ describe("API contracts", () => {
           name: "Acme",
           websiteDomain: "acme.com",
           logoUrl: null,
+          plan: "core",
           role: "admin",
           membershipId: "membership_123",
         },
@@ -285,6 +320,7 @@ describe("API contracts", () => {
         name: "Acme",
         websiteDomain: "acme.com",
         logoUrl: null,
+        plan: "core",
         role: "admin",
         membershipId: "membership_123",
       },
@@ -293,6 +329,32 @@ describe("API contracts", () => {
         nextStep: "app",
       },
       requestId: "request_123",
+    });
+  });
+
+  it("parses billing summary responses", () => {
+    expect(
+      billingSummarySchema.parse({
+        workspaceId: "workspace_123",
+        plan: "core",
+        canPublish: true,
+        canManageBilling: true,
+        hasStripeCustomer: true,
+        subscription: {
+          status: "active",
+          interval: "year",
+          seatCount: 2,
+          currentPeriodEnd: "2026-12-01T00:00:00.000Z",
+          cancelAtPeriodEnd: false,
+        },
+        requestId: "request_123",
+      }),
+    ).toMatchObject({
+      plan: "core",
+      subscription: {
+        interval: "year",
+        seatCount: 2,
+      },
     });
   });
 

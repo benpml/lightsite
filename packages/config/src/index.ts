@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const envBooleanSchema = z
+  .enum(["false", "true"])
+  .default("false")
+  .transform((value) => value === "true");
+
 export const apiEnvSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(3011),
   API_JSON_BODY_LIMIT: z.string().min(1).default("256kb"),
@@ -10,7 +15,17 @@ export const apiEnvSchema = z.object({
   LOGO_DEV_TOKEN: z.string().min(1).optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PUBLIC_SITE_ORIGIN: z.string().url().optional(),
+  STRIPE_CORE_ANNUAL_PRICE_ID: z.string().min(1).optional(),
+  STRIPE_CORE_MONTHLY_PRICE_ID: z.string().min(1).optional(),
+  STRIPE_PRO_ANNUAL_PRICE_ID: z.string().min(1).optional(),
+  STRIPE_PRO_MONTHLY_PRICE_ID: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  TRACKING_MARKER_HASH_SECRET: z.string().min(32).optional(),
+  TRACKING_RECORDING_ENABLED: envBooleanSchema,
+  TRACKING_RECORDING_STORAGE_DIR: z.string().min(1).optional(),
   TRACKING_SIGNING_SECRET: z.string().min(32),
+  TRACKING_V2_ENABLED: envBooleanSchema,
   TRUST_PROXY: z
     .enum(["false", "true", "loopback", "linklocal", "uniquelocal"])
     .default("false"),

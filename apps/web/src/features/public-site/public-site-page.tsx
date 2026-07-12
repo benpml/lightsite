@@ -4,7 +4,6 @@ import { useParams } from "@tanstack/react-router"
 import { getPublicSitePayload, type PublicSiteLookupResult } from "./public-site-api"
 import { usePublicMetadata, usePublicUnavailableMetadata } from "./public-metadata"
 import { PublicSiteRenderer } from "./public-site-renderer"
-import { usePublicTracking } from "./tracking-client"
 import type { PublishedSitePayload } from "./types"
 
 export function PublicSitePage() {
@@ -59,7 +58,6 @@ function RemotePublicSitePage({
 
 function ResolvedPublicSitePage({ payload }: { payload: PublishedSitePayload }) {
   usePublicMetadata(payload)
-  usePublicTracking(payload.tracking)
 
   return <PublicSiteRenderer payload={payload} />
 }

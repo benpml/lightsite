@@ -19,6 +19,7 @@ describe("app bootstrap response parser", () => {
           name: "Acme",
           websiteDomain: "acme.com",
           logoUrl: null,
+          plan: "core",
           role: "admin",
           membershipId: "membership_123",
         },
@@ -29,6 +30,7 @@ describe("app bootstrap response parser", () => {
             name: "Acme",
             websiteDomain: "acme.com",
             logoUrl: null,
+            plan: "core",
             role: "admin",
             membershipId: "membership_123",
           },
@@ -42,11 +44,13 @@ describe("app bootstrap response parser", () => {
       activeWorkspace: {
         id: "workspace_123",
         websiteDomain: "acme.com",
+        plan: "core",
       },
       workspaces: [
         {
           id: "workspace_123",
           websiteDomain: "acme.com",
+          plan: "core",
         },
       ],
     })
@@ -66,6 +70,7 @@ describe("app bootstrap response parser", () => {
           slug: "acme",
           name: "Acme",
           logoUrl: null,
+          plan: "core",
           role: "admin",
           membershipId: "membership_123",
         },

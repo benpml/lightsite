@@ -1,53 +1,15 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  SITE_DOCUMENT_SCHEMA_VERSION,
+  SUPPORTED_SITE_DOCUMENT_MARK_TYPES,
+  SUPPORTED_SITE_DOCUMENT_NODE_TYPES,
+  siteContentSchema,
+} from "@lightsite/site-document";
 import { z } from "zod";
 
 const apiBaseUrl = (process.env.LIGHTSITE_API_BASE_URL ?? "http://localhost:3011").replace(/\/$/, "");
-
-const siteContentSchema = z.object({
-  schemaVersion: z.literal(2),
-  chrome: z.object({
-    siteHeader: z.object({
-      brandName: z.string(),
-      logoUrl: z.string(),
-      primaryButtonText: z.string(),
-      primaryButtonHref: z.string(),
-      secondaryButtonText: z.string(),
-      secondaryButtonHref: z.string(),
-      showSecondaryButton: z.boolean(),
-    }),
-    hero: z.object({
-      avatarMode: z.enum(["single", "duo"]),
-      eyebrow: z.string(),
-      title: z.string(),
-      subtitle: z.string(),
-      avatarImageUrl: z.string(),
-      avatarImageVariableKey: z.string(),
-      avatarImageAlt: z.string(),
-      avatarImageSecondaryUrl: z.string(),
-      avatarImageSecondaryVariableKey: z.string(),
-      avatarImageSecondaryAlt: z.string(),
-    }),
-  }),
-  settings: z.object({
-    showTableOfContents: z.boolean(),
-    ogImageAssetId: z.string().optional(),
-    allowSearchIndexing: z.literal(false),
-  }),
-  variables: z.array(z.object({
-    id: z.string(),
-    key: z.string(),
-    label: z.string(),
-    type: z.enum(["text", "image", "url"]),
-    defaultValue: z.unknown(),
-  })),
-  blocks: z.array(z.object({
-    id: z.string(),
-    type: z.string(),
-    fields: z.record(z.unknown()),
-  })),
-});
 
 const variantInputSchema = z.object({
   id: z.string().optional(),
@@ -55,317 +17,45 @@ const variantInputSchema = z.object({
   name: z.string(),
   recipientName: z.string().nullable().optional(),
   recipientCompany: z.string().nullable().optional(),
-  variableValues: z.record(z.unknown()).default({}),
+  variableValues: z.record(z.string(), z.unknown()).default({}),
 });
 
-const supportedDraftBlockTypes = [
-  "title",
-  "heading",
-  "text",
-  "divider",
-  "bullet-list",
-  "number-list",
-  "icon-list",
-  "image",
-  "gif",
-  "image-card",
-  "icon-card",
-  "button",
-  "calendar",
-  "accordion",
-  "video",
-  "testimonial",
-  "logo-grid",
-] as const;
-
-const draftBlockDefinitions = {
-  title: {
-    requiredFields: {
-      text: "string",
+const siteDocumentExample = {
+  type: "doc",
+  content: [
+    {
+      type: "pageTitleSection",
+      attrs: { id: "title-overview", align: "center" },
+      content: [
+        {
+          type: "pageTitleTitle",
+          content: [{ type: "text", text: "Implementation plan" }],
+        },
+        {
+          type: "pageTitleSubtitle",
+          content: [{ type: "text", text: "A focused rollout for " }, {
+            type: "variableToken",
+            attrs: { variableId: "company_name", fallbackName: "your team" },
+          }],
+        },
+      ],
     },
-    optionalFields: {},
-    example: {
-      id: "title-overview",
-      type: "title",
-      fields: {
-        text: "Implementation plan",
-      },
-    },
-  },
-  heading: {
-    requiredFields: {
-      text: "string",
-    },
-    optionalFields: {
-      level: "2 | 3",
-    },
-    example: {
-      id: "heading-context",
+    {
       type: "heading",
-      fields: {
-        level: 2,
-        text: "Why this matters now",
-      },
+      attrs: { id: "heading-context", level: 2 },
+      content: [{ type: "text", text: "Why this matters now" }],
     },
-  },
-  text: {
-    requiredFields: {
-      text: "string",
+    {
+      type: "paragraph",
+      content: [{ type: "text", text: "One canonical Tiptap document powers editing, preview, and publishing." }],
     },
-    optionalFields: {},
-    example: {
-      id: "text-context",
-      type: "text",
-      fields: {
-        text: "{{company_name}} can move faster when the buying team has one clean page to review.",
-      },
+    {
+      type: "buttonBlock",
+      attrs: { id: "cta-primary", href: "{{primary_cta_url}}", fullWidth: false },
+      content: [{ type: "text", text: "Book implementation review" }],
     },
-  },
-  divider: {
-    requiredFields: {},
-    optionalFields: {
-      width: '"content" | "full"',
-      spacing: '"sm" | "md" | "lg"',
-    },
-    example: {
-      id: "divider-section",
-      type: "divider",
-      fields: {
-        width: "content",
-        spacing: "md",
-      },
-    },
-  },
-  "bullet-list": {
-    requiredFields: {
-      items: "string[]",
-    },
-    optionalFields: {},
-    example: {
-      id: "bullets-plan",
-      type: "bullet-list",
-      fields: {
-        items: ["Confirm launch owner", "Align the review path", "Publish the account page"],
-      },
-    },
-  },
-  "number-list": {
-    requiredFields: {
-      items: "string[]",
-    },
-    optionalFields: {},
-    example: {
-      id: "steps-plan",
-      type: "number-list",
-      fields: {
-        items: ["Draft", "Review", "Publish"],
-      },
-    },
-  },
-  "icon-list": {
-    requiredFields: {
-      items: "{ id?: string; icon?: string; iconTone?: string; text: string }[]",
-    },
-    optionalFields: {},
-    example: {
-      id: "icon-list-outcomes",
-      type: "icon-list",
-      fields: {
-        items: [
-          { id: "speed", icon: "zap", iconTone: "green", text: "Faster stakeholder review" },
-          { id: "signal", icon: "target", iconTone: "blue", text: "Clear next-step signal" },
-        ],
-      },
-    },
-  },
-  image: {
-    requiredFields: {
-      src: "string",
-    },
-    optionalFields: {
-      alt: "string",
-      caption: "string",
-    },
-    example: {
-      id: "image-overview",
-      type: "image",
-      fields: {
-        src: "/editor-assets/image-card.png",
-        alt: "Product screenshot",
-      },
-    },
-  },
-  gif: {
-    requiredFields: {
-      src: "string",
-    },
-    optionalFields: {
-      alt: "string",
-      caption: "string",
-    },
-    example: {
-      id: "gif-demo",
-      type: "gif",
-      fields: {
-        src: "/editor-assets/image-card.png",
-        alt: "Workflow animation",
-      },
-    },
-  },
-  "image-card": {
-    requiredFields: {
-      title: "string",
-    },
-    optionalFields: {
-      alt: "string",
-      body: "string",
-      buttonText: "string",
-      buttonUrl: "string",
-      includeButton: "boolean",
-      src: "string",
-    },
-    example: {
-      id: "image-card-plan",
-      type: "image-card",
-      fields: {
-        title: "Account-ready brief",
-        body: "A polished page with copy, proof, and the next step in one place.",
-        includeButton: true,
-        buttonText: "Open plan",
-        buttonUrl: "{{primary_cta_url}}",
-        src: "/editor-assets/image-card.png",
-      },
-    },
-  },
-  "icon-card": {
-    requiredFields: {
-      title: "string",
-    },
-    optionalFields: {
-      body: "string",
-      icon: "string",
-      iconTone: "string",
-      includeIcon: "boolean",
-    },
-    example: {
-      id: "icon-card-proof",
-      type: "icon-card",
-      fields: {
-        title: "Built for fast follow-up",
-        body: "Reuse one strong page, then personalize the variables that matter.",
-        icon: "box",
-        iconTone: "green",
-      },
-    },
-  },
-  button: {
-    requiredFields: {
-      label: "string",
-      href: "string",
-    },
-    optionalFields: {
-      style: '"filled" | "outline"',
-    },
-    example: {
-      id: "button-primary",
-      type: "button",
-      fields: {
-        label: "Book implementation review",
-        href: "{{primary_cta_url}}",
-        style: "filled",
-      },
-    },
-  },
-  calendar: {
-    requiredFields: {
-      label: "string",
-      href: "string",
-    },
-    optionalFields: {},
-    example: {
-      id: "calendar-review",
-      type: "calendar",
-      fields: {
-        label: "Schedule review",
-        href: "{{primary_cta_url}}",
-      },
-    },
-  },
-  accordion: {
-    requiredFields: {
-      items: "{ id?: string; title: string; body?: string; expanded?: boolean }[]",
-    },
-    optionalFields: {},
-    example: {
-      id: "accordion-faq",
-      type: "accordion",
-      fields: {
-        items: [
-          { id: "timeline", title: "How long does rollout take?", body: "Most teams publish the first page in one working session.", expanded: true },
-        ],
-      },
-    },
-  },
-  video: {
-    requiredFields: {},
-    optionalFields: {
-      thumbnail: "string",
-      url: "string",
-    },
-    example: {
-      id: "video-overview",
-      type: "video",
-      fields: {
-        thumbnail: "/editor-assets/image-card.png",
-        url: "https://example.com/demo",
-      },
-    },
-  },
-  testimonial: {
-    requiredFields: {
-      quote: "string",
-    },
-    optionalFields: {
-      avatar: "string",
-      name: "string",
-      role: "string",
-    },
-    example: {
-      id: "testimonial-proof",
-      type: "testimonial",
-      fields: {
-        quote: "Lightsite helped us send a polished, personalized follow-up in minutes.",
-        name: "Mira Singh",
-        role: "Revenue Operations Lead, {{company_name}}",
-      },
-    },
-  },
-  "logo-grid": {
-    requiredFields: {
-      logos: "{ id?: string; image?: string; name: string }[]",
-    },
-    optionalFields: {},
-    example: {
-      id: "logo-grid-proof",
-      type: "logo-grid",
-      fields: {
-        logos: [
-          { id: "acme", image: "/favicon.svg", name: "Acme" },
-          { id: "northstar", image: "/favicon.svg", name: "Northstar" },
-          { id: "apex", image: "/favicon.svg", name: "Apex" },
-        ],
-      },
-    },
-  },
-} satisfies Record<(typeof supportedDraftBlockTypes)[number], {
-  requiredFields: Record<string, string>;
-  optionalFields: Record<string, string>;
-  example: {
-    id: string;
-    type: (typeof supportedDraftBlockTypes)[number];
-    fields: Record<string, unknown>;
-  };
-}>;
+  ],
+};
 
 const server = new McpServer({
   name: "lightsite",
@@ -374,7 +64,7 @@ const server = new McpServer({
 
 registerTool("lightsite_get_capabilities", {
   title: "Get Lightsite agent capabilities",
-  description: "Returns the JSON-first workflow, supported block types, and configuration seen by this MCP server.",
+  description: "Returns the canonical Tiptap JSON workflow, supported node and mark types, and configuration seen by this MCP server.",
   inputSchema: {},
 }, async () => ({
   apiBaseUrl,
@@ -387,20 +77,30 @@ registerTool("lightsite_get_capabilities", {
   },
   siteContent: {
     sourceOfTruth: "sites.draftContent",
-    schemaVersion: 2,
-    chromeShape: {
-      siteHeader: "Top navigation/header chrome",
-      hero: "Hero/avatar/title chrome",
+    schemaVersion: SITE_DOCUMENT_SCHEMA_VERSION,
+    documentFormat: "Tiptap JSONContent",
+    pageShape: {
+      id: "string",
+      name: "string",
+      slug: "string",
+      status: '"visible" | "hidden"',
+      sortOrder: "non-negative integer",
+      document: "Tiptap JSON document with a doc root",
     },
-    blockShape: { id: "string", type: "string", fields: "object" },
-    supportedDraftBlockTypes,
-    draftBlockDefinitions,
+    sidebarShape: {
+      sections: "labels for tabs, links, and next steps",
+      links: "ordered visible or hidden external sidebar links",
+      nextSteps: "ordered visible or hidden sidebar CTA buttons",
+    },
+    supportedNodeTypes: [...SUPPORTED_SITE_DOCUMENT_NODE_TYPES],
+    supportedMarkTypes: [...SUPPORTED_SITE_DOCUMENT_MARK_TYPES],
+    documentExample: siteDocumentExample,
   },
   workflow: [
     "Create or list a site.",
     "Set visibility to team before browser-testing or sharing a public URL.",
     "Read current JSON content and draftRevision.",
-    "Write the complete canonical SiteContent JSON, including chrome.siteHeader, chrome.hero, and blocks, with expectedDraftRevision.",
+    "Write the complete canonical SiteContent JSON, including each page's Tiptap document, with expectedDraftRevision.",
     "Validate the JSON.",
     "Batch upsert variants by slug.",
     "Publish only after explicit user approval.",
@@ -462,7 +162,7 @@ registerTool("lightsite_get_site_content", {
 
 registerTool("lightsite_update_site_content", {
   title: "Update site JSON content",
-  description: "Replaces the editable SiteContent JSON. Use expectedDraftRevision from lightsite_get_site_content.",
+  description: "Replaces the editable canonical SiteContent JSON. Page content must be Tiptap JSON. Use expectedDraftRevision from lightsite_get_site_content.",
   inputSchema: {
     siteId: z.string().min(1),
     expectedDraftRevision: z.number().int().positive().optional(),
@@ -579,32 +279,86 @@ registerTool("lightsite_batch_upsert_variants", {
 
 registerTool("lightsite_get_tracking_summary", {
   title: "Get tracking summary",
-  description: "Gets aggregate tracking metrics. Use this before listing individual events.",
+  description: "Gets a v2 tracking activity summary from recent events and sessions. Use this before listing detailed records.",
   inputSchema: {
     workspaceId: z.string().optional(),
     siteId: z.string().optional(),
-    variantId: z.string().optional(),
+    recipientId: z.string().optional(),
     from: z.string().optional(),
     to: z.string().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
   },
-}, (input) => apiRequest(`/api/workspaces/${encodeURIComponent(resolveWorkspaceId(input.workspaceId))}/tracking/summary?${toSearchParams(input)}`));
+}, async (input) => {
+  const workspaceId = resolveWorkspaceId(input.workspaceId);
+  const query = toSearchParams({
+    ...input,
+    limit: input.limit ?? 100,
+  });
+  const basePath = `/api/workspaces/${encodeURIComponent(workspaceId)}/tracking/v2`;
+  const [eventsResult, sessionsResult] = await Promise.all([
+    apiRequest(`${basePath}/events?${query}`),
+    apiRequest(`${basePath}/sessions?${query}`),
+  ]);
+  const eventsResponse = asRecord(eventsResult);
+  const sessionsResponse = asRecord(sessionsResult);
+  const events = Array.isArray(eventsResponse.events) ? eventsResponse.events.filter(isRecord) : [];
+  const sessions = Array.isArray(sessionsResponse.sessions) ? sessionsResponse.sessions.filter(isRecord) : [];
+
+  return {
+    metrics: {
+      eventCount: events.length,
+      sessionCount: sessions.length,
+      siteVisits: countBy(events, "type", "site_visit"),
+      buttonClicks: countBy(events, "type", "button_click"),
+      linkClicks: countBy(events, "type", "link_click"),
+      tabSwitches: countBy(events, "type", "tab_switch"),
+      slackShares: countBy(events, "type", "slack_share"),
+      webhookSends: countBy(events, "type", "webhook_send"),
+      activeSessions: countBy(sessions, "state", "active"),
+      sessionsWithRecordings: sessions.filter((session) => {
+        const recording = isRecord(session.recording) ? session.recording : null;
+        return recording?.available === true;
+      }).length,
+    },
+    events,
+    sessions,
+    nextEventCursor: typeof eventsResponse.nextCursor === "string" ? eventsResponse.nextCursor : null,
+    nextSessionCursor: typeof sessionsResponse.nextCursor === "string" ? sessionsResponse.nextCursor : null,
+  };
+});
 
 registerTool("lightsite_list_tracking_events", {
   title: "List tracking events",
-  description: "Lists detailed tracking events for deeper inspection.",
+  description: "Lists detailed v2 tracking events for deeper inspection.",
   inputSchema: {
     workspaceId: z.string().optional(),
     siteId: z.string().optional(),
-    variantId: z.string().optional(),
+    recipientId: z.string().optional(),
+    sessionId: z.string().optional(),
     type: z.string().optional(),
-    classification: z.enum(["all", "human", "bot", "preview"]).optional(),
-    query: z.string().optional(),
+    source: z.string().optional(),
     from: z.string().optional(),
     to: z.string().optional(),
     cursor: z.string().optional(),
     limit: z.number().int().min(1).max(100).optional(),
   },
-}, (input) => apiRequest(`/api/workspaces/${encodeURIComponent(resolveWorkspaceId(input.workspaceId))}/tracking/events?${toSearchParams(input)}`));
+}, (input) => apiRequest(`/api/workspaces/${encodeURIComponent(resolveWorkspaceId(input.workspaceId))}/tracking/v2/events?${toSearchParams(input)}`));
+
+registerTool("lightsite_list_tracking_sessions", {
+  title: "List tracking sessions",
+  description: "Lists v2 tracking sessions, including device, location, duration, and recording status.",
+  inputSchema: {
+    workspaceId: z.string().optional(),
+    siteId: z.string().optional(),
+    recipientId: z.string().optional(),
+    state: z.enum(["active", "ended", "expired", "suppressed"]).optional(),
+    recordingStatus: z.enum(["disabled", "pending", "available", "expired", "failed"]).optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    cursor: z.string().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+  },
+}, (input) => apiRequest(`/api/workspaces/${encodeURIComponent(resolveWorkspaceId(input.workspaceId))}/tracking/v2/sessions?${toSearchParams(input)}`));
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
@@ -742,6 +496,10 @@ function resolveWorkspaceId(inputWorkspaceId: string | undefined) {
   }
 
   return workspaceId;
+}
+
+function countBy(records: Array<Record<string, any>>, key: string, value: string) {
+  return records.filter((record) => record[key] === value).length;
 }
 
 function toSearchParams(input: Record<string, unknown>) {

@@ -13,6 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@lightsite/domain": "workspace:*",
+    "@lightsite/site-document": "workspace:*",
     "zod": "^4.2.1"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, count, desc, eq, ne, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import {
   db as defaultDb,
   defaultSiteContent,
@@ -117,6 +117,10 @@ export type UpsertSiteVariantInput = {
 export interface SiteRepository {
   listAccessibleSites(input: ListSitesInput): Promise<SiteRecord[]>;
   countWorkspaceSites(workspaceId: string): Promise<number>;
+  countActiveVariantsBySiteIds(input: {
+    workspaceId: string;
+    siteIds: string[];
+  }): Promise<Map<string, number>>;
   findByWorkspaceAndId(input: {
     workspaceId: string;
     siteId: string;
@@ -140,6 +144,11 @@ export interface SiteRepository {
     variants: UpsertSiteVariantInput[];
     matchBy: "id" | "slug";
   }): Promise<SiteVariantRecord[]>;
+  deleteVariant(input: {
+    workspaceId: string;
+    siteId: string;
+    variantId: string;
+  }): Promise<boolean>;
   publishSite(input: {
     workspaceId: string;
     siteId: string;
@@ -158,6 +167,10 @@ export interface SiteRepository {
     siteId: string;
     archivedByUserId: string;
   }): Promise<SiteRecord>;
+  deleteSite(input: {
+    workspaceId: string;
+    siteId: string;
+  }): Promise<boolean>;
   restoreSite(input: {
     workspaceId: string;
     siteId: string;
@@ -225,6 +238,27 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
         .where(eq(sites.workspaceId, workspaceId));
 
       return row?.value ?? 0;
+    },
+
+    async countActiveVariantsBySiteIds(input) {
+      if (input.siteIds.length === 0) {
+        return new Map();
+      }
+
+      const rows = await database
+        .select({
+          siteId: siteVariants.siteId,
+          value: count(),
+        })
+        .from(siteVariants)
+        .where(and(
+          eq(siteVariants.workspaceId, input.workspaceId),
+          eq(siteVariants.status, "active"),
+          inArray(siteVariants.siteId, input.siteIds),
+        ))
+        .groupBy(siteVariants.siteId);
+
+      return new Map(rows.map((row) => [row.siteId, row.value]));
     },
 
     async findByWorkspaceAndId(input) {
@@ -483,6 +517,25 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
       }
     },
 
+    async deleteVariant(input) {
+      const [deletedVariant] = await database
+        .update(siteVariants)
+        .set({
+          status: "deleted",
+          deletedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(siteVariants.workspaceId, input.workspaceId),
+          eq(siteVariants.siteId, input.siteId),
+          eq(siteVariants.id, input.variantId),
+          eq(siteVariants.status, "active"),
+        ))
+        .returning({ id: siteVariants.id });
+
+      return Boolean(deletedVariant);
+    },
+
     async publishSite(input) {
       return database.transaction(async (transaction) => {
         const [site] = await transaction
@@ -605,6 +658,18 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
       }
 
       return site;
+    },
+
+    async deleteSite(input) {
+      const [deletedSite] = await database
+        .delete(sites)
+        .where(and(
+          eq(sites.workspaceId, input.workspaceId),
+          eq(sites.id, input.siteId),
+        ))
+        .returning({ id: sites.id });
+
+      return Boolean(deletedSite);
     },
 
     async restoreSite(input) {
@@ -813,6 +878,25 @@ export function createMemorySiteRepository(
 
     async countWorkspaceSites(workspaceId) {
       return Array.from(siteById.values()).filter((site) => site.workspaceId === workspaceId).length;
+    },
+
+    async countActiveVariantsBySiteIds(input) {
+      const siteIds = new Set(input.siteIds);
+      const counts = new Map<string, number>();
+
+      for (const variant of variantById.values()) {
+        if (
+          variant.workspaceId !== input.workspaceId ||
+          variant.status !== "active" ||
+          !siteIds.has(variant.siteId)
+        ) {
+          continue;
+        }
+
+        counts.set(variant.siteId, (counts.get(variant.siteId) ?? 0) + 1);
+      }
+
+      return counts;
     },
 
     async findByWorkspaceAndId(input) {
@@ -1034,6 +1118,28 @@ export function createMemorySiteRepository(
       return changedVariants;
     },
 
+    async deleteVariant(input) {
+      const variant = variantById.get(input.variantId);
+
+      if (
+        !variant ||
+        variant.workspaceId !== input.workspaceId ||
+        variant.siteId !== input.siteId ||
+        variant.status !== "active"
+      ) {
+        return false;
+      }
+
+      const now = new Date();
+      variantById.set(variant.id, {
+        ...variant,
+        status: "deleted",
+        deletedAt: now,
+        updatedAt: now,
+      });
+      return true;
+    },
+
     async publishSite(input) {
       const site = findByWorkspaceAndId({
         workspaceId: input.workspaceId,
@@ -1136,6 +1242,33 @@ export function createMemorySiteRepository(
 
       siteById.set(archivedSite.id, archivedSite);
       return archivedSite;
+    },
+
+    async deleteSite(input) {
+      const site = findByWorkspaceAndId({
+        workspaceId: input.workspaceId,
+        siteId: input.siteId,
+      });
+
+      if (!site) {
+        return false;
+      }
+
+      siteById.delete(site.id);
+
+      for (const [versionId, version] of versionById) {
+        if (version.siteId === site.id) {
+          versionById.delete(versionId);
+        }
+      }
+
+      for (const [variantId, variant] of variantById) {
+        if (variant.siteId === site.id) {
+          variantById.delete(variantId);
+        }
+      }
+
+      return true;
     },
 
     async restoreSite(input) {

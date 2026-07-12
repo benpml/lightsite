@@ -14,7 +14,7 @@ export type WorkspaceRecord = {
   slug: string;
   websiteDomain: string | null;
   logoAssetId: string | null;
-  plan: "basic" | "pro";
+  plan: "free" | "core" | "pro";
   status: "active" | "suspended" | "scheduled_for_deletion" | "deleted";
   createdAt: Date;
   updatedAt: Date;
@@ -155,7 +155,7 @@ export function createMemoryWorkspaceRepository(
         slug: input.slug,
         websiteDomain: input.websiteDomain,
         logoAssetId: input.logoAssetId ?? null,
-        plan: "basic",
+        plan: "free",
         status: "active",
         createdAt: now,
         updatedAt: now,

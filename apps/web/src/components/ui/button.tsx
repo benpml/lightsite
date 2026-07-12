@@ -11,15 +11,15 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/80",
         outline:
-          "border-border bg-background shadow-xs hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border-strong bg-background shadow-xs hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-neutral-alpha-a900 dark:bg-neutral-alpha-a700 dark:hover:bg-neutral-alpha-a800",
         dashed:
-          "border-border border-dashed bg-background text-muted-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border-strong border-dashed bg-background text-muted-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-neutral-alpha-a300 dark:hover:bg-muted",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground",
         editor:
-          "bg-transparent text-popover-foreground/70 shadow-none hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-pressed:bg-accent aria-pressed:text-accent-foreground",
+          "bg-transparent text-popover-foreground/70 shadow-none hover:bg-neutral-alpha-a500 hover:text-accent-foreground aria-expanded:bg-neutral-alpha-a500 aria-expanded:text-accent-foreground aria-pressed:bg-neutral-alpha-a500 aria-pressed:text-accent-foreground",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-neutral-alpha-a500 hover:text-foreground aria-expanded:bg-neutral-alpha-a500 aria-expanded:text-foreground",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
@@ -30,21 +30,24 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
+        icon: "size-8 text-tertiary-foreground disabled:text-muted-foreground",
         compact:
           "h-[30px] gap-1.5 rounded-lg px-2.5 text-sm has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-3.5",
-        "icon-compact": "size-[30px] rounded-lg [&_svg:not([class*='size-'])]:size-3.5",
+        "icon-compact":
+          "size-[30px] rounded-lg text-tertiary-foreground disabled:text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5",
         "editor-toolbar":
           "h-7 gap-1 rounded-md px-2 text-sm has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        "editor-toolbar-icon": "size-7 rounded-md [&_svg:not([class*='size-'])]:size-3.5",
+        "editor-toolbar-icon":
+          "size-7 rounded-md text-tertiary-foreground disabled:text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5",
         "editor-toolbar-swatch":
           "h-7 min-w-12 gap-1 rounded-md px-1.5 text-sm [&_svg:not([class*='size-'])]:size-3.5",
-        "icon-field": "size-[26px] rounded-lg [&_svg:not([class*='size-'])]:size-3.5",
+        "icon-field":
+          "size-[26px] rounded-lg text-tertiary-foreground disabled:text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5",
         "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+          "size-6 rounded-[min(var(--radius-md),10px)] text-tertiary-foreground disabled:text-muted-foreground in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+          "size-7 rounded-[min(var(--radius-md),12px)] text-tertiary-foreground disabled:text-muted-foreground in-data-[slot=button-group]:rounded-lg",
+        "icon-lg": "size-9 text-tertiary-foreground disabled:text-muted-foreground",
       },
     },
     defaultVariants: {

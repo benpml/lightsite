@@ -4,6 +4,7 @@ import {
   DEFAULT_UNAVAILABLE_CACHE_SECONDS,
   MAX_R2_SNAPSHOT_SECONDS,
   buildPublicHtmlSnapshotKey,
+  buildRecipientPreviewKey,
   classifyPublicRoute,
   isSnapshotFresh,
   readPositiveInteger,
@@ -16,10 +17,13 @@ export interface Env {
   EDGE_CACHE_UNAVAILABLE_SECONDS?: string;
   EDGE_R2_SNAPSHOT_SECONDS?: string;
   SNAPSHOT_BUCKET?: R2Bucket;
+  PREVIEW_BUCKET?: R2Bucket;
 }
 
 const ORIGIN_TIMEOUT_MS = 8000;
+const SCREENSHOT_ORIGIN_TIMEOUT_MS = 20_000;
 const HTML_CONTENT_TYPE = "text/html; charset=utf-8";
+const JPEG_CONTENT_TYPE = "image/jpeg";
 const EDGE_CACHE_NAME = "lightsite-public-v1";
 
 export default {
@@ -39,6 +43,10 @@ export default {
 
     if (routeKind === "asset") {
       return proxyOrigin(request, env, { cache: "read-through" });
+    }
+
+    if (routeKind === "screenshot") {
+      return servePublicScreenshot(request, env, ctx);
     }
 
     if (routeKind !== "public-site") {
@@ -117,6 +125,101 @@ async function servePublicHtml(request: Request, env: Env, ctx: ExecutionContext
   return withEdgeHeader(edgeResponse, "miss", request.method);
 }
 
+async function servePublicScreenshot(request: Request, env: Env, ctx: ExecutionContext) {
+  const url = new URL(request.url);
+  const previewKey = buildRecipientPreviewKey(url.pathname, url.searchParams.get("v"));
+
+  if (request.method !== "GET" || !previewKey || !env.PREVIEW_BUCKET) {
+    return withEdgeHeader(
+      await fetchScreenshotOrigin(request, env),
+      "proxy",
+      request.method,
+    );
+  }
+
+  const storedPreview = await readRecipientPreview(env, previewKey).catch(() => null);
+  if (storedPreview) {
+    if (isSlackPreviewRequest(request)) {
+      ctx.waitUntil(
+        fetchOrigin(request, env, { timeoutMs: SCREENSHOT_ORIGIN_TIMEOUT_MS })
+          .then((response) => response.body?.cancel())
+          .catch(() => undefined),
+      );
+    }
+    return withEdgeHeader(storedPreview, "r2", request.method);
+  }
+
+  const originResponse = await fetchScreenshotOrigin(request, env);
+  if (!isCacheableRecipientPreview(originResponse)) {
+    return withEdgeHeader(originResponse, "miss", request.method);
+  }
+
+  const bytes = await originResponse.arrayBuffer();
+  const response = recipientPreviewResponse(bytes);
+  ctx.waitUntil(writeRecipientPreview(env, previewKey, bytes));
+  return withEdgeHeader(response, "miss", request.method);
+}
+
+async function fetchScreenshotOrigin(request: Request, env: Env) {
+  try {
+    return await fetchOrigin(request, env, { timeoutMs: SCREENSHOT_ORIGIN_TIMEOUT_MS });
+  } catch {
+    return new Response("Preview temporarily unavailable", {
+      status: 503,
+      headers: securityHeaders({
+        "cache-control": "no-store",
+        "content-type": "text/plain; charset=utf-8",
+      }),
+    });
+  }
+}
+
+async function readRecipientPreview(env: Env, key: string) {
+  const object = await env.PREVIEW_BUCKET?.get(key);
+  if (!object) return null;
+
+  return new Response(object.body, {
+    status: 200,
+    headers: securityHeaders({
+      "cache-control": "no-store",
+      "content-length": String(object.size),
+      "content-type": object.httpMetadata?.contentType ?? JPEG_CONTENT_TYPE,
+      etag: object.httpEtag,
+    }),
+  });
+}
+
+async function writeRecipientPreview(env: Env, key: string, bytes: ArrayBuffer) {
+  await env.PREVIEW_BUCKET?.put(key, bytes, {
+    customMetadata: {
+      storedAt: new Date().toISOString(),
+    },
+    httpMetadata: {
+      contentType: JPEG_CONTENT_TYPE,
+    },
+  });
+}
+
+function recipientPreviewResponse(bytes: ArrayBuffer) {
+  return new Response(bytes, {
+    status: 200,
+    headers: securityHeaders({
+      "cache-control": "no-store",
+      "content-length": String(bytes.byteLength),
+      "content-type": JPEG_CONTENT_TYPE,
+    }),
+  });
+}
+
+function isCacheableRecipientPreview(response: Response) {
+  return response.status === 200
+    && (response.headers.get("content-type") ?? "").toLowerCase().startsWith(JPEG_CONTENT_TYPE);
+}
+
+function isSlackPreviewRequest(request: Request) {
+  return /\bslack(?:bot|-imgproxy)?\b/i.test(request.headers.get("user-agent") ?? "");
+}
+
 async function proxyOrigin(
   request: Request,
   env: Env,
@@ -152,7 +255,7 @@ async function proxyOrigin(
 async function fetchOrigin(
   request: Request,
   env: Env,
-  options: { forceGet?: boolean } = {},
+  options: { forceGet?: boolean; timeoutMs?: number } = {},
 ) {
   const originUrl = new URL(request.url);
   const apiOrigin = new URL(env.API_ORIGIN);
@@ -170,7 +273,7 @@ async function fetchOrigin(
     headers,
     method: options.forceGet ? "GET" : request.method,
     redirect: "manual",
-    signal: AbortSignal.timeout(ORIGIN_TIMEOUT_MS),
+    signal: AbortSignal.timeout(options.timeoutMs ?? ORIGIN_TIMEOUT_MS),
   });
 }
 

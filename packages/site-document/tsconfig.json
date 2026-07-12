@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "../..",
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@lightsite/design-tokens": ["../design-tokens/src/index.ts"],
+      "@lightsite/domain": ["../domain/src/index.ts"],
+      "@lightsite/tracking-schema": ["../tracking-schema/src/index.ts"]
+    },
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src", "../design-tokens/src", "../domain/src", "../tracking-schema/src"]
+}

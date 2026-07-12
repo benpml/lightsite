@@ -1,11 +1,9 @@
 import { useEffect } from "react";
+import { buildPublicScreenshotPath } from "@lightsite/site-document/renderer";
 
-import { resolvePublicAssetSrc } from "./asset-resolution";
 import type { PublishedSitePayload } from "./types";
-import { buildVariableValueMap, resolveVariables } from "./variable-resolution";
 
 export function getResolvedMetadata(payload: PublishedSitePayload, origin = "https://lightsite.app") {
-  const values = buildVariableValueMap(payload, payload.selectedVariant);
   const canonicalPath = [
     "",
     payload.workspace.slug,
@@ -15,12 +13,12 @@ export function getResolvedMetadata(payload: PublishedSitePayload, origin = "htt
     .filter(Boolean)
     .join("/");
   const canonicalUrl = new URL(canonicalPath, origin).toString();
-  const ogImageSrc = resolvePublicAssetSrc(payload.metadata.ogImage?.src ?? "") ?? "/lightsite-logo.svg";
+  const ogImageSrc = buildPublicScreenshotPath(payload);
   const ogImageUrl = new URL(ogImageSrc, origin).toString();
 
   return {
-    title: resolveVariables(payload.metadata.title, values),
-    description: resolveVariables(payload.metadata.description, values),
+    title: payload.metadata.title,
+    description: payload.metadata.description,
     robots: payload.metadata.robots,
     canonicalUrl,
     ogImageUrl,
@@ -38,12 +36,17 @@ export function usePublicMetadata(payload: PublishedSitePayload) {
     setMetaProperty("og:title", metadata.title);
     setMetaProperty("og:description", metadata.description);
     setMetaProperty("og:image", metadata.ogImageUrl);
+    setMetaProperty("og:image:type", "image/jpeg");
+    setMetaProperty("og:image:width", "1200");
+    setMetaProperty("og:image:height", "630");
+    setMetaProperty("og:image:alt", metadata.title);
     setMetaProperty("og:url", metadata.canonicalUrl);
     setMetaProperty("og:type", "website");
     setMetaTag("twitter:card", "summary_large_image");
     setMetaTag("twitter:title", metadata.title);
     setMetaTag("twitter:description", metadata.description);
     setMetaTag("twitter:image", metadata.ogImageUrl);
+    setMetaTag("twitter:image:alt", metadata.title);
   }, [payload]);
 }
 

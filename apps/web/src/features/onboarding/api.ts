@@ -133,7 +133,7 @@ function parseWorkspaceSummary(value: unknown): WorkspaceSummary {
     typeof object.slug !== "string" ||
     typeof object.websiteDomain !== "string" ||
     !(typeof object.logoAssetId === "string" || object.logoAssetId === null) ||
-    (object.plan !== "basic" && object.plan !== "pro") ||
+    (object.plan !== "free" && object.plan !== "core" && object.plan !== "pro") ||
     !workspaceStatuses.has(object.status as WorkspaceSummary["status"]) ||
     typeof object.createdAt !== "string" ||
     typeof object.updatedAt !== "string"

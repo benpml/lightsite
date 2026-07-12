@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { IconArrowRight, IconBuilding, IconRefresh, IconUserCircle } from "@tabler/icons-react"
-import { normalizeWebsiteDomain, slugifyName, validateWorkspaceSlug } from "@lightsite/domain"
+import {
+  LIGHTSITE_TEXT_LIMITS,
+  normalizeWebsiteDomain,
+  slugifyName,
+  validateWorkspaceSlug,
+} from "@lightsite/domain"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -199,6 +204,7 @@ function AccountSetupCard({
               <FieldLabel htmlFor="display-name">Name</FieldLabel>
               <Input
                 id="display-name"
+                maxLength={LIGHTSITE_TEXT_LIMITS.accountDisplayName}
                 value={displayName}
                 onChange={(event) => {
                   setDisplayName(event.target.value)
@@ -314,6 +320,7 @@ function WorkspaceSetupCard({ defaultName }: { defaultName: string }) {
               <FieldLabel htmlFor="workspace-name">Workspace name</FieldLabel>
               <Input
                 id="workspace-name"
+                maxLength={LIGHTSITE_TEXT_LIMITS.workspaceName}
                 value={name}
                 onChange={(event) => {
                   const nextName = event.target.value
@@ -336,6 +343,7 @@ function WorkspaceSetupCard({ defaultName }: { defaultName: string }) {
               <FieldLabel htmlFor="workspace-slug">Workspace slug</FieldLabel>
               <Input
                 id="workspace-slug"
+                maxLength={LIGHTSITE_TEXT_LIMITS.slug}
                 value={slug}
                 onChange={(event) => {
                   setSlugTouched(true)
@@ -364,6 +372,7 @@ function WorkspaceSetupCard({ defaultName }: { defaultName: string }) {
               <FieldLabel htmlFor="workspace-website">Website</FieldLabel>
               <Input
                 id="workspace-website"
+                maxLength={LIGHTSITE_TEXT_LIMITS.url}
                 value={website}
                 onChange={(event) => {
                   setWebsite(event.target.value)

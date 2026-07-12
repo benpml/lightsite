@@ -1,8 +1,9 @@
 import { Suspense, lazy, type ComponentType } from "react"
+import { LIGHTSITE_THEME_CSS } from "@lightsite/design-tokens"
 import { QueryClientProvider } from "@tanstack/react-query"
+import { ThemeProvider } from "next-themes"
 import {
   Outlet,
-  Navigate,
   RouterProvider,
   createRootRoute,
   createRoute,
@@ -25,6 +26,16 @@ const SitesPage = lazyWithReload(() =>
     default: module.SitesPage,
   }))
 )
+const SiteDetailsPage = lazyWithReload(() =>
+  import("@/features/sites/site-details-page").then((module) => ({
+    default: module.SiteDetailsPage,
+  }))
+)
+const RecipientDetailsPage = lazyWithReload(() =>
+  import("@/features/sites/recipient-details-page").then((module) => ({
+    default: module.RecipientDetailsPage,
+  }))
+)
 const TrackingPage = lazyWithReload(() =>
   import("@/features/tracking/tracking-page").then((module) => ({
     default: module.TrackingPage,
@@ -33,6 +44,11 @@ const TrackingPage = lazyWithReload(() =>
 const TeamPage = lazyWithReload(() =>
   import("@/features/team/team-page").then((module) => ({
     default: module.TeamPage,
+  }))
+)
+const BillingPage = lazyWithReload(() =>
+  import("@/features/billing/billing-page").then((module) => ({
+    default: module.BillingPage,
   }))
 )
 const SettingsPage = lazyWithReload(() =>
@@ -50,19 +66,24 @@ const AuthPage = lazyWithReload(() =>
     default: module.AuthPage,
   }))
 )
+const ExtensionConnectPage = lazyWithReload(() =>
+  import("@/features/auth/extension-connect-page").then((module) => ({
+    default: module.ExtensionConnectPage,
+  }))
+)
 const EditorPage = lazyWithReload(() =>
   import("@/features/editor/editor-page").then((module) => ({
     default: module.EditorPage,
   }))
 )
-const EditorNextPage = lazyWithReload(() =>
-  import("@/features/editor-next/editor-next-page").then((module) => ({
-    default: module.EditorNextPage,
-  }))
-)
 const DesignSystemPage = lazyWithReload(() =>
   import("@/features/design-system/design-system-page").then((module) => ({
     default: module.DesignSystemPage,
+  }))
+)
+const DesignSystemAuditPage = lazyWithReload(() =>
+  import("@/features/design-system/design-system-audit-page").then((module) => ({
+    default: module.DesignSystemAuditPage,
   }))
 )
 const ComponentIndexPage = lazyWithReload(() =>
@@ -78,8 +99,13 @@ const PublicSitePage = lazyWithReload(() =>
 
 const dynamicImportReloadKey = "lightsite:dynamic-import-reload"
 
-function lazyWithReload<TModule extends { default: ComponentType<any> }>(
-  loader: () => Promise<TModule>,
+// React.lazy is intentionally prop-agnostic at this boundary.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyComponent = ComponentType<any>
+type LazyModule<TComponent extends AnyComponent> = { default: TComponent }
+
+function lazyWithReload<TComponent extends AnyComponent>(
+  loader: () => Promise<LazyModule<TComponent>>,
 ) {
   return lazy(async () => {
     try {
@@ -90,7 +116,7 @@ function lazyWithReload<TModule extends { default: ComponentType<any> }>(
       if (isDynamicImportLoadError(error) && !window.sessionStorage.getItem(dynamicImportReloadKey)) {
         window.sessionStorage.setItem(dynamicImportReloadKey, "1")
         window.location.reload()
-        return new Promise<TModule>(() => undefined)
+        return new Promise<LazyModule<TComponent>>(() => undefined)
       }
 
       throw error
@@ -126,6 +152,18 @@ const sitesRoute = createRoute({
   component: SitesPage,
 })
 
+const siteDetailsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sites/$siteId",
+  component: SiteDetailsPage,
+})
+
+const recipientDetailsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sites/$siteId/recipients/$recipientId",
+  component: RecipientDetailsPage,
+})
+
 const trackingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/tracking",
@@ -136,6 +174,12 @@ const teamRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/team",
   component: TeamPage,
+})
+
+const billingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/billing",
+  component: BillingPage,
 })
 
 const settingsRoute = createRoute({
@@ -156,33 +200,39 @@ const authRoute = createRoute({
   component: AuthPage,
 })
 
-const editorRoute = createRoute({
+const extensionConnectRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/editor/$siteId",
-  component: EditorPage,
+  path: "/extension-connect",
+  component: ExtensionConnectPage,
 })
 
-const editorNextIndexRoute = createRoute({
+const editIndexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/editor-next",
+  path: "/edit",
   beforeLoad: () => {
     throw redirect({
-      to: "/editor-next/$siteId",
+      to: "/edit/$siteId",
       params: { siteId: "delete-key-regression" },
     })
   },
 })
 
-const editorNextRoute = createRoute({
+const editRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/editor-next/$siteId",
-  component: EditorNextPage,
+  path: "/edit/$siteId",
+  component: EditorPage,
 })
 
 const designSystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/design-system",
   component: DesignSystemPage,
+})
+
+const designSystemAuditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/design-system/audit",
+  component: DesignSystemAuditPage,
 })
 
 const componentsRoute = createRoute({
@@ -206,15 +256,19 @@ const publicVariantRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   sitesRoute,
+  siteDetailsRoute,
+  recipientDetailsRoute,
   trackingRoute,
   teamRoute,
+  billingRoute,
   settingsRoute,
   onboardingRoute,
   authRoute,
-  editorRoute,
-  editorNextIndexRoute,
-  editorNextRoute,
+  extensionConnectRoute,
+  editIndexRoute,
+  editRoute,
   designSystemRoute,
+  designSystemAuditRoute,
   componentsRoute,
   publicSiteRoute,
   publicVariantRoute,
@@ -230,32 +284,24 @@ declare module "@tanstack/react-router" {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <style data-lightsite-theme-tokens>{LIGHTSITE_THEME_CSS}</style>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
 
 function RootLayout() {
   const location = useLocation()
-  const isBareEditorNextRoute =
-    location.pathname === "/editor-next" || location.pathname === "/editor-next/"
-  const isEditorRoute = location.pathname.startsWith("/editor")
+  const isEditRoute = location.pathname.startsWith("/edit")
   const isOnboardingRoute = location.pathname.startsWith("/onboarding")
   const isAuthRoute = location.pathname.startsWith("/auth")
+  const isExtensionConnectRoute = location.pathname.startsWith("/extension-connect")
   const isPublicRoute = isPublicSitePath(location.pathname)
 
-  if (isBareEditorNextRoute) {
-    return (
-      <Navigate
-        to="/editor-next/$siteId"
-        params={{ siteId: "delete-key-regression" }}
-        replace
-      />
-    )
-  }
-
-  if (isEditorRoute) {
+  if (isEditRoute) {
     return (
       <Suspense fallback={<RouteFallback />}>
         <InternalRouteFrame chrome="bare">
@@ -267,7 +313,7 @@ function RootLayout() {
     )
   }
 
-  if (isOnboardingRoute || isAuthRoute || isPublicRoute) {
+  if (isOnboardingRoute || isAuthRoute || isExtensionConnectRoute || isPublicRoute) {
     return (
       <Suspense fallback={<RouteFallback />}>
         <Outlet />
@@ -292,10 +338,12 @@ const reservedAppSegments = new Set([
   "tracking",
   "team",
   "settings",
+  "edit",
   "editor",
   "editor-next",
   "onboarding",
   "auth",
+  "extension-connect",
   "design-system",
   "components",
 ])

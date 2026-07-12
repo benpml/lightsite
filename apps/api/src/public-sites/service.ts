@@ -1,7 +1,13 @@
 import { validateSiteSlug, validateWorkspaceSlug } from "@lightsite/domain";
-import type { TrackingMode, UnsignedTrackingContext } from "@lightsite/tracking-schema";
+import {
+  trackingV2PublicContextSchema,
+  type TrackingV2PublicContext,
+} from "@lightsite/tracking-schema";
 import type { PublicSiteRepository } from "./repository";
-import type { TrackingContextTokenService } from "../tracking/context-token";
+import type {
+  TrackingV2ContextTokenIssueInput,
+  TrackingV2ContextTokenService,
+} from "../tracking/v2/context-token";
 
 export const PUBLIC_SITE_AVAILABLE_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300";
 export const PUBLIC_SITE_UNAVAILABLE_CACHE_CONTROL = "public, max-age=15, stale-while-revalidate=15";
@@ -33,7 +39,7 @@ export interface PublicSiteService {
 }
 
 export type PublicSiteServiceOptions = {
-  trackingContextTokens?: TrackingContextTokenService;
+  trackingV2ContextTokens?: TrackingV2ContextTokenService;
 };
 
 export function createPublicSiteService(
@@ -71,7 +77,7 @@ export function createPublicSiteService(
 
       return {
         status: "available",
-        payload: addSignedTrackingContext(record.payload, options.trackingContextTokens),
+        payload: addTrackingV2Bootstrap(record.payload, options.trackingV2ContextTokens),
         cacheControl: PUBLIC_SITE_AVAILABLE_CACHE_CONTROL,
       };
     },
@@ -82,70 +88,41 @@ function isPublicPayload(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function addSignedTrackingContext(
+function addTrackingV2Bootstrap(
   payload: Record<string, unknown>,
-  trackingContextTokens: TrackingContextTokenService | undefined,
+  trackingV2ContextTokens: TrackingV2ContextTokenService | undefined,
 ) {
-  const context = parseUnsignedTrackingContext(payload.tracking);
-  const tracking = asRecord(payload.tracking);
+  if (!trackingV2ContextTokens) {
+    return payload;
+  }
 
-  if (!context || !tracking || !trackingContextTokens || context.mode === "off") {
+  const issueInput = parseTrackingV2ContextIssueInput(payload.tracking);
+
+  if (!issueInput) {
     return payload;
   }
 
   return {
     ...payload,
-    tracking: {
-      ...tracking,
-      token: trackingContextTokens.sign(context),
-    },
+    trackingV2: trackingV2ContextTokens.issue(issueInput),
   };
 }
 
-function parseUnsignedTrackingContext(value: unknown): UnsignedTrackingContext | null {
-  const input = asRecord(value);
+function parseTrackingV2ContextIssueInput(value: unknown): TrackingV2ContextTokenIssueInput | null {
+  const parsed = trackingV2PublicContextSchema.safeParse(value);
 
-  if (!input) {
+  if (!parsed.success || parsed.data.trackingMode === "off") {
     return null;
   }
 
-  if (
-    !isString(input.workspaceId) ||
-    !isString(input.siteId) ||
-    !isString(input.publishedVersionId) ||
-    !isTrackingMode(input.mode)
-  ) {
-    return null;
-  }
+  const context: TrackingV2PublicContext = parsed.data;
 
   return {
-    workspaceId: input.workspaceId,
-    siteId: input.siteId,
-    publishedVersionId: input.publishedVersionId,
-    variantId: nullableString(input.variantId),
-    variantRevision: isNonNegativeInteger(input.variantRevision) ? input.variantRevision : null,
-    mode: input.mode,
+    workspaceId: context.workspaceId,
+    siteId: context.siteId,
+    publishedVersionId: context.publishedVersionId,
+    recipientId: context.recipientId,
+    recipientRevision: context.recipientId ? context.recipientRevision : null,
+    trackingMode: context.trackingMode,
   };
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function isString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
-}
-
-function nullableString(value: unknown): string | null {
-  return isString(value) ? value : null;
-}
-
-function isNonNegativeInteger(value: unknown): value is number {
-  return Number.isInteger(value) && Number(value) >= 0;
-}
-
-function isTrackingMode(value: unknown): value is TrackingMode {
-  return value === "off" || value === "essential_only" || value === "engagement";
 }

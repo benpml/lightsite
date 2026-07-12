@@ -4,6 +4,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-07-07",
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "lightsite.io",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.lightsite.io",
+      "custom_domain": true
+    }
+  ],
   "observability": {
     "enabled": true
   },
@@ -18,6 +28,10 @@
     {
       "binding": "SNAPSHOT_BUCKET",
       "bucket_name": "lightsite-public-snapshots"
+    },
+    {
+      "binding": "PREVIEW_BUCKET",
+      "bucket_name": "lightsite-recipient-previews"
     }
   ]
 }

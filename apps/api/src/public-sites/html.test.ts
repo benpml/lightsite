@@ -1,164 +1,91 @@
 import { describe, expect, it } from "vitest";
 import {
-  TRACKING_INGEST_ENDPOINT,
-  TRACKING_SCRIPT_ENDPOINT,
-} from "@lightsite/tracking-schema";
+  createDefaultSiteContent,
+  PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
+  type PublishedSitePayload,
+} from "@lightsite/site-document";
+import { TRACKING_V2_SCRIPT_ENDPOINT } from "@lightsite/tracking-schema";
+
 import {
   renderPublicSiteHtmlDocument,
+  renderPublicSiteScreenshotHtmlDocument,
   renderUnavailablePublicSiteHtmlDocument,
 } from "./html";
 
 describe("public site HTML rendering", () => {
-  it("renders escaped public metadata and critical content", () => {
+  it("renders escaped metadata and the canonical Tiptap document", () => {
+    const payload = buildPayload();
+    payload.metadata.title = "Rollout brief for Acme & Co";
+    payload.content.pages[0]!.document = {
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { id: "overview", level: 2 },
+          content: [{ type: "text", text: "Why <now>" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "The exact Tiptap document", marks: [{ type: "bold" }] }],
+        },
+      ],
+    };
+
     const html = renderPublicSiteHtmlDocument({
       origin: "https://pages.lightsite.test",
-      payload: {
-        workspace: {
-          id: "workspace_test_123",
-          slug: "acme",
-          name: "Acme <Sales>",
-          websiteDomain: "acme.com",
-          logoUrl: null,
-        },
-        site: {
-          id: "site_test_123",
-          slug: "rollout-brief",
-          name: "Rollout brief",
-          publishedVersionId: "version_test_123",
-          publishedAt: "2026-06-14T18:00:00.000Z",
-        },
-        metadata: {
-          title: "Rollout brief for {{company_name}}",
-          description: "Plan for {{company_name}}",
-          robots: "index,follow",
-          ogImage: {
-            id: "asset_og",
-            src: "/assets/og.webp",
-            alt: "OG",
-            width: 1200,
-            height: 630,
-          },
-        },
-        chrome: {
-          siteHeader: {
-            brandName: "Lightsite",
-            logoUrl: null,
-            primaryButtonText: "Book review",
-            primaryButtonHref: "{{primary_url}}",
-            secondaryButtonText: null,
-            secondaryButtonHref: null,
-            showSecondaryButton: false,
-          },
-          hero: {
-            avatarMode: "single",
-            avatarImageUrl: null,
-            avatarImageSecondaryUrl: null,
-            avatarImageAlt: null,
-            avatarImageSecondaryAlt: null,
-            eyebrow: "July",
-            title: "A focused rollout plan for {{company_name}}",
-            subtitle: "A short page for the buying team.",
-          },
-        },
-        variables: [
-          {
-            id: "recipient_website",
-            defaultValue: "",
-          },
-          {
-            id: "company_name",
-            defaultValue: "your team",
-          },
-          {
-            id: "primary_url",
-            defaultValue: "https://cal.com/lightsite/review?token=secret",
-          },
-        ],
-        selectedVariant: {
-          id: "variant_test_123",
-          slug: "mira",
-          name: "Mira",
-          recipientName: "Mira",
-          recipientCompany: "Acme",
-          revisionNumber: 3,
-          variableValues: {
-            company_name: "Acme & Co",
-          },
-        },
-        blocks: [
-          {
-            id: "text_1",
-            type: "text",
-            text: "Hello {{company_name}} <script>alert(1)</script>",
-          },
-          {
-            id: "list_1",
-            type: "bullet-list",
-            items: ["First item", "Second item"],
-          },
-          {
-            id: "accordion_1",
-            type: "accordion",
-            items: [
-              {
-                id: "accordion_item_1",
-                title: "Open question",
-                body: "Open answer",
-                expanded: true,
-              },
-              {
-                id: "accordion_item_2",
-                title: "Closed question",
-                body: "Closed answer",
-                expanded: false,
-              },
-            ],
-          },
-          {
-            id: "quote_1",
-            type: "quote",
-            quote: "A fast path for {{company_name}}",
-            personName: "Mira",
-            personTitle: "RevOps",
-            company: "{{company_name}}",
-          },
-          {
-            id: "cta_1",
-            type: "cta",
-            label: "Book review",
-            href: "{{primary_url}}",
-            style: "primary",
-          },
-        ],
-        tracking: {
-          workspaceId: "workspace_test_123",
-          siteId: "site_test_123",
-          publishedVersionId: "version_test_123",
-          variantId: "variant_test_123",
-          variantRevision: 3,
-          mode: "engagement",
-          token: "signed-tracking-token",
-        },
-      },
+      payload,
     });
 
+    expect(html).not.toBeNull();
     expect(html).toContain("<title>Rollout brief for Acme &amp; Co</title>");
+    expect(html).toContain("Why &lt;now&gt;");
+    expect(html).toContain("<strong>The exact Tiptap document</strong>");
+    expect(html).toContain('href="https://pages.lightsite.test/acme/rollout-brief"');
     expect(html).toContain('content="noindex,nofollow"');
-    expect(html).toContain('content="https://pages.lightsite.test/acme/rollout-brief/mira"');
-    expect(html).toContain('content="https://pages.lightsite.test/assets/og.webp"');
-    expect(html).toContain("Acme &amp; Co &lt;script&gt;alert(1)&lt;/script&gt;");
-    expect(html).toContain('<ul class="list list-bullet-list"><li>First item</li><li>Second item</li></ul>');
-    expect(html).toContain('<details class="accordion-item" open>');
-    expect(html).toContain('<summary class="accordion-row">');
-    expect(html).toContain("Closed answer");
-    expect(html).not.toContain("accordion-chevron-collapsed");
-    expect(html).toContain('<span class="testimonial-name">Mira</span>');
-    expect(html).toContain('<span class="testimonial-role">RevOps, Acme &amp; Co</span>');
-    expect(html).toContain('rel="noopener noreferrer"');
-    expect(html).toContain(`src="${TRACKING_SCRIPT_ENDPOINT}"`);
-    expect(html).toContain(`data-lightsite-ingest="${TRACKING_INGEST_ENDPOINT}"`);
-    expect(html).toContain("&quot;signed-tracking-token&quot;");
-    expect(html).not.toContain("<script>alert");
+  });
+
+  it("emits the v2 bootstrap and canonical tracking attributes", () => {
+    const payload = buildPayload();
+    payload.content.pages[0]!.document.content = [{
+      type: "buttonBlock",
+      attrs: { id: "cta-primary", href: "https://example.com/book" },
+      content: [{ type: "text", text: "Book a call" }],
+    }];
+    payload.trackingV2 = {
+      version: 2,
+      trackingMode: "events_and_recording",
+      contextToken: "lsv2.context-token-at-least-24",
+      issuedAt: "2026-07-09T12:00:00.000Z",
+      expiresAt: "2026-07-10T12:00:00.000Z",
+    };
+
+    const html = renderPublicSiteHtmlDocument({
+      origin: "https://pages.lightsite.test",
+      payload,
+    });
+
+    expect(html).not.toBeNull();
+    expect(html).toContain(`src="${TRACKING_V2_SCRIPT_ENDPOINT}"`);
+    expect(html).toContain("data-lightsite-tracking-v2=");
+    expect(html).toContain("&quot;contextToken&quot;:&quot;lsv2.context-token-at-least-24&quot;");
+    expect(html).toContain('data-ls-element-id="cta-primary"');
+    expect(html).toContain('data-ls-element-label="Book a call"');
+    expect(html).toContain("https://pages.lightsite.test/acme/rollout-brief/embed.jpg?v=");
+    expect(html).toContain('<meta property="og:image:type" content="image/jpeg">');
+    expect(html).toContain('<meta property="og:image:width" content="1200">');
+    expect(html).toContain('<meta property="og:image:height" content="630">');
+  });
+
+  it("renders screenshot HTML without runtime or tracking scripts", () => {
+    const html = renderPublicSiteScreenshotHtmlDocument({
+      origin: "https://pages.lightsite.test",
+      payload: buildPayload(),
+    });
+
+    expect(html).not.toBeNull();
+    expect(html).toContain('data-ls-public-site=""');
+    expect(html).not.toContain("site-runtime.v3.js");
+    expect(html).not.toContain("data-lightsite-tracking-v2");
   });
 
   it("renders a generic unavailable page with noindex metadata", () => {
@@ -169,8 +96,45 @@ describe("public site HTML rendering", () => {
 
     expect(html).toContain("<title>Page unavailable | Lightsite</title>");
     expect(html).toContain('content="noindex,nofollow"');
-    expect(html).toContain('content="https://pages.lightsite.test/acme/missing"');
+    expect(html).toContain('href="https://pages.lightsite.test/acme/missing"');
     expect(html).toContain("This page is unavailable");
     expect(html).not.toContain("data-lightsite-tracking");
   });
 });
+
+function buildPayload(): PublishedSitePayload {
+  return {
+    schemaVersion: PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
+    workspace: {
+      id: "11111111-1111-4111-8111-111111111111",
+      slug: "acme",
+      name: "Acme",
+      websiteDomain: "acme.com",
+      logoUrl: null,
+    },
+    site: {
+      id: "22222222-2222-4222-8222-222222222222",
+      slug: "rollout-brief",
+      name: "Rollout brief",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
+      publishedAt: "2026-07-09T12:00:00.000Z",
+    },
+    metadata: {
+      title: "Rollout brief",
+      description: "A focused plan.",
+      ogImageUrl: null,
+      robots: "noindex,nofollow",
+    },
+    content: createDefaultSiteContent("Rollout brief"),
+    selectedVariant: null,
+    tracking: {
+      version: 2,
+      workspaceId: "11111111-1111-4111-8111-111111111111",
+      siteId: "22222222-2222-4222-8222-222222222222",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
+      recipientId: null,
+      recipientRevision: null,
+      trackingMode: "events_and_recording",
+    },
+  };
+}

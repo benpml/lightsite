@@ -37,6 +37,7 @@ import {
   SiteNotFoundError,
   SitePlanLimitError,
   SitePermissionError,
+  SitePublishPlanError,
   SitePublishValidationError,
   SitePublishedSlugChangeError,
   SiteVariantConflictError,
@@ -97,7 +98,7 @@ export function createSiteRouter(options: SiteRouterOptions) {
     } catch (error) {
       if (error instanceof SiteValidationError) {
         throw new AppError({
-          code: "slug.invalid",
+          code: error.code === "site.slug_invalid" ? "slug.invalid" : error.code,
           message: error.message,
           status: 400,
         });
@@ -308,6 +309,22 @@ export function createSiteRouter(options: SiteRouterOptions) {
     }
   }));
 
+  router.delete("/:siteId/variants/:variantId", asyncHandler(async (request, response) => {
+    const context = await resolveSiteRequestContext(request, options);
+
+    try {
+      await context.siteService.deleteSiteVariant({
+        workspace: context.workspace,
+        userId: context.actor.userId,
+        siteId: request.params.siteId ?? "",
+        variantId: request.params.variantId ?? "",
+      });
+      response.status(204).send();
+    } catch (error) {
+      throw mapSiteServiceError(error);
+    }
+  }));
+
   router.post("/:siteId/duplicate", asyncHandler(async (request, response) => {
     const context = await resolveSiteRequestContext(request, options);
 
@@ -379,6 +396,22 @@ export function createSiteRouter(options: SiteRouterOptions) {
         ...archived,
         requestId: request.context.requestId,
       }));
+    } catch (error) {
+      throw mapSiteServiceError(error);
+    }
+  }));
+
+  router.delete("/:siteId", asyncHandler(async (request, response) => {
+    const context = await resolveSiteRequestContext(request, options);
+
+    try {
+      await context.siteService.deleteSite({
+        workspace: context.workspace,
+        userId: context.actor.userId,
+        siteId: request.params.siteId ?? "",
+      });
+
+      response.status(204).end();
     } catch (error) {
       throw mapSiteServiceError(error);
     }
@@ -500,7 +533,7 @@ function getActiveWorkspace(
 function mapSiteServiceError(error: unknown): AppError {
   if (error instanceof SiteValidationError) {
     return new AppError({
-      code: "slug.invalid",
+      code: error.code === "site.slug_invalid" ? "slug.invalid" : error.code,
       message: error.message,
       status: 400,
     });
@@ -528,6 +561,14 @@ function mapSiteServiceError(error: unknown): AppError {
       message: error.message,
       status: 400,
       issues: error.issues,
+    });
+  }
+
+  if (error instanceof SitePublishPlanError) {
+    return new AppError({
+      code: "billing.upgrade_required",
+      message: error.message,
+      status: 402,
     });
   }
 

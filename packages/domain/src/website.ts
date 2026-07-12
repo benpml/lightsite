@@ -9,6 +9,13 @@ export type WebsiteValidationCode =
   | "website.local_hostname"
   | "website.placeholder_domain";
 
+export type NormalizeWebsiteUrlOptions = {
+  emptyMessage?: string;
+  invalidMessage?: string;
+  rejectPlaceholderDomains?: boolean;
+  stripPath?: boolean;
+};
+
 const PLACEHOLDER_DOMAINS = new Set([
   "company.com",
   "domain.com",
@@ -22,18 +29,78 @@ const PLACEHOLDER_DOMAINS = new Set([
 const HOSTNAME_PATTERN =
   /^(?=.{1,253}$)(?!-)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
+const SPECIAL_USE_TLDS = new Set(["example", "invalid", "local", "localhost", "test"]);
+const INVALID_URL_CHARACTER_PATTERN = /[\s<>"`{}|\\^]/;
+const SCHEME_PATTERN = /^[a-z][a-z\d+\-.]*:/i;
+
 export function normalizeWebsiteDomain(input: string): WebsiteValidationResult {
-  const rawValue = input.trim().toLowerCase();
+  const result = normalizeWebsiteUrl(input, {
+    emptyMessage: "Website is required.",
+    invalidMessage: "Enter a valid company website.",
+    rejectPlaceholderDomains: true,
+    stripPath: true,
+  });
+
+  if (!result.ok) {
+    if (result.code === "website.local_hostname") {
+      return {
+        ...result,
+        message: "Enter a public company website.",
+      };
+    }
+
+    if (result.code === "website.invalid_hostname") {
+      return {
+        ...result,
+        message: "Enter a valid public company website domain.",
+      };
+    }
+
+    if (result.code === "website.placeholder_domain") {
+      return {
+        ...result,
+        message: "Enter your real company website.",
+      };
+    }
+
+    return result;
+  }
+
+  return {
+    ok: true,
+    domain: result.domain,
+    url: `https://${result.domain}`,
+  };
+}
+
+export function normalizeWebsiteUrl(
+  input: string,
+  options: NormalizeWebsiteUrlOptions = {}
+): WebsiteValidationResult {
+  const rawValue = input.trim();
+  const invalidMessage = options.invalidMessage ?? "Enter a valid public website URL.";
 
   if (!rawValue) {
     return {
       ok: false,
       code: "website.empty",
-      message: "Website is required.",
+      message: options.emptyMessage ?? "Website URL is required.",
     };
   }
 
-  const urlValue = rawValue.includes("://") ? rawValue : `https://${rawValue}`;
+  if (INVALID_URL_CHARACTER_PATTERN.test(rawValue)) {
+    return {
+      ok: false,
+      code: "website.invalid_url",
+      message: invalidMessage,
+    };
+  }
+
+  const urlValue = rawValue.startsWith("//")
+    ? `https:${rawValue}`
+    : SCHEME_PATTERN.test(rawValue)
+      ? rawValue
+      : `https://${rawValue}`;
 
   let parsedUrl: URL;
 
@@ -43,7 +110,7 @@ export function normalizeWebsiteDomain(input: string): WebsiteValidationResult {
     return {
       ok: false,
       code: "website.invalid_url",
-      message: "Enter a valid company website.",
+      message: invalidMessage,
     };
   }
 
@@ -51,17 +118,25 @@ export function normalizeWebsiteDomain(input: string): WebsiteValidationResult {
     return {
       ok: false,
       code: "website.invalid_url",
-      message: "Website must use http or https.",
+      message: "Website URL must use http or https.",
     };
   }
 
-  const domain = parsedUrl.hostname.replace(/\.$/, "").replace(/^www\./, "");
+  if (parsedUrl.username || parsedUrl.password) {
+    return {
+      ok: false,
+      code: "website.invalid_url",
+      message: invalidMessage,
+    };
+  }
+
+  const domain = parsedUrl.hostname.toLowerCase().replace(/\.$/, "").replace(/^www\./, "");
 
   if (isLocalHostname(domain)) {
     return {
       ok: false,
       code: "website.local_hostname",
-      message: "Enter a public company website.",
+      message: "Enter a public website URL.",
     };
   }
 
@@ -69,22 +144,26 @@ export function normalizeWebsiteDomain(input: string): WebsiteValidationResult {
     return {
       ok: false,
       code: "website.invalid_hostname",
-      message: "Enter a valid public company website domain.",
+      message: "Enter a valid public website domain.",
     };
   }
 
-  if (PLACEHOLDER_DOMAINS.has(domain)) {
+  if (options.rejectPlaceholderDomains && PLACEHOLDER_DOMAINS.has(domain)) {
     return {
       ok: false,
       code: "website.placeholder_domain",
-      message: "Enter your real company website.",
+      message: "Enter a real website URL.",
     };
   }
+
+  parsedUrl.hostname = domain;
+  parsedUrl.username = "";
+  parsedUrl.password = "";
 
   return {
     ok: true,
     domain,
-    url: `https://${domain}`,
+    url: options.stripPath ? `${parsedUrl.protocol}//${parsedUrl.host}` : formatWebsiteUrl(parsedUrl),
   };
 }
 
@@ -92,7 +171,8 @@ function isLocalHostname(hostname: string): boolean {
   if (
     hostname === "localhost" ||
     hostname.endsWith(".localhost") ||
-    hostname.includes(":")
+    hostname.includes(":") ||
+    SPECIAL_USE_TLDS.has(hostname.split(".").at(-1) ?? "")
   ) {
     return true;
   }
@@ -119,4 +199,13 @@ function isLocalHostname(hostname: string): boolean {
     first === 172 && second >= 16 && second <= 31 ||
     first === 192 && second === 168
   );
+}
+
+function formatWebsiteUrl(url: URL) {
+  const path =
+    url.pathname === "/" && !url.search && !url.hash
+      ? ""
+      : url.pathname;
+
+  return `${url.protocol}//${url.host}${path}${url.search}${url.hash}`;
 }
