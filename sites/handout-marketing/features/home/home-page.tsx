@@ -22,6 +22,7 @@ import {
 import { Logo } from "@/components/common/logo"
 import { NoiseOverlay } from "@/components/common/noise-overlay"
 import { SiteHeader } from "@/components/layout/site-header"
+import { StickySiteHeader } from "@/components/layout/sticky-site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -153,6 +154,7 @@ function HomePage() {
   return (
     <main id="top" className="overflow-x-clip bg-background">
       <Hero />
+      <StickySiteHeader items={navigation} observeId="hero-header" />
 
       <SectionFrame
         handles="none"
@@ -267,6 +269,7 @@ function Hero() {
       <div className="relative z-10 mx-auto h-full w-[calc(100%-32px)] max-w-[1024px] lg:w-full">
         <div className="pt-9">
           <SiteHeader
+            id="hero-header"
             variant="inverse"
             items={navigation}
             className="mx-auto"
