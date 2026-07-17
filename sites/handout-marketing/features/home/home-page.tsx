@@ -259,6 +259,10 @@ function Hero() {
   return (
     <section className="relative isolate h-[938px] overflow-hidden text-inverse-foreground">
       <UnicornHeroScene />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-[417px] left-1/2 z-0 h-24 w-[calc(100%-80px)] max-w-[761px] -translate-x-1/2 rounded-full bg-hero-benefits-backdrop/80 blur-[60px] sm:w-[calc(100%-32px)]"
+      />
       <NoiseOverlay id="hero-noise" />
       <div className="relative z-10 mx-auto h-full w-[calc(100%-32px)] max-w-[1024px] lg:w-full">
         <div className="pt-9">
@@ -282,26 +286,20 @@ function Hero() {
         </div>
 
         <div className="mx-auto mt-[68px] flex max-w-[761px] flex-col px-6 sm:px-0">
-          <div className="relative isolate">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-full bg-hero-benefits-backdrop/80 blur-[60px]"
-            />
-            <ul className="relative z-10 grid grid-cols-2 gap-x-2 gap-y-4 px-0 sm:flex sm:items-center sm:justify-between sm:px-8" role="list">
-              {heroBenefits.map((benefit) => {
-                const Icon = benefit.icon
-                return (
-                  <li
-                    key={benefit.label}
-                    className="flex items-center justify-center gap-2 text-label-lg sm:text-label-xl sm:whitespace-nowrap"
-                  >
-                    <Icon aria-hidden="true" className="size-4" />
-                    {benefit.label}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+          <ul className="grid grid-cols-2 gap-x-2 gap-y-4 px-0 sm:flex sm:items-center sm:justify-between sm:px-8" role="list">
+            {heroBenefits.map((benefit) => {
+              const Icon = benefit.icon
+              return (
+                <li
+                  key={benefit.label}
+                  className="flex items-center justify-center gap-2 text-label-lg sm:text-label-xl sm:whitespace-nowrap"
+                >
+                  <Icon aria-hidden="true" className="size-4" />
+                  {benefit.label}
+                </li>
+              )
+            })}
+          </ul>
           <Card
             variant="canvas"
             aria-hidden="true"
