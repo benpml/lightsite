@@ -60,6 +60,7 @@
   --text-6xl: 3.25rem;
   --text-4xl: 2rem;
   --text-3xl: 1.75rem;
+  --text-17: 1.0625rem;
   --text-15: 0.9375rem;
   --text-13: 0.8125rem;
 
@@ -123,6 +124,13 @@
 
 @utility text-body-xl {
   font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.375;
+  letter-spacing: -0.01em;
+}
+
+@utility text-body-item {
+  font-size: var(--text-17);
   font-weight: 400;
   line-height: 1.375;
   letter-spacing: -0.01em;

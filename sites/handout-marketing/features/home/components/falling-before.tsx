@@ -8,8 +8,8 @@ import { Gravity, GravityBody } from "@/features/home/components/gravity"
 import { cn } from "@/lib/utils"
 
 const firstSpawnY = -80
-const fallDelayMs = 260
-const fallDelay = (order: number) => order * fallDelayMs
+const fallSpacing = 175
+const fallSpawnY = (order: number) => firstSpawnY - order * fallSpacing
 
 const items = [
   {
@@ -19,8 +19,7 @@ const items = [
     y: 388,
     width: 293,
     rotation: 25.53,
-    spawnY: firstSpawnY,
-    delayMs: fallDelay(0),
+    spawnY: fallSpawnY(0),
   },
   {
     kind: "link",
@@ -29,8 +28,7 @@ const items = [
     y: 447.12,
     width: 229,
     rotation: -25.37,
-    spawnY: firstSpawnY,
-    delayMs: fallDelay(1),
+    spawnY: fallSpawnY(1),
   },
   {
     kind: "pdf",
@@ -39,8 +37,7 @@ const items = [
     y: 470.78,
     width: 172.61,
     rotation: -21.33,
-    spawnY: firstSpawnY,
-    delayMs: fallDelay(2),
+    spawnY: fallSpawnY(2),
   },
   {
     kind: "pdf",
@@ -49,8 +46,7 @@ const items = [
     y: 225,
     width: 193.61,
     rotation: 36.34,
-    spawnY: firstSpawnY,
-    delayMs: fallDelay(3),
+    spawnY: fallSpawnY(3),
   },
   {
     kind: "ppt",
@@ -59,20 +55,18 @@ const items = [
     y: 450,
     width: 202,
     rotation: 17.2,
-    spawnY: firstSpawnY,
-    delayMs: fallDelay(4),
+    spawnY: fallSpawnY(4),
   },
   {
     kind: "email",
     label: "Hi Dave,",
-    body: "I’ve attached our deck, pricing sheet, demo video, case studies, website link, agreemen...",
+    body: "I’ve attached our deck, pricing sheet, demo video, case studies, website link agreemen...",
     x: 236.54,
     y: 214,
     width: 316,
     height: 137,
     rotation: 28.1,
-    spawnY: firstSpawnY,
-    delayMs: fallDelay(5),
+    spawnY: fallSpawnY(5),
   },
   {
     kind: "file",
@@ -81,8 +75,7 @@ const items = [
     y: 508,
     width: 228,
     rotation: 0,
-    spawnY: firstSpawnY,
-    delayMs: fallDelay(6),
+    spawnY: fallSpawnY(6),
   },
 ] as const
 
@@ -92,11 +85,6 @@ const bodyOptions = {
   frictionAir: 0.012,
   restitution: 0.22,
   sleepThreshold: 70,
-} as const
-
-const uprightBodyOptions = {
-  ...bodyOptions,
-  inertia: Number.POSITIVE_INFINITY,
 } as const
 
 const pageIconByKind = {
@@ -157,8 +145,7 @@ function FallingBefore() {
               x={item.x + item.width / 2}
               y={item.spawnY}
               angle={item.rotation}
-              delayMs={item.delayMs}
-              options={item.kind === "file" ? uprightBodyOptions : bodyOptions}
+              options={bodyOptions}
               style={getFallingItemSize(item)}
             >
               <FallingItem item={item} />
@@ -196,7 +183,7 @@ function FallingItem({
             draggable={false}
             className="size-5 rounded-full object-cover"
           />
-          <span className="flex flex-col gap-2 text-body-xl text-tertiary-foreground">
+          <span className="flex flex-col gap-2 text-body-item text-tertiary-foreground">
             <span>{item.label}</span>
             <span className="line-clamp-2">
               {"body" in item ? item.body : null}
@@ -222,7 +209,7 @@ function FallingItem({
               className="size-[22px] shrink-0 object-cover"
             />
           )}
-          <span className="whitespace-nowrap text-body-2xl text-foreground">
+          <span className="whitespace-nowrap text-body-item text-foreground">
             {item.label}
           </span>
         </>
