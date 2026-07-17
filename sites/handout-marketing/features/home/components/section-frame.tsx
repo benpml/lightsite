@@ -27,7 +27,7 @@ function SectionFrame({
 }: SectionFrameProps) {
   return (
     <section
-      className={cn("relative", className)}
+      className={cn("relative isolate", className)}
       {...props}
     >
       {divider === "top" && (
