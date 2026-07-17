@@ -1,25 +1,25 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from "next"
+import { HANDOUT_WEBSITE_THEME_CSS } from "@handout/design-tokens"
+
+import "./globals.css"
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.handout.link"),
-  title: "Handout — Build one pagers that close prospects",
-  description: "Bundle client-facing content into one sleek, trackable site.",
+  title: "Handout — One pagers that close prospects",
+  description:
+    "Bundle your client-facing content in one sleek, trackable Handout site.",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
-  openGraph: {
-    type: "website",
-    title: "Handout — Build one pagers that close prospects",
-    description: "Bundle client-facing content into one sleek, trackable site.",
-    images: [{ url: "/og.png", width: 1731, height: 909, alt: "Handout — Build one pagers that close prospects." }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Handout — Build one pagers that close prospects",
-    description: "Bundle client-facing content into one sleek, trackable site.",
-    images: ["/og.png"],
-  },
-};
+}
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="en">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: HANDOUT_WEBSITE_THEME_CSS }} />
+      </head>
+      <body>{children}</body>
+    </html>
+  )
 }

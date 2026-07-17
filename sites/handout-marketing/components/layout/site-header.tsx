@@ -1,0 +1,78 @@
+import Link from "next/link"
+
+import { Logo } from "@/components/common/logo"
+import { Button } from "@/components/ui/button"
+import { NavItem } from "@/components/layout/nav-item"
+import { cn } from "@/lib/utils"
+
+const defaultItems = [
+  { href: "#pricing", label: "Pricing" },
+  { href: "#examples", label: "Examples" },
+  { href: "#docs", label: "Docs" },
+] as const
+
+type SiteHeaderProps = React.ComponentProps<"nav"> & {
+  variant?: "normal" | "inverse" | "sticky"
+  items?: ReadonlyArray<{ href: string; label: string }>
+  loginHref?: string
+  signupHref?: string
+}
+
+function SiteHeader({
+  className,
+  variant = "normal",
+  items = defaultItems,
+  loginHref = "https://app.handout.link/auth",
+  signupHref = "https://app.handout.link/auth?mode=sign-up",
+  ...props
+}: SiteHeaderProps) {
+  const isInverse = variant === "inverse"
+  const isSticky = variant === "sticky"
+  const navVariant = isInverse ? "inverse" : "default"
+
+  return (
+    <nav
+      aria-label="Primary navigation"
+      data-slot="site-header"
+      data-variant={variant}
+      className={cn(
+        "flex w-full items-center justify-center max-md:justify-between",
+        isSticky
+          ? "max-w-[640px] rounded-2xl bg-background py-2.5 pr-3 pl-3.5 ring-1 ring-inset ring-border"
+          : "max-w-[726px]",
+        className,
+      )}
+      {...props}
+    >
+      <div className="hidden min-w-0 flex-1 items-center gap-3.5 md:flex">
+        {items.map((item) => (
+          <NavItem key={item.href} href={item.href} variant={navVariant}>
+            {item.label}
+          </NavItem>
+        ))}
+      </div>
+
+      <Link
+        href="/"
+        aria-label="Handout home"
+        className="shrink-0 rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <Logo
+          color={isInverse ? "inverse" : "default"}
+          type={isSticky ? "icon" : "full"}
+        />
+      </Link>
+
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-2 max-md:ml-auto max-md:flex-none">
+        <NavItem href={loginHref} variant={navVariant} className="max-sm:hidden">
+          Log in
+        </NavItem>
+        <Button asChild variant={isInverse ? "inverse" : "primary"} size="md">
+          <Link href={signupHref}>Sign up</Link>
+        </Button>
+      </div>
+    </nav>
+  )
+}
+
+export { SiteHeader }

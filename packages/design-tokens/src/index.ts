@@ -1,12 +1,16 @@
 export const SITE_MOBILE_BREAKPOINT_PX = 760 as const
 
 export const handoutFoundationTokens = {
+  "white-white": "#ffffff",
+  "white-alpha-a800": "rgb(255 255 255 / 80%)",
+  "white-alpha-a300": "rgb(255 255 255 / 30%)",
   "neutral-950": "#0a0a0a",
   "neutral-900": "#191919",
   "neutral-800": "#252525",
   "neutral-700": "#333333",
   "neutral-600": "#525252",
   "neutral-500": "#737373",
+  "neutral-450": "#8d8d8d",
   "neutral-400": "#999999",
   "neutral-300": "#c4c4c4",
   "neutral-200": "#e5e5e5",
@@ -17,8 +21,8 @@ export const handoutFoundationTokens = {
   "neutral-alpha-a700": "rgb(128 128 128 / 24%)",
   "neutral-alpha-a600": "rgb(128 128 128 / 20%)",
   "neutral-alpha-a500": "rgb(128 128 128 / 16%)",
-  "neutral-alpha-a400": "rgb(128 128 128 / 12%)",
-  "neutral-alpha-a300": "rgb(128 128 128 / 9%)",
+  "neutral-alpha-a400": "rgb(128 128 128 / 14%)",
+  "neutral-alpha-a300": "rgb(128 128 128 / 12%)",
   "neutral-alpha-a200": "rgb(128 128 128 / 7%)",
   "neutral-alpha-a100": "rgb(128 128 128 / 5%)",
   "radius": "10px",
@@ -33,6 +37,39 @@ export const handoutFoundationTokens = {
   "radius-4xl": "26px",
   "radius-full": "9999px",
   "border-width": "1px",
+} as const
+
+export const handoutWebsiteTokens = {
+  background: "var(--white-white)",
+  foreground: "var(--neutral-900)",
+  border: "var(--neutral-alpha-a400)",
+  card: "var(--neutral-50)",
+  "card-foreground": "var(--neutral-900)",
+  primary: "var(--neutral-950)",
+  "primary-foreground": "var(--white-white)",
+  secondary: "var(--white-white)",
+  "secondary-foreground": "var(--neutral-700)",
+  tertiary: "var(--neutral-alpha-a200)",
+  "tertiary-foreground": "var(--neutral-600)",
+  muted: "var(--neutral-alpha-a300)",
+  "muted-foreground": "var(--neutral-450)",
+  "inverse-foreground": "var(--white-white)",
+  "inverse-secondary-foreground": "var(--white-alpha-a800)",
+  "inverse-border": "var(--white-alpha-a300)",
+  input: "var(--neutral-alpha-a700)",
+  ring: "var(--neutral-500)",
+  popover: "var(--background)",
+  "popover-foreground": "var(--foreground)",
+} as const
+
+export const handoutWebsiteComponentTokens = {
+  "website-radius-sm": "8px",
+  "website-radius-md": "10px",
+  "website-radius-lg": "12px",
+  "website-radius-2xl": "16px",
+  "secondary-hover": "var(--neutral-50)",
+  "control-shadow": "0 1px 0.5px rgb(0 0 0 / 6%)",
+  "badge-inverse-shadow": "0 1px 1px rgb(0 0 0 / 6%)",
 } as const
 
 export const handoutLightTokens = {
@@ -259,6 +296,16 @@ export const HANDOUT_THEME_CSS = [
   cssRule(".dark", handoutDarkTokens, "dark"),
   `@media(prefers-color-scheme:dark){${cssRule(".system", handoutDarkTokens, "dark")}}`,
 ].join("")
+
+export const HANDOUT_WEBSITE_THEME_CSS = cssRule(
+  ":root",
+  {
+    ...handoutFoundationTokens,
+    ...handoutWebsiteTokens,
+    ...handoutWebsiteComponentTokens,
+  },
+  "light",
+)
 
 function cssRule(
   selector: string,

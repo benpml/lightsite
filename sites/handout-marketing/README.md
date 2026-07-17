@@ -1,25 +1,5 @@
-# Handout Marketing Site
+# Handout website
 
-The public marketing site for Handout, built with vinext and deployed through Sites.
+The Handout marketing site is being rebuilt from a clean shadcn and Tailwind foundation.
 
-## Local development
-
-Requires Node.js `>=22.13.0`.
-
-```bash
-npm install
-npm run dev
-```
-
-## Validation
-
-```bash
-npm test
-npm run lint
-```
-
-`npm test` builds the Cloudflare-compatible server output and verifies the rendered Handout page, production metadata, canonical domains, and brand assets.
-
-## Hosting
-
-The existing Sites project is identified by `.openai/hosting.json`. The production marketing domain is `www.handout.link`; product authentication routes to `app.handout.link`.
+The current route is the implementation reference for the website color, typography, brand, and component system. Shared base colors come from `@handout/design-tokens`; website semantics and component variants remain website-owned.

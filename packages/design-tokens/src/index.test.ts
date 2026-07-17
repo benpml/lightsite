@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest"
 
 import {
   HANDOUT_THEME_CSS,
+  HANDOUT_WEBSITE_THEME_CSS,
   handoutDarkTokens,
+  handoutFoundationTokens,
   handoutLightTokens,
+  handoutWebsiteComponentTokens,
+  handoutWebsiteTokens,
   normalizeEditorHighlightColor,
   normalizeEditorTextColor,
 } from "./index"
@@ -57,6 +61,62 @@ const darkSubtleBackgroundPalette = {
 } as const
 
 describe("shared design tokens", () => {
+  it("keeps the app and website on the corrected neutral foundation", () => {
+    expect(handoutFoundationTokens["neutral-450"]).toBe("#8d8d8d")
+    expect(handoutFoundationTokens["neutral-alpha-a300"]).toBe(
+      "rgb(128 128 128 / 12%)",
+    )
+    expect(handoutFoundationTokens["neutral-alpha-a400"]).toBe(
+      "rgb(128 128 128 / 14%)",
+    )
+  })
+
+  it("emits the website semantic layer from the shared foundation", () => {
+    expect(handoutWebsiteTokens).toEqual({
+      background: "var(--white-white)",
+      foreground: "var(--neutral-900)",
+      border: "var(--neutral-alpha-a400)",
+      card: "var(--neutral-50)",
+      "card-foreground": "var(--neutral-900)",
+      primary: "var(--neutral-950)",
+      "primary-foreground": "var(--white-white)",
+      secondary: "var(--white-white)",
+      "secondary-foreground": "var(--neutral-700)",
+      tertiary: "var(--neutral-alpha-a200)",
+      "tertiary-foreground": "var(--neutral-600)",
+      muted: "var(--neutral-alpha-a300)",
+      "muted-foreground": "var(--neutral-450)",
+      "inverse-foreground": "var(--white-white)",
+      "inverse-secondary-foreground": "var(--white-alpha-a800)",
+      "inverse-border": "var(--white-alpha-a300)",
+      input: "var(--neutral-alpha-a700)",
+      ring: "var(--neutral-500)",
+      popover: "var(--background)",
+      "popover-foreground": "var(--foreground)",
+    })
+    expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
+      ":root{color-scheme:light;--white-white:#ffffff",
+    )
+    expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
+      "--muted-foreground:var(--neutral-450)",
+    )
+    expect(handoutWebsiteComponentTokens).toEqual({
+      "website-radius-sm": "8px",
+      "website-radius-md": "10px",
+      "website-radius-lg": "12px",
+      "website-radius-2xl": "16px",
+      "secondary-hover": "var(--neutral-50)",
+      "control-shadow": "0 1px 0.5px rgb(0 0 0 / 6%)",
+      "badge-inverse-shadow": "0 1px 1px rgb(0 0 0 / 6%)",
+    })
+    expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
+      "--secondary-hover:var(--neutral-50)",
+    )
+    expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
+      "--control-shadow:0 1px 0.5px rgb(0 0 0 / 6%)",
+    )
+  })
+
   it("keeps every semantic light token available in dark mode", () => {
     expect(Object.keys(handoutDarkTokens).sort()).toEqual(
       Object.keys(handoutLightTokens).sort(),
