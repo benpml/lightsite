@@ -15,6 +15,7 @@ type GravityBodyConfig = {
   x: number
   y: number
   angle: number
+  delayMs?: number
   isDraggable?: boolean
   options?: IChamferableBodyDefinition
 }
@@ -124,6 +125,7 @@ function Gravity({
   const runnerRef = React.useRef<Runner | null>(null)
   const mouseRef = React.useRef<Mouse | null>(null)
   const removeMouseListenersRef = React.useRef<(() => void) | null>(null)
+  const bodyDelayTimersRef = React.useRef(new Set<number>())
   const runningRef = React.useRef(false)
   const rebuildFrameRef = React.useRef<number | null>(null)
   const activeRef = React.useRef(active)
@@ -152,6 +154,8 @@ function Gravity({
     const matter = matterRef.current
     removeMouseListenersRef.current?.()
     removeMouseListenersRef.current = null
+    bodyDelayTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+    bodyDelayTimersRef.current.clear()
     if (mouseRef.current && matter) {
       matter.Mouse.clearSourceEvents(mouseRef.current)
     }
@@ -248,7 +252,23 @@ function Gravity({
 
       record.body = body
       dynamicBodies.push(body)
-      matter.World.add(engine.world, body)
+
+      const addBody = () => {
+        if (engineRef.current !== engine) return
+
+        matter.World.add(engine.world, body)
+        if (activeRef.current) start()
+      }
+
+      if (record.delayMs && record.delayMs > 0) {
+        const timer = window.setTimeout(() => {
+          bodyDelayTimersRef.current.delete(timer)
+          addBody()
+        }, record.delayMs)
+        bodyDelayTimersRef.current.add(timer)
+      } else {
+        matter.World.add(engine.world, body)
+      }
     })
 
     const mouse = matter.Mouse.create(container) as InteractiveMouse
@@ -399,6 +419,7 @@ function GravityBody({
   x,
   y,
   angle,
+  delayMs = 0,
   isDraggable = true,
   options,
   className,
@@ -418,14 +439,22 @@ function GravityBody({
     element.style.transform = `translate3d(${initialX}px, ${initialY}px, 0) rotate(${angle}deg)`
     element.style.opacity = "1"
 
-    context.registerBody(id, element, { x, y, angle, isDraggable, options })
+    context.registerBody(id, element, {
+      x,
+      y,
+      angle,
+      delayMs,
+      isDraggable,
+      options,
+    })
     return () => context.unregisterBody(id)
-  }, [angle, context, id, isDraggable, options, x, y])
+  }, [angle, context, delayMs, id, isDraggable, options, x, y])
 
   return (
     <div
       ref={elementRef}
       data-gravity-body="true"
+      data-gravity-delay={delayMs}
       data-gravity-draggable={isDraggable}
       className={cn(
         "absolute top-0 left-0 opacity-0 will-change-transform",

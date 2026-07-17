@@ -8,8 +8,8 @@ import { Gravity, GravityBody } from "@/features/home/components/gravity"
 import { cn } from "@/lib/utils"
 
 const firstSpawnY = -80
-const fallSpacing = 175
-const fallSpawnY = (order: number) => firstSpawnY - order * fallSpacing
+const fallDelayMs = 260
+const fallDelay = (order: number) => order * fallDelayMs
 
 const items = [
   {
@@ -19,7 +19,8 @@ const items = [
     y: 388,
     width: 293,
     rotation: 25.53,
-    spawnY: fallSpawnY(0),
+    spawnY: firstSpawnY,
+    delayMs: fallDelay(0),
   },
   {
     kind: "link",
@@ -28,7 +29,8 @@ const items = [
     y: 447.12,
     width: 229,
     rotation: -25.37,
-    spawnY: fallSpawnY(1),
+    spawnY: firstSpawnY,
+    delayMs: fallDelay(1),
   },
   {
     kind: "pdf",
@@ -37,7 +39,8 @@ const items = [
     y: 470.78,
     width: 172.61,
     rotation: -21.33,
-    spawnY: fallSpawnY(2),
+    spawnY: firstSpawnY,
+    delayMs: fallDelay(2),
   },
   {
     kind: "pdf",
@@ -46,7 +49,8 @@ const items = [
     y: 225,
     width: 193.61,
     rotation: 36.34,
-    spawnY: fallSpawnY(3),
+    spawnY: firstSpawnY,
+    delayMs: fallDelay(3),
   },
   {
     kind: "ppt",
@@ -55,7 +59,8 @@ const items = [
     y: 450,
     width: 202,
     rotation: 17.2,
-    spawnY: fallSpawnY(4),
+    spawnY: firstSpawnY,
+    delayMs: fallDelay(4),
   },
   {
     kind: "email",
@@ -66,7 +71,8 @@ const items = [
     width: 316,
     height: 137,
     rotation: 28.1,
-    spawnY: fallSpawnY(5),
+    spawnY: firstSpawnY,
+    delayMs: fallDelay(5),
   },
   {
     kind: "file",
@@ -75,7 +81,8 @@ const items = [
     y: 508,
     width: 228,
     rotation: 0,
-    spawnY: fallSpawnY(6),
+    spawnY: firstSpawnY,
+    delayMs: fallDelay(6),
   },
 ] as const
 
@@ -150,6 +157,7 @@ function FallingBefore() {
               x={item.x + item.width / 2}
               y={item.spawnY}
               angle={item.rotation}
+              delayMs={item.delayMs}
               options={item.kind === "file" ? uprightBodyOptions : bodyOptions}
               style={getFallingItemSize(item)}
             >
