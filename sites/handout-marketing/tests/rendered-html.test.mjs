@@ -88,9 +88,9 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(scene, /data-us-project-src="\/scenes\/handout-hero\.json"/);
   assert.match(scene, /data-us-production="true"/);
   assert.match(scene, /data-us-fps="24"/);
-  assert.match(noise, /FIGMA_NOISE_TILE_SIZE = "320px 320px"/);
-  assert.match(noise, /\/images\/home\/noise\.webp/);
-  assert.match(noise, /bg-top-left bg-repeat opacity-50 mix-blend-lighten/);
+  assert.match(noise, /NOISE_TILE_SIZE = "256px 256px"/);
+  assert.match(noise, /\/images\/home\/noise\.png/);
+  assert.match(noise, /bg-top-left bg-repeat opacity-35 mix-blend-screen/);
   assert.doesNotMatch(noise, /<canvas|ResizeObserver|feTurbulence/);
   assert.match(header, /size="md"/);
   assert.match(header, /ring-1 ring-inset ring-border/);
@@ -104,7 +104,8 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(page, /<HomePage \/>/);
   assert.match(home, /<SectionFrame/);
   assert.match(frame, /import \{ Separator \} from "@\/components\/ui\/separator"/);
-  assert.match(frame, /<Separator className="pointer-events-none absolute inset-x-0 top-0" \/>/);
+  assert.match(frame, /"pointer-events-none absolute inset-x-0 top-0 z-10"/);
+  assert.match(frame, /topDividerClassName/);
   assert.match(frame, /function SectionCellDivider/);
   assert.doesNotMatch(frame, /<span[^>]+bg-border/);
   assert.match(frame, /<CornerDecoration/);

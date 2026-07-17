@@ -9,8 +9,11 @@ type SectionFrameProps = React.ComponentProps<"section"> & {
   innerStyle?: React.CSSProperties
   centerTopHandle?: boolean
   centerBottomHandle?: boolean
+  bottomDivider?: boolean
+  topDividerClassName?: string
+  topHandlesClassName?: string
   divider?: "top" | "none"
-  handles?: "top" | "none"
+  handles?: "top" | "bottom" | "both" | "none"
   children?: React.ReactNode
 }
 
@@ -20,6 +23,9 @@ function SectionFrame({
   innerStyle,
   centerTopHandle = false,
   centerBottomHandle = false,
+  bottomDivider = false,
+  topDividerClassName,
+  topHandlesClassName,
   divider = "top",
   handles = "top",
   children,
@@ -27,11 +33,19 @@ function SectionFrame({
 }: SectionFrameProps) {
   return (
     <section
-      className={cn("relative isolate", className)}
+      className={cn("relative", className)}
       {...props}
     >
       {divider === "top" && (
-        <Separator className="pointer-events-none absolute inset-x-0 top-0" />
+        <Separator
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 z-10",
+            topDividerClassName,
+          )}
+        />
+      )}
+      {bottomDivider && (
+        <Separator className="pointer-events-none absolute inset-x-0 bottom-0 z-10" />
       )}
       <div
         style={innerStyle}
@@ -48,10 +62,26 @@ function SectionFrame({
           orientation="vertical"
           className="pointer-events-none absolute inset-y-0 right-0 z-10 h-full"
         />
-        {divider === "top" && handles === "top" && (
+        {(handles === "top" || handles === "both") && (
           <>
-            <CornerDecoration className="absolute top-[-5px] left-[-5px] z-20" />
-            <CornerDecoration className="absolute top-[-5px] right-[-5px] z-20" />
+            <CornerDecoration
+              className={cn(
+                "absolute top-[-5px] left-[-5px] z-20",
+                topHandlesClassName,
+              )}
+            />
+            <CornerDecoration
+              className={cn(
+                "absolute top-[-5px] right-[-5px] z-20",
+                topHandlesClassName,
+              )}
+            />
+          </>
+        )}
+        {(handles === "bottom" || handles === "both") && (
+          <>
+            <CornerDecoration className="absolute bottom-[-5px] left-[-5px] z-20" />
+            <CornerDecoration className="absolute right-[-5px] bottom-[-5px] z-20" />
           </>
         )}
         {centerTopHandle && (

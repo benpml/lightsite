@@ -64,7 +64,7 @@ const items = [
     x: 236.54,
     y: 214,
     width: 316,
-    height: 137,
+    height: 145,
     rotation: 28.1,
     spawnY: fallSpawnY(5),
   },
@@ -167,7 +167,7 @@ function FallingItem({
       className={cn(
         "flex h-full overflow-hidden rounded-xl border border-border bg-background",
         item.kind === "email"
-          ? "w-full flex-col gap-3 p-4 pr-4 pl-3"
+          ? "w-full flex-col gap-3 p-4 pr-4 pb-6 pl-3"
           : "w-max min-w-full items-center gap-2 py-2.5 pr-4 pl-3",
       )}
     >

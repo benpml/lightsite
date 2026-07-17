@@ -62,6 +62,9 @@ const darkSubtleBackgroundPalette = {
 
 describe("shared design tokens", () => {
   it("keeps the app and website on the corrected neutral foundation", () => {
+    expect(handoutFoundationTokens["white-alpha-a200"]).toBe(
+      "rgb(255 255 255 / 20%)",
+    )
     expect(handoutFoundationTokens["neutral-450"]).toBe("#8d8d8d")
     expect(handoutFoundationTokens["neutral-alpha-a300"]).toBe(
       "rgb(128 128 128 / 12%)",

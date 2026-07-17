@@ -17,6 +17,8 @@ const buttonVariants = cva(
           "bg-tertiary text-secondary-foreground hover:bg-muted",
         ghost:
           "bg-transparent text-secondary-foreground hover:bg-tertiary hover:text-secondary-foreground",
+        "ghost-inverse":
+          "bg-transparent text-inverse-foreground hover:bg-white-alpha-a200 hover:text-inverse-foreground",
         inverse:
           "bg-inverse-foreground text-foreground shadow-control hover:bg-inverse-foreground",
       },
@@ -24,6 +26,7 @@ const buttonVariants = cva(
         sm: "h-[26px] rounded-sm px-2 text-label-md",
         md: "h-[31px] rounded-md px-2.5 text-label-lg",
         lg: "h-[35px] rounded-lg px-3 text-label-lg",
+        icon: "size-[31px] rounded-md",
       },
     },
     compoundVariants: [

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { IconMenu2 } from "@tabler/icons-react"
 
 import { Logo } from "@/components/common/logo"
 import { Button } from "@/components/ui/button"
@@ -36,7 +37,7 @@ function SiteHeader({
       data-slot="site-header"
       data-variant={variant}
       className={cn(
-        "flex w-full items-center justify-center max-md:justify-between",
+        "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center",
         isSticky
           ? "max-w-[640px] rounded-2xl bg-background py-2.5 pr-3 pl-3.5 shadow-xl ring-1 ring-inset ring-border"
           : "max-w-[761px]",
@@ -44,12 +45,23 @@ function SiteHeader({
       )}
       {...props}
     >
-      <div className="hidden min-w-0 flex-1 items-center gap-3.5 md:flex">
-        {items.map((item) => (
-          <NavItem key={item.href} href={item.href} variant={navVariant}>
-            {item.label}
-          </NavItem>
-        ))}
+      <div className="flex min-w-0 items-center justify-start gap-3.5">
+        <Button
+          type="button"
+          aria-label="Navigation menu"
+          variant={isInverse ? "ghost-inverse" : "ghost"}
+          size="icon"
+          className="md:hidden"
+        >
+          <IconMenu2 data-icon="inline-start" />
+        </Button>
+        <div className="hidden items-center gap-3.5 md:flex">
+          {items.map((item) => (
+            <NavItem key={item.href} href={item.href} variant={navVariant}>
+              {item.label}
+            </NavItem>
+          ))}
+        </div>
       </div>
 
       <Link
@@ -63,7 +75,7 @@ function SiteHeader({
         />
       </Link>
 
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-2 max-md:ml-auto max-md:flex-none">
+      <div className="flex min-w-0 items-center justify-end gap-2">
         <NavItem href={loginHref} variant={navVariant} className="max-sm:hidden">
           Log in
         </NavItem>

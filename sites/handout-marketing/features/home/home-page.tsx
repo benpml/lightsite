@@ -157,6 +157,7 @@ function HomePage() {
       <StickySiteHeader items={navigation} observeId="hero-header" />
 
       <SectionFrame
+        bottomDivider
         handles="none"
         innerClassName="flex min-h-[497px] items-end justify-center px-8 pt-16 pb-24 text-center"
       >
@@ -185,11 +186,18 @@ function HomePage() {
       {featureRows.map((feature, index) => (
         <div key={feature.bullets[0].label}>
           {index > 0 && <FeatureSpacer />}
-          <FeatureRow {...feature} />
+          <FeatureRow
+            {...feature}
+            topDivider={index === 0 ? "always" : "desktop"}
+          />
         </div>
       ))}
 
-      <SectionFrame innerClassName="flex min-h-[497px] items-end justify-center pt-16 pb-[100px] text-center max-md:px-8">
+      <SectionFrame
+        divider="none"
+        handles="none"
+        innerClassName="flex min-h-[497px] items-end justify-center pt-16 pb-[100px] text-center max-md:px-8"
+      >
         <div className="flex w-full flex-col items-center gap-6">
           <Badge>Features</Badge>
           <div className="flex w-full flex-col items-center gap-6">
@@ -228,26 +236,30 @@ function HomePage() {
 
       <SectionFrame
         id="pricing"
-        innerClassName="isolate flex min-h-[497px] flex-col items-center bg-cover bg-center pt-[137px] pb-8 text-center max-md:px-8"
-        innerStyle={{ backgroundImage: "url(/images/home/cloud-light.jpg)" }}
+        innerClassName="min-h-[497px]"
       >
-        <NoiseOverlay id="cta-noise" />
-        <Badge variant="inverse" className="relative z-10">
-          <IconCreditCardOff data-icon="inline-start" aria-hidden="true" />
-          No card required
-        </Badge>
-        <div className="relative z-10 mt-6 flex w-full flex-col items-center gap-6">
-          <div className="flex w-full flex-col items-center gap-3">
-            <h2 className="w-full max-w-[566px] text-title-lg text-inverse-foreground">
-              Start right now for free.
-            </h2>
-            <p className="w-full text-body-lg text-inverse-secondary-foreground">
-              Have your first handout ready to share in no time.
-            </p>
+        <div
+          className="relative isolate flex min-h-[497px] flex-col items-center overflow-hidden bg-cover bg-center pt-[137px] pb-8 text-center max-md:px-8"
+          style={{ backgroundImage: "url(/images/home/cloud-light.jpg)" }}
+        >
+          <NoiseOverlay id="cta-noise" />
+          <Badge variant="inverse" className="relative z-10">
+            <IconCreditCardOff data-icon="inline-start" aria-hidden="true" />
+            No card required
+          </Badge>
+          <div className="relative z-10 mt-6 flex w-full flex-col items-center gap-6">
+            <div className="flex w-full flex-col items-center gap-3">
+              <h2 className="w-full max-w-[566px] text-title-lg text-inverse-foreground">
+                Start right now for free.
+              </h2>
+              <p className="w-full text-body-lg text-inverse-secondary-foreground">
+                Have your first handout ready to share in no time.
+              </p>
+            </div>
+            <Button asChild variant="inverse" size="lg">
+              <Link href={signupHref}>Start now</Link>
+            </Button>
           </div>
-          <Button asChild variant="inverse" size="lg">
-            <Link href={signupHref}>Start now</Link>
-          </Button>
         </div>
       </SectionFrame>
 
@@ -267,7 +279,7 @@ function Hero() {
       />
       <NoiseOverlay id="hero-noise" />
       <div className="relative z-10 mx-auto h-full w-[calc(100%-32px)] max-w-[1024px] lg:w-full">
-        <div className="pt-9">
+        <div className="pt-4 md:pt-9">
           <SiteHeader
             id="hero-header"
             variant="inverse"

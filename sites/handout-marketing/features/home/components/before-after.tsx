@@ -12,6 +12,7 @@ function BeforeAfter() {
       id="examples"
       centerTopHandle
       centerBottomHandle
+      divider="none"
       innerClassName="min-h-[553px]"
     >
       <div className="grid md:grid-cols-2">
@@ -36,7 +37,7 @@ function BeforeAfter() {
 
           <div className="mt-11 flex flex-col gap-4">
             <div className="flex h-11 items-center gap-4 rounded-xl border border-border px-2 pr-2 pl-4">
-              <span className="min-w-0 flex-1 truncate text-body-2xl text-foreground">
+              <span className="shimmer shimmer-duration-4600 min-w-0 flex-1 truncate text-body-2xl text-foreground">
                 handout.link/abcxyz
               </span>
               <Button size="md">

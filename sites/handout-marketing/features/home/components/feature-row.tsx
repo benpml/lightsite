@@ -16,13 +16,30 @@ type FeatureRowProps = {
   bullets: readonly FeatureBullet[]
   image: "cloud-deep" | "cloud-light" | "cloud-soft"
   graphic: "easy" | "personalize" | "track" | "customize" | "automate"
+  topDivider?: "always" | "desktop" | "none"
 }
 
-function FeatureRow({ title, bullets, image, graphic }: FeatureRowProps) {
+function FeatureRow({
+  title,
+  bullets,
+  image,
+  graphic,
+  topDivider = "desktop",
+}: FeatureRowProps) {
+  const hasTopDivider = topDivider !== "none"
+  const hasDesktopOnlyTopDivider = topDivider === "desktop"
+
   return (
-    <SectionFrame innerClassName="min-h-[417px]">
+    <SectionFrame
+      bottomDivider
+      divider={hasTopDivider ? "top" : "none"}
+      handles={hasTopDivider ? "both" : "bottom"}
+      innerClassName="min-h-[417px]"
+      topDividerClassName={hasDesktopOnlyTopDivider ? "hidden md:block" : undefined}
+      topHandlesClassName={hasDesktopOnlyTopDivider ? "hidden md:block" : undefined}
+    >
       <div className="grid min-h-[417px] md:grid-cols-2">
-        <div className="relative order-2 flex min-h-0 items-center justify-center p-8 md:order-1 md:min-h-[417px]">
+        <div className="relative order-2 flex min-h-0 items-center justify-center px-8 py-10 md:order-1 md:min-h-[417px] md:p-8">
           <SectionCellDivider mobile={false} />
           <div className="flex w-full max-w-[340px] flex-col gap-9">
             <h3 className="text-title-md text-foreground">{title}</h3>
@@ -68,6 +85,8 @@ function FeatureSpacer() {
     <SectionFrame
       aria-hidden="true"
       className="hidden md:block"
+      divider="none"
+      handles="none"
       innerClassName="h-9"
     />
   )
