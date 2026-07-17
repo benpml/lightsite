@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-const FIGMA_NOISE_TILE_SIZE = "332.5px 332.5px"
+const FIGMA_NOISE_TILE_SIZE = "320px 320px"
 
 type NoiseOverlayProps = {
   id: string
@@ -13,7 +13,7 @@ function NoiseOverlay({ id, className }: NoiseOverlayProps) {
       aria-hidden="true"
       data-noise-overlay={id}
       className={cn(
-        "pointer-events-none absolute inset-0 z-[1] size-full bg-top-left bg-repeat opacity-75 mix-blend-lighten",
+        "pointer-events-none absolute inset-0 z-[1] size-full bg-top-left bg-repeat opacity-60 mix-blend-lighten",
         className,
       )}
       style={{
