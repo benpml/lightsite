@@ -213,31 +213,14 @@
 }
 
 @layer components {
-  .coded-noise {
-    isolation: isolate;
+  .unicorn-hero-scene {
+    background: linear-gradient(90deg, #64abd5 0%, #003873 100%);
   }
 
-  .coded-noise::before {
-    position: absolute;
-    z-index: 1;
-    inset: 0;
-    pointer-events: none;
-    content: "";
-    background-image:
-      repeating-radial-gradient(
-        circle at 17% 23%,
-        rgb(255 255 255 / 46%) 0 0.55px,
-        transparent 0.7px 2.8px
-      ),
-      repeating-radial-gradient(
-        circle at 79% 61%,
-        rgb(0 0 0 / 26%) 0 0.45px,
-        transparent 0.65px 3.1px
-      );
-    background-position: 0 0, 1px 2px;
-    background-size: 3px 3px, 4px 4px;
-    mix-blend-mode: soft-light;
-    opacity: 0.34;
+  .unicorn-hero-scene canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
   }
 
   .falling-item {

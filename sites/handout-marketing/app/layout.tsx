@@ -18,6 +18,12 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <style dangerouslySetInnerHTML={{ __html: HANDOUT_WEBSITE_THEME_CSS }} />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <script
+          id="unicorn-studio-sdk"
+          src="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.8/dist/unicornStudio.umd.js"
+          defer
+        />
       </head>
       <body>{children}</body>
     </html>

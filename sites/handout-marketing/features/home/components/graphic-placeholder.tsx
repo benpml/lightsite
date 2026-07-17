@@ -1,3 +1,4 @@
+import { NoiseOverlay } from "@/components/common/noise-overlay"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
@@ -55,11 +56,12 @@ function GraphicPlaceholder({
       aria-hidden="true"
       data-graphic={variant}
       className={cn(
-        "coded-noise relative size-full overflow-hidden bg-cover bg-center",
+        "relative isolate size-full overflow-hidden bg-cover bg-center",
         className,
       )}
       style={{ backgroundImage: `url(/images/home/${image}.jpg)` }}
     >
+      <NoiseOverlay id={`graphic-${variant}-noise`} />
       {placeholderSurfaces[variant].map((surfaceClassName, index) => (
         <Card
           key={`${variant}-${index}`}

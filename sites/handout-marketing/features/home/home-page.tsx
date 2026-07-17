@@ -20,6 +20,7 @@ import {
 } from "@tabler/icons-react"
 
 import { Logo } from "@/components/common/logo"
+import { NoiseOverlay } from "@/components/common/noise-overlay"
 import { SiteHeader } from "@/components/layout/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,7 @@ import {
 } from "@/features/home/components/feature-card-row"
 import { FeatureRow, FeatureSpacer } from "@/features/home/components/feature-row"
 import { SectionFrame } from "@/features/home/components/section-frame"
+import { UnicornHeroScene } from "@/features/home/components/unicorn-hero-scene"
 
 const signupHref = "https://app.handout.link/auth?mode=sign-up"
 
@@ -225,9 +227,10 @@ function HomePage() {
 
       <SectionFrame
         id="pricing"
-        innerClassName="coded-noise flex min-h-[497px] flex-col items-center overflow-hidden bg-cover bg-center pt-[137px] pb-8 text-center max-md:px-8"
+        innerClassName="isolate flex min-h-[497px] flex-col items-center overflow-hidden bg-cover bg-center pt-[137px] pb-8 text-center max-md:px-8"
         innerStyle={{ backgroundImage: "url(/images/home/cloud-light.jpg)" }}
       >
+        <NoiseOverlay id="cta-noise" />
         <Badge variant="inverse" className="relative z-10">
           <IconCreditCardOff data-icon="inline-start" aria-hidden="true" />
           No card required
@@ -255,7 +258,9 @@ function HomePage() {
 
 function Hero() {
   return (
-    <section className="coded-noise relative h-[938px] overflow-hidden bg-[url('/images/home/hero.jpg')] bg-cover bg-center text-inverse-foreground">
+    <section className="relative isolate h-[938px] overflow-hidden text-inverse-foreground">
+      <UnicornHeroScene />
+      <NoiseOverlay id="hero-noise" />
       <div className="relative z-10 mx-auto h-full w-[calc(100%-32px)] max-w-[1024px] lg:w-full">
         <Separator
           orientation="vertical"
