@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-const FIGMA_NOISE_TILE_SIZE = "280px 280px"
+const FIGMA_NOISE_TILE_SIZE = "320px 320px"
 
 type NoiseOverlayProps = {
   id: string
