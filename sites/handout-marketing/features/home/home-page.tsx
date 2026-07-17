@@ -282,20 +282,26 @@ function Hero() {
         </div>
 
         <div className="mx-auto mt-[68px] flex max-w-[761px] flex-col px-6 sm:px-0">
-          <ul className="grid grid-cols-2 gap-x-2 gap-y-4 px-0 sm:flex sm:items-center sm:justify-between sm:px-8" role="list">
-            {heroBenefits.map((benefit) => {
-              const Icon = benefit.icon
-              return (
-                <li
-                  key={benefit.label}
-                  className="flex items-center justify-center gap-2 text-label-lg sm:text-label-xl sm:whitespace-nowrap"
-                >
-                  <Icon aria-hidden="true" className="size-4" />
-                  {benefit.label}
-                </li>
-              )
-            })}
-          </ul>
+          <div className="relative isolate">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-full bg-hero-benefits-backdrop/80 blur-[60px]"
+            />
+            <ul className="relative z-10 grid grid-cols-2 gap-x-2 gap-y-4 px-0 sm:flex sm:items-center sm:justify-between sm:px-8" role="list">
+              {heroBenefits.map((benefit) => {
+                const Icon = benefit.icon
+                return (
+                  <li
+                    key={benefit.label}
+                    className="flex items-center justify-center gap-2 text-label-lg sm:text-label-xl sm:whitespace-nowrap"
+                  >
+                    <Icon aria-hidden="true" className="size-4" />
+                    {benefit.label}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
           <Card
             variant="canvas"
             aria-hidden="true"

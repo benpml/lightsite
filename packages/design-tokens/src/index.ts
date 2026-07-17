@@ -68,6 +68,7 @@ export const handoutWebsiteComponentTokens = {
   "website-radius-lg": "12px",
   "website-radius-2xl": "16px",
   "corner-border": "var(--neutral-alpha-a800)",
+  "hero-benefits-backdrop": "#003683",
   "secondary-hover": "var(--neutral-50)",
   "control-shadow": "0 1px 0.5px rgb(0 0 0 / 6%)",
   "badge-inverse-shadow": "0 1px 1px rgb(0 0 0 / 6%)",
