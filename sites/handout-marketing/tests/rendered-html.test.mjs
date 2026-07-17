@@ -85,7 +85,7 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(scene, /data-us-fps="24"/);
   assert.match(noise, /<feTurbulence/);
   assert.match(noise, /type="fractalNoise"/);
-  assert.match(noise, /opacity-75 mix-blend-lighten/);
+  assert.match(noise, /opacity-100 mix-blend-lighten/);
   assert.match(header, /size="md"/);
   assert.match(header, /ring-1 ring-inset ring-border/);
   assert.doesNotMatch(header, /border border-border/);
@@ -108,8 +108,18 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(falling, /<GravityBody/);
   assert.match(gravity, /from "matter-js"/);
   assert.match(gravity, /Bodies\.rectangle/);
+  assert.match(gravity, /Mouse\.create/);
+  assert.match(gravity, /MouseConstraint\.create/);
+  assert.match(gravity, /Mouse\.clearSourceEvents/);
+  assert.match(gravity, /data-gravity-draggable/);
   assert.match(gravity, /Runner\.run/);
   assert.match(gravity, /ResizeObserver/);
+  assert.match(falling, /email-avatar\.jpg/);
+  assert.match(falling, /width=\{20\}/);
+  assert.match(falling, /page-document\.jpg/);
+  assert.match(falling, /page-presentation\.jpg/);
+  assert.match(falling, /page-folder\.jpg/);
+  assert.match(falling, /width=\{22\}/);
   assert.match(card, /canvas: "bg-background ring-0"/);
   assert.doesNotMatch(home, /border-neutral-|bg-neutral-|text-neutral-/);
 });

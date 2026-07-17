@@ -5,6 +5,7 @@ import type {
   Body,
   Engine,
   IChamferableBodyDefinition,
+  Mouse,
   Runner,
 } from "matter-js"
 
@@ -14,6 +15,7 @@ type GravityBodyConfig = {
   x: number
   y: number
   angle: number
+  isDraggable?: boolean
   options?: IChamferableBodyDefinition
 }
 
@@ -39,14 +41,19 @@ type GravityProps = React.ComponentPropsWithoutRef<"div"> & {
   active: boolean
   gravity?: { x: number; y: number }
   addTopWall?: boolean
+  grabCursor?: boolean
 }
+
+const draggableBodyCategory = 0x0002
 
 function Gravity({
   active,
   gravity = { x: 0, y: 1 },
   addTopWall = false,
+  grabCursor = true,
   className,
   children,
+  onPointerDown,
   ...props
 }: GravityProps) {
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -54,6 +61,7 @@ function Gravity({
   const matterRef = React.useRef<MatterRuntime | null>(null)
   const engineRef = React.useRef<Engine | null>(null)
   const runnerRef = React.useRef<Runner | null>(null)
+  const mouseRef = React.useRef<Mouse | null>(null)
   const runningRef = React.useRef(false)
   const rebuildFrameRef = React.useRef<number | null>(null)
   const activeRef = React.useRef(active)
@@ -80,6 +88,9 @@ function Gravity({
     stop()
 
     const matter = matterRef.current
+    if (mouseRef.current && matter) {
+      matter.Mouse.clearSourceEvents(mouseRef.current)
+    }
     if (engineRef.current && matter) {
       matter.Events.off(engineRef.current, "afterUpdate")
       matter.World.clear(engineRef.current.world, false)
@@ -88,6 +99,7 @@ function Gravity({
 
     engineRef.current = null
     runnerRef.current = null
+    mouseRef.current = null
     bodiesRef.current.forEach((record) => {
       record.body = undefined
     })
@@ -158,9 +170,16 @@ function Gravity({
     bodiesRef.current.forEach((record) => {
       const bodyWidth = record.element.offsetWidth
       const bodyHeight = record.element.offsetHeight
+      const isDraggable = record.isDraggable !== false
       const body = matter.Bodies.rectangle(record.x, record.y, bodyWidth, bodyHeight, {
         ...record.options,
         angle: (record.angle * Math.PI) / 180,
+        collisionFilter: {
+          ...record.options?.collisionFilter,
+          category: isDraggable
+            ? draggableBodyCategory
+            : (record.options?.collisionFilter?.category ?? 0x0001),
+        },
       })
 
       record.body = body
@@ -168,7 +187,22 @@ function Gravity({
       matter.World.add(engine.world, body)
     })
 
-    matter.World.add(engine.world, walls)
+    const mouse = matter.Mouse.create(container)
+    const mouseConstraint = matter.MouseConstraint.create(engine, {
+      mouse,
+      collisionFilter: {
+        category: draggableBodyCategory,
+        mask: draggableBodyCategory,
+      },
+      constraint: {
+        stiffness: 0.2,
+        damping: 0.1,
+        render: { visible: false },
+      },
+    })
+
+    matter.World.add(engine.world, [...walls, mouseConstraint])
+    mouseRef.current = mouse
 
     let sleepingFrames = 0
     const syncElements = () => {
@@ -198,6 +232,14 @@ function Gravity({
 
     if (activeRef.current) start()
   }, [addTopWall, destroyWorld, gravity.x, gravity.y, start, stop])
+
+  const handlePointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (activeRef.current) start()
+      onPointerDown?.(event)
+    },
+    [onPointerDown, start],
+  )
 
   const contextValue = React.useMemo<GravityContextValue>(
     () => ({
@@ -268,7 +310,12 @@ function Gravity({
       <div
         ref={containerRef}
         data-gravity-active={active}
-        className={cn("absolute overflow-hidden", className)}
+        className={cn(
+          "absolute overflow-hidden touch-none select-none",
+          grabCursor && "cursor-grab active:cursor-grabbing",
+          className,
+        )}
+        onPointerDown={handlePointerDown}
         {...props}
       >
         {children}
@@ -283,6 +330,7 @@ function GravityBody({
   x,
   y,
   angle,
+  isDraggable = true,
   options,
   className,
   children,
@@ -301,15 +349,20 @@ function GravityBody({
     element.style.transform = `translate3d(${initialX}px, ${initialY}px, 0) rotate(${angle}deg)`
     element.style.opacity = "1"
 
-    context.registerBody(id, element, { x, y, angle, options })
+    context.registerBody(id, element, { x, y, angle, isDraggable, options })
     return () => context.unregisterBody(id)
-  }, [angle, context, id, options, x, y])
+  }, [angle, context, id, isDraggable, options, x, y])
 
   return (
     <div
       ref={elementRef}
       data-gravity-body="true"
-      className={cn("absolute top-0 left-0 opacity-0 will-change-transform", className)}
+      data-gravity-draggable={isDraggable}
+      className={cn(
+        "absolute top-0 left-0 opacity-0 will-change-transform",
+        isDraggable && "pointer-events-none",
+        className,
+      )}
       {...props}
     >
       {children}

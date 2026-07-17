@@ -1,13 +1,8 @@
 "use client"
 
 import * as React from "react"
-import {
-  IconFile,
-  IconFileTypePdf,
-  IconFileTypePpt,
-  IconLink,
-  IconMail,
-} from "@tabler/icons-react"
+import { IconLink } from "@tabler/icons-react"
+import Image from "next/image"
 
 import { Gravity, GravityBody } from "@/features/home/components/gravity"
 import { cn } from "@/lib/utils"
@@ -88,6 +83,12 @@ const bodyOptions = {
   sleepThreshold: 70,
 } as const
 
+const pageIconByKind = {
+  file: "/images/home/before/page-folder.jpg",
+  pdf: "/images/home/before/page-document.jpg",
+  ppt: "/images/home/before/page-presentation.jpg",
+} as const
+
 function FallingBefore() {
   const containerRef = React.useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = React.useState(false)
@@ -161,17 +162,6 @@ function FallingItem({
 }: {
   item: (typeof items)[number]
 }) {
-  const Icon =
-    item.kind === "link"
-      ? IconLink
-      : item.kind === "email"
-        ? IconMail
-        : item.kind === "ppt"
-          ? IconFileTypePpt
-          : item.kind === "pdf"
-            ? IconFileTypePdf
-            : IconFile
-
   return (
     <div
       className={cn(
@@ -183,9 +173,15 @@ function FallingItem({
     >
       {item.kind === "email" ? (
         <>
-          <span className="flex size-[19px] items-center justify-center rounded-full bg-card text-tertiary-foreground">
-            <Icon aria-hidden="true" className="size-3" />
-          </span>
+          <Image
+            aria-hidden="true"
+            src="/images/home/before/email-avatar.jpg"
+            alt=""
+            width={20}
+            height={20}
+            draggable={false}
+            className="size-5 rounded-full object-cover"
+          />
           <span className="flex flex-col gap-2">
             <span className="text-body-xl text-foreground">{item.label}</span>
             <span className="line-clamp-2 text-body-xl text-tertiary-foreground">
@@ -195,7 +191,22 @@ function FallingItem({
         </>
       ) : (
         <>
-          <Icon aria-hidden="true" className="size-[18px] shrink-0 text-tertiary-foreground" />
+          {item.kind === "link" ? (
+            <IconLink
+              aria-hidden="true"
+              className="size-[18px] shrink-0 text-tertiary-foreground"
+            />
+          ) : (
+            <Image
+              aria-hidden="true"
+              src={pageIconByKind[item.kind]}
+              alt=""
+              width={22}
+              height={22}
+              draggable={false}
+              className="size-[22px] shrink-0 object-cover"
+            />
+          )}
           <span className="truncate text-body-2xl text-foreground">{item.label}</span>
         </>
       )}
