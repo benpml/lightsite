@@ -43,12 +43,13 @@ test("server-renders the Handout homepage", async () => {
 });
 
 test("keeps homepage styling in canonical primitives and feature components", async () => {
-  const [page, layout, home, frame, falling, scene, noise, card, button, badge, globals, header, logo, navItem, utils] = await Promise.all([
+  const [page, layout, home, frame, falling, gravity, scene, noise, card, button, badge, globals, header, logo, navItem, utils] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/home-page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/components/section-frame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/components/falling-before.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../features/home/components/gravity.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/components/unicorn-hero-scene.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/common/noise-overlay.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/ui/card.tsx", import.meta.url), "utf8"),
@@ -76,7 +77,7 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(globals, /@utility text-title-xl/);
   assert.match(globals, /--shadow-control: var\(--control-shadow\)/);
   assert.doesNotMatch(globals, /repeating-radial-gradient|mix-blend-mode: soft-light/);
-  assert.match(globals, /@keyframes handout-card-fall/);
+  assert.doesNotMatch(globals, /@keyframes handout-card-fall|--fall-delay/);
   assert.match(layout, /unicornstudio\.js@v2\.2\.8/);
   assert.match(layout, /<script[\s\S]*defer/);
   assert.match(scene, /data-us-project-src="\/scenes\/handout-hero\.json"/);
@@ -102,7 +103,13 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.doesNotMatch(frame, /<span[^>]+bg-border/);
   assert.match(frame, /<CornerDecoration/);
   assert.match(falling, /IntersectionObserver/);
-  assert.match(falling, /prefers-reduced-motion|falling-item/);
+  assert.match(falling, /prefers-reduced-motion/);
+  assert.match(falling, /<Gravity/);
+  assert.match(falling, /<GravityBody/);
+  assert.match(gravity, /from "matter-js"/);
+  assert.match(gravity, /Bodies\.rectangle/);
+  assert.match(gravity, /Runner\.run/);
+  assert.match(gravity, /ResizeObserver/);
   assert.match(card, /canvas: "bg-background ring-0"/);
   assert.doesNotMatch(home, /border-neutral-|bg-neutral-|text-neutral-/);
 });

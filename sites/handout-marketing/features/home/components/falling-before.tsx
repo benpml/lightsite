@@ -9,12 +9,8 @@ import {
   IconMail,
 } from "@tabler/icons-react"
 
+import { Gravity, GravityBody } from "@/features/home/components/gravity"
 import { cn } from "@/lib/utils"
-
-type FallingStyle = React.CSSProperties & {
-  "--fall-delay": string
-  "--fall-rotation": string
-}
 
 const items = [
   {
@@ -24,7 +20,7 @@ const items = [
     y: 388,
     width: 293,
     rotation: 25.53,
-    delay: 0.08,
+    spawnY: -80,
   },
   {
     kind: "email",
@@ -35,7 +31,7 @@ const items = [
     width: 316,
     height: 137,
     rotation: 28.1,
-    delay: 0.2,
+    spawnY: -245,
   },
   {
     kind: "link",
@@ -44,7 +40,7 @@ const items = [
     y: 447.12,
     width: 229,
     rotation: -25.37,
-    delay: 0.32,
+    spawnY: -390,
   },
   {
     kind: "pdf",
@@ -53,7 +49,7 @@ const items = [
     y: 470.78,
     width: 172.61,
     rotation: -21.33,
-    delay: 0.44,
+    spawnY: -520,
   },
   {
     kind: "pdf",
@@ -62,7 +58,7 @@ const items = [
     y: 225,
     width: 193.61,
     rotation: 36.34,
-    delay: 0.56,
+    spawnY: -660,
   },
   {
     kind: "ppt",
@@ -71,7 +67,7 @@ const items = [
     y: 450,
     width: 202,
     rotation: 17.2,
-    delay: 0.68,
+    spawnY: -800,
   },
   {
     kind: "file",
@@ -80,12 +76,22 @@ const items = [
     y: 508,
     width: 228,
     rotation: 0,
-    delay: 0.8,
+    spawnY: -940,
   },
 ] as const
 
+const bodyOptions = {
+  density: 0.001,
+  friction: 0.42,
+  frictionAir: 0.012,
+  restitution: 0.22,
+  sleepThreshold: 70,
+} as const
+
 function FallingBefore() {
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const [isVisible, setIsVisible] = React.useState(false)
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   React.useEffect(() => {
     const container = containerRef.current
@@ -93,10 +99,7 @@ function FallingBefore() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          container.dataset.active = "true"
-          observer.disconnect()
-        }
+        setIsVisible(entry.isIntersecting)
       },
       { threshold: 0.28 },
     )
@@ -107,32 +110,56 @@ function FallingBefore() {
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
-      <div className="absolute inset-y-0 left-1/2 w-[512px] -translate-x-1/2">
-        {items.map((item) => (
-          <FallingItem
-            key={item.label}
-            item={item}
-            style={{
-              left: item.x,
-              top: item.y,
-              width: item.width,
-              height: "height" in item ? item.height : 45,
-              "--fall-delay": `${item.delay}s`,
-              "--fall-rotation": `${item.rotation}deg`,
-            }}
-          />
-        ))}
-      </div>
+      {prefersReducedMotion ? (
+        <div className="absolute inset-y-0 left-1/2 w-[512px] -translate-x-1/2">
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className="absolute"
+              style={{
+                left: item.x,
+                top: item.y,
+                width: item.width,
+                height: "height" in item ? item.height : 45,
+                transform: `rotate(${item.rotation}deg)`,
+                transformOrigin: "top left",
+              }}
+            >
+              <FallingItem item={item} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <Gravity
+          active={isVisible}
+          gravity={{ x: 0, y: 1 }}
+          className="inset-y-0 left-1/2 w-[512px] -translate-x-1/2"
+        >
+          {items.map((item) => (
+            <GravityBody
+              key={item.label}
+              x={item.x + item.width / 2}
+              y={item.spawnY}
+              angle={item.rotation}
+              options={bodyOptions}
+              style={{
+                width: item.width,
+                height: "height" in item ? item.height : 45,
+              }}
+            >
+              <FallingItem item={item} />
+            </GravityBody>
+          ))}
+        </Gravity>
+      )}
     </div>
   )
 }
 
 function FallingItem({
   item,
-  style,
 }: {
   item: (typeof items)[number]
-  style: FallingStyle
 }) {
   const Icon =
     item.kind === "link"
@@ -148,12 +175,11 @@ function FallingItem({
   return (
     <div
       className={cn(
-        "falling-item absolute flex overflow-hidden rounded-xl border border-border bg-background",
+        "flex size-full overflow-hidden rounded-xl border border-border bg-background",
         item.kind === "email"
           ? "flex-col gap-3 p-4 pr-4 pl-3"
           : "items-center gap-2 py-2.5 pr-4 pl-3",
       )}
-      style={style}
     >
       {item.kind === "email" ? (
         <>
@@ -175,6 +201,21 @@ function FallingItem({
       )}
     </div>
   )
+}
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false)
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches)
+
+    updatePreference()
+    mediaQuery.addEventListener("change", updatePreference)
+    return () => mediaQuery.removeEventListener("change", updatePreference)
+  }, [])
+
+  return prefersReducedMotion
 }
 
 export { FallingBefore }
