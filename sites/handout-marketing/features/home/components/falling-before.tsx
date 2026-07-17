@@ -87,6 +87,11 @@ const bodyOptions = {
   sleepThreshold: 70,
 } as const
 
+const uprightBodyOptions = {
+  ...bodyOptions,
+  inertia: Number.POSITIVE_INFINITY,
+} as const
+
 const pageIconByKind = {
   file: "/images/home/before/page-folder.jpg",
   pdf: "/images/home/before/page-document.jpg",
@@ -124,8 +129,7 @@ function FallingBefore() {
               style={{
                 left: item.x,
                 top: item.y,
-                width: item.width,
-                height: "height" in item ? item.height : 45,
+                ...getFallingItemSize(item),
                 transform: `rotate(${item.rotation}deg)`,
                 transformOrigin: "top left",
               }}
@@ -146,11 +150,8 @@ function FallingBefore() {
               x={item.x + item.width / 2}
               y={item.spawnY}
               angle={item.rotation}
-              options={bodyOptions}
-              style={{
-                width: item.width,
-                height: "height" in item ? item.height : 45,
-              }}
+              options={item.kind === "file" ? uprightBodyOptions : bodyOptions}
+              style={getFallingItemSize(item)}
             >
               <FallingItem item={item} />
             </GravityBody>
@@ -169,10 +170,10 @@ function FallingItem({
   return (
     <div
       className={cn(
-        "flex size-full overflow-hidden rounded-xl border border-border bg-background",
+        "flex h-full overflow-hidden rounded-xl border border-border bg-background",
         item.kind === "email"
-          ? "flex-col gap-3 p-4 pr-4 pl-3"
-          : "items-center gap-2 py-2.5 pr-4 pl-3",
+          ? "w-full flex-col gap-3 p-4 pr-4 pl-3"
+          : "w-max min-w-full items-center gap-2 py-2.5 pr-4 pl-3",
       )}
     >
       {item.kind === "email" ? (
@@ -187,9 +188,9 @@ function FallingItem({
             draggable={false}
             className="size-5 rounded-full object-cover"
           />
-          <span className="flex flex-col gap-2">
-            <span className="text-body-xl text-foreground">{item.label}</span>
-            <span className="line-clamp-2 text-body-xl text-tertiary-foreground">
+          <span className="flex flex-col gap-2 text-body-xl text-tertiary-foreground">
+            <span>{item.label}</span>
+            <span className="line-clamp-2">
               {"body" in item ? item.body : null}
             </span>
           </span>
@@ -213,11 +214,22 @@ function FallingItem({
               className="size-[22px] shrink-0 object-cover"
             />
           )}
-          <span className="truncate text-body-2xl text-foreground">{item.label}</span>
+          <span className="whitespace-nowrap text-body-2xl text-foreground">
+            {item.label}
+          </span>
         </>
       )}
     </div>
   )
+}
+
+function getFallingItemSize(item: (typeof items)[number]): React.CSSProperties {
+  return {
+    ...(item.kind === "email"
+      ? { width: item.width }
+      : { minWidth: item.width }),
+    height: "height" in item ? item.height : 45,
+  }
 }
 
 function usePrefersReducedMotion() {

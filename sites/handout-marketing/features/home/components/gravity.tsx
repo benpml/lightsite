@@ -37,6 +37,13 @@ const GravityContext = React.createContext<GravityContextValue | null>(null)
 
 type MatterRuntime = typeof import("matter-js")
 
+type InteractiveMouse = Mouse & {
+  mousedown: EventListener
+  mousemove: EventListener
+  mouseup: EventListener
+  mousewheel: EventListener
+}
+
 type GravityProps = React.ComponentPropsWithoutRef<"div"> & {
   active: boolean
   gravity?: { x: number; y: number }
@@ -45,6 +52,60 @@ type GravityProps = React.ComponentPropsWithoutRef<"div"> & {
 }
 
 const draggableBodyCategory = 0x0002
+
+function configureScrollableMouse(
+  mouse: InteractiveMouse,
+  element: HTMLDivElement,
+  start: () => void,
+) {
+  element.removeEventListener("wheel", mouse.mousewheel)
+  element.removeEventListener("touchmove", mouse.mousemove)
+  element.removeEventListener("touchstart", mouse.mousedown)
+  element.removeEventListener("touchend", mouse.mouseup)
+
+  let isTouchDragging = false
+
+  const handleTouchStart: EventListener = (event) => {
+    const target = event.target
+    if (
+      !(target instanceof Element) ||
+      !target.closest('[data-gravity-draggable="true"]')
+    ) {
+      return
+    }
+
+    isTouchDragging = true
+    mouse.mousedown(event)
+    start()
+  }
+
+  const handleTouchMove: EventListener = (event) => {
+    if (isTouchDragging) mouse.mousemove(event)
+  }
+
+  const handleTouchEnd: EventListener = (event) => {
+    if (!isTouchDragging) return
+
+    mouse.mouseup(event)
+    isTouchDragging = false
+  }
+
+  element.addEventListener("touchstart", handleTouchStart, { passive: false })
+  element.addEventListener("touchmove", handleTouchMove, { passive: false })
+  element.addEventListener("touchend", handleTouchEnd, { passive: false })
+  element.addEventListener("touchcancel", handleTouchEnd, { passive: false })
+
+  return () => {
+    element.removeEventListener("mousemove", mouse.mousemove)
+    element.removeEventListener("mousedown", mouse.mousedown)
+    element.removeEventListener("mouseup", mouse.mouseup)
+    element.removeEventListener("wheel", mouse.mousewheel)
+    element.removeEventListener("touchstart", handleTouchStart)
+    element.removeEventListener("touchmove", handleTouchMove)
+    element.removeEventListener("touchend", handleTouchEnd)
+    element.removeEventListener("touchcancel", handleTouchEnd)
+  }
+}
 
 function Gravity({
   active,
@@ -62,6 +123,7 @@ function Gravity({
   const engineRef = React.useRef<Engine | null>(null)
   const runnerRef = React.useRef<Runner | null>(null)
   const mouseRef = React.useRef<Mouse | null>(null)
+  const removeMouseListenersRef = React.useRef<(() => void) | null>(null)
   const runningRef = React.useRef(false)
   const rebuildFrameRef = React.useRef<number | null>(null)
   const activeRef = React.useRef(active)
@@ -88,6 +150,8 @@ function Gravity({
     stop()
 
     const matter = matterRef.current
+    removeMouseListenersRef.current?.()
+    removeMouseListenersRef.current = null
     if (mouseRef.current && matter) {
       matter.Mouse.clearSourceEvents(mouseRef.current)
     }
@@ -187,7 +251,12 @@ function Gravity({
       matter.World.add(engine.world, body)
     })
 
-    const mouse = matter.Mouse.create(container)
+    const mouse = matter.Mouse.create(container) as InteractiveMouse
+    removeMouseListenersRef.current = configureScrollableMouse(
+      mouse,
+      container,
+      start,
+    )
     const mouseConstraint = matter.MouseConstraint.create(engine, {
       mouse,
       collisionFilter: {
@@ -311,7 +380,7 @@ function Gravity({
         ref={containerRef}
         data-gravity-active={active}
         className={cn(
-          "absolute overflow-hidden touch-none select-none",
+          "absolute overflow-hidden touch-pan-y select-none",
           grabCursor && "cursor-grab active:cursor-grabbing",
           className,
         )}
@@ -360,7 +429,7 @@ function GravityBody({
       data-gravity-draggable={isDraggable}
       className={cn(
         "absolute top-0 left-0 opacity-0 will-change-transform",
-        isDraggable && "pointer-events-none",
+        isDraggable && "touch-none",
         className,
       )}
       {...props}

@@ -118,6 +118,9 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(gravity, /Mouse\.create/);
   assert.match(gravity, /MouseConstraint\.create/);
   assert.match(gravity, /Mouse\.clearSourceEvents/);
+  assert.match(gravity, /removeEventListener\("wheel", mouse\.mousewheel\)/);
+  assert.match(gravity, /touch-pan-y/);
+  assert.match(gravity, /target\.closest\('\[data-gravity-draggable="true"\]'\)/);
   assert.match(gravity, /data-gravity-draggable/);
   assert.match(gravity, /Runner\.run/);
   assert.match(gravity, /ResizeObserver/);
@@ -131,6 +134,11 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(falling, /page-folder\.jpg/);
   assert.match(falling, /width=\{22\}/);
   assert.equal(falling.match(/unoptimized/g)?.length, 2);
+  assert.match(falling, /inertia: Number\.POSITIVE_INFINITY/);
+  assert.match(falling, /w-max min-w-full/);
+  assert.match(falling, /whitespace-nowrap text-body-2xl/);
+  assert.doesNotMatch(falling, /className="truncate/);
+  assert.match(falling, /flex flex-col gap-2 text-body-xl text-tertiary-foreground/);
   assert.match(card, /canvas: "bg-background ring-0"/);
   assert.doesNotMatch(home, /border-neutral-|bg-neutral-|text-neutral-/);
 });
