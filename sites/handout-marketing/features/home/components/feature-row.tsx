@@ -67,9 +67,8 @@ function FeatureSpacer() {
   return (
     <SectionFrame
       aria-hidden="true"
-      divider="none"
-      handles="none"
-      innerClassName="hidden h-9 md:block"
+      className="hidden md:block"
+      innerClassName="h-9"
     />
   )
 }
