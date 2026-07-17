@@ -105,7 +105,7 @@ describe("shared design tokens", () => {
       "website-radius-md": "10px",
       "website-radius-lg": "12px",
       "website-radius-2xl": "16px",
-      "corner-border": "var(--neutral-alpha-a900)",
+      "corner-border": "var(--neutral-alpha-a800)",
       "secondary-hover": "var(--neutral-50)",
       "control-shadow": "0 1px 0.5px rgb(0 0 0 / 6%)",
       "badge-inverse-shadow": "0 1px 1px rgb(0 0 0 / 6%)",
@@ -114,7 +114,7 @@ describe("shared design tokens", () => {
       "--secondary-hover:var(--neutral-50)",
     )
     expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
-      "--corner-border:var(--neutral-alpha-a900)",
+      "--corner-border:var(--neutral-alpha-a800)",
     )
     expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
       "--control-shadow:0 1px 0.5px rgb(0 0 0 / 6%)",
