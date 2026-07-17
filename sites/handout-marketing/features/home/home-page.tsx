@@ -226,7 +226,7 @@ function HomePage() {
 
       <SectionFrame
         id="pricing"
-        innerClassName="isolate flex min-h-[497px] flex-col items-center overflow-hidden bg-cover bg-center pt-[137px] pb-8 text-center max-md:px-8"
+        innerClassName="isolate flex min-h-[497px] flex-col items-center bg-cover bg-center pt-[137px] pb-8 text-center max-md:px-8"
         innerStyle={{ backgroundImage: "url(/images/home/cloud-light.jpg)" }}
       >
         <NoiseOverlay id="cta-noise" />
