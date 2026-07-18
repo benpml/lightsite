@@ -2,7 +2,7 @@ import { GraphicPlaceholder } from "@/features/home/components/graphic-placehold
 import {
   SectionCellDivider,
   SectionFrame,
-} from "@/features/home/components/section-frame"
+} from "@/components/layout/section-frame"
 import { cn } from "@/lib/utils"
 
 type FeatureBullet = {

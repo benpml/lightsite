@@ -298,6 +298,7 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
               updatedByUserId: input.createdByUserId,
               name: input.name,
               slug: input.slug,
+              draftContent: defaultSiteContent,
             })
             .returning();
 

@@ -141,6 +141,20 @@ const highlightColors: HighlightColorOption[] = [
   createHighlightColorOption("Pink", "pink"),
 ]
 
+const emptyTextBubbleMenuState = {
+  blockTypeLabel: "Text",
+  canClear: false,
+  highlightColor: "",
+  isBold: false,
+  isCode: false,
+  isItalic: false,
+  isLink: false,
+  isStrike: false,
+  isUnderline: false,
+  linkHref: "",
+  textColor: "",
+}
+
 export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
   const [activePanel, setActivePanel] = useState<BubblePanel>(null)
   const [linkHref, setLinkHref] = useState("")
@@ -150,21 +164,27 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
   const linkSelectionRef = useRef<{ from: number; to: number } | null>(null)
   const editorState = useEditorState({
     editor,
-    selector: ({ editor: activeEditor }) => ({
-      blockTypeLabel: getActiveTextTypeLabel(activeEditor),
-      canClear: activeEditor.can().chain().focus().unsetAllMarks().run(),
-      highlightColor: normalizeEditorHighlightColor(
-        activeEditor.getAttributes("highlight").color,
-      ),
-      isBold: activeEditor.isActive("bold"),
-      isCode: activeEditor.isActive("code"),
-      isItalic: activeEditor.isActive("italic"),
-      isLink: activeEditor.isActive("link"),
-      isStrike: activeEditor.isActive("strike"),
-      isUnderline: activeEditor.isActive("underline"),
-      linkHref: String(activeEditor.getAttributes("link").href ?? ""),
-      textColor: normalizeEditorTextColor(activeEditor.getAttributes("textStyle").color),
-    }),
+    selector: ({ editor: activeEditor }) => {
+      if (!activeEditor || activeEditor.isDestroyed) {
+        return emptyTextBubbleMenuState
+      }
+
+      return {
+        blockTypeLabel: getActiveTextTypeLabel(activeEditor),
+        canClear: activeEditor.can().chain().focus().unsetAllMarks().run(),
+        highlightColor: normalizeEditorHighlightColor(
+          activeEditor.getAttributes("highlight").color,
+        ),
+        isBold: activeEditor.isActive("bold"),
+        isCode: activeEditor.isActive("code"),
+        isItalic: activeEditor.isActive("italic"),
+        isLink: activeEditor.isActive("link"),
+        isStrike: activeEditor.isActive("strike"),
+        isUnderline: activeEditor.isActive("underline"),
+        linkHref: String(activeEditor.getAttributes("link").href ?? ""),
+        textColor: normalizeEditorTextColor(activeEditor.getAttributes("textStyle").color),
+      }
+    },
   })
 
   useEffect(() => {
@@ -448,9 +468,9 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
             <label className="handout-editor-link-panel-label" htmlFor="handout-editor-link-input">
               Link
             </label>
-            <InputGroup className="handout-editor-link-panel-field">
+            <InputGroup size="lg">
               <InputGroupAddon>
-                <IconLink className="handout-editor-link-editor-icon" />
+                <IconLink aria-hidden="true" />
               </InputGroupAddon>
               <InputGroupInput
                 id="handout-editor-link-input"

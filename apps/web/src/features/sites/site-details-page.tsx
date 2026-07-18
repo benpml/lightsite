@@ -10,6 +10,7 @@ import {
   IconExternalLink,
   IconPencil,
   IconRefresh,
+  IconSettings,
   IconShare3,
   IconTrash,
   IconUser,
@@ -43,7 +44,6 @@ import {
 import { useActiveWorkspace, useAppBootstrap } from "@/features/app-bootstrap/app-bootstrap-hooks"
 import type { SiteRecipient } from "@/features/editor/recipients/recipient-model"
 import { useSiteRecipients } from "@/features/editor/recipients/use-site-recipients"
-import { TrackingSiteSettingsPanel } from "@/features/tracking/tracking-settings-panel"
 import { listTrackingV2Events } from "@/features/tracking/api"
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
@@ -54,6 +54,7 @@ import {
 
 import { deleteSite, getSite, getSiteContent } from "./api"
 import { DeleteSiteDialog } from "./components/delete-site-dialog"
+import { SiteDetailsSettingsDrawer } from "./components/site-details-settings-drawer"
 import {
   DetailMetadataRow,
   RecipientLogoAvatar,
@@ -73,6 +74,7 @@ export function SiteDetailsPage() {
   const queryClient = useQueryClient()
   const [shareOpen, setShareOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const siteQuery = useQuery({
     queryKey: queryKeys.site(activeWorkspace.id, siteId),
     queryFn: ({ signal }) => getSite(siteId, signal),
@@ -161,6 +163,8 @@ export function SiteDetailsPage() {
           </Link>
           <SiteDetailsOverflowMenu
             onDelete={() => setDeleteOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+            settingsDisabled={!site.permissions.canEdit || !draftContent}
             site={site}
           />
         </div>
@@ -222,12 +226,6 @@ export function SiteDetailsPage() {
           </div>
         </section>
 
-        <TrackingSiteSettingsPanel
-          canManage={activeWorkspace.role === "admin"}
-          siteId={site.id}
-          workspaceId={activeWorkspace.id}
-        />
-
         <section className="flex flex-col gap-4">
           <div className="flex flex-col">
             <h2 className="text-base leading-6 font-medium text-secondary-foreground">Recipients</h2>
@@ -263,6 +261,19 @@ export function SiteDetailsPage() {
         open={deleteOpen}
         siteName={site.name}
       />
+      {settingsOpen && draftContent ? (
+        <SiteDetailsSettingsDrawer
+          bootstrap={bootstrap}
+          canManageTracking={activeWorkspace.role === "admin"}
+          fallbackContent={draftContent}
+          onOpenChange={setSettingsOpen}
+          open={settingsOpen}
+          plan={activeWorkspace.plan}
+          siteId={site.id}
+          siteName={site.name}
+          workspaceId={activeWorkspace.id}
+        />
+      ) : null}
     </div>
   )
 }
@@ -270,9 +281,13 @@ export function SiteDetailsPage() {
 
 function SiteDetailsOverflowMenu({
   onDelete,
+  onOpenSettings,
+  settingsDisabled,
   site,
 }: {
   onDelete: () => void
+  onOpenSettings: () => void
+  settingsDisabled: boolean
   site: SiteDetailResponse["site"]
 }) {
   return (
@@ -293,6 +308,10 @@ function SiteDetailsOverflowMenu({
           <DropdownMenuItem>
             <IconCopy />
             Duplicate
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled={settingsDisabled} onSelect={onOpenSettings}>
+            <IconSettings />
+            Site settings
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

@@ -19,6 +19,7 @@ describe("api env parsing", () => {
     expect(parseApiEnv(validEnv)).toEqual({
       API_JSON_BODY_LIMIT: "256kb",
       API_PORT: 3011,
+      API_SITE_CONTENT_JSON_BODY_LIMIT: "12mb",
       BETTER_AUTH_SECRET: "a-secret-value-that-is-long-enough",
       BETTER_AUTH_URL: "http://localhost:5173",
       DATABASE_POOL_MAX: 10,

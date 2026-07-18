@@ -59,6 +59,8 @@ import {
   type ReactNode,
 } from "react"
 
+import { Field, FieldError } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 import { fitImageDimensions, loadImageDimensions, readImageFileAsAttrs } from "../tiptap/image-utils"
@@ -758,35 +760,35 @@ export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
               />
               {imageUrlFormOpen ? (
                 <form className="handout-editor-block-menu-url-form" onSubmit={replaceImageFromUrl}>
-                  <input
-                    autoFocus
-                    className="handout-editor-block-menu-url-input"
-                    inputMode="url"
-                    maxLength={HANDOUT_TEXT_LIMITS.url}
-                    placeholder="https://example.com/image.png"
-                    type="text"
-                    value={imageUrlDraft}
-                    onChange={(event) => {
-                      setImageUrlDraft(event.currentTarget.value)
-                      setImageReplaceError(null)
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Escape") {
-                        event.preventDefault()
-                        setImageUrlFormOpen(false)
+                  <Field data-invalid={!!imageReplaceError || undefined}>
+                    <Input
+                      autoFocus
+                      aria-invalid={!!imageReplaceError || undefined}
+                      inputMode="url"
+                      maxLength={HANDOUT_TEXT_LIMITS.url}
+                      placeholder="https://example.com/image.png"
+                      type="text"
+                      value={imageUrlDraft}
+                      onChange={(event) => {
+                        setImageUrlDraft(event.currentTarget.value)
                         setImageReplaceError(null)
-                        return
-                      }
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          event.preventDefault()
+                          setImageUrlFormOpen(false)
+                          setImageReplaceError(null)
+                          return
+                        }
 
-                      if (event.key === "Enter") {
-                        event.preventDefault()
-                        event.currentTarget.form?.requestSubmit()
-                      }
-                    }}
-                  />
-                  {imageReplaceError ? (
-                    <div className="handout-editor-block-menu-url-error">{imageReplaceError}</div>
-                  ) : null}
+                        if (event.key === "Enter") {
+                          event.preventDefault()
+                          event.currentTarget.form?.requestSubmit()
+                        }
+                      }}
+                    />
+                    <FieldError>{imageReplaceError}</FieldError>
+                  </Field>
                   <div className="handout-editor-block-menu-url-actions">
                     <button
                       className="handout-editor-block-menu-url-button handout-editor-block-menu-url-button-cancel"

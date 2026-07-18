@@ -104,6 +104,7 @@
     --color-chart-2: var(--chart-2);
     --color-chart-1: var(--chart-1);
     --color-ring: var(--ring);
+    --color-input-background: var(--input-background);
     --color-input: var(--input);
     --color-border-subtle: var(--border-subtle);
     --color-border-strong: var(--border-strong);
@@ -336,27 +337,6 @@ html.gmail-extension-panel #root {
     vertical-align: baseline;
   }
 
-  .handout-document-editor ul,
-  .handout-document-editor ol {
-    @apply my-1 pl-8 text-base leading-6 text-secondary-foreground;
-  }
-
-  .handout-document-editor ul {
-    @apply list-disc;
-  }
-
-  .handout-document-editor ol {
-    @apply list-decimal;
-  }
-
-  .handout-document-editor li {
-    @apply pl-1;
-  }
-
-  .handout-document-editor li p {
-    @apply m-0;
-  }
-
   .handout-document-editor .react-renderer.is-editor-empty {
     @apply relative;
   }
@@ -414,6 +394,12 @@ html.gmail-extension-panel #root {
     @apply min-h-full font-site;
     background: var(--background);
     color: var(--foreground);
+  }
+
+  /* Editor chrome can be rendered inside the Geist page-content subtree. */
+  .handout-editor-logo-grid-menu,
+  .handout-editor-variable-popover {
+    @apply font-sans font-normal tracking-normal;
   }
 
   .handout-editor-prosemirror {
@@ -581,22 +567,6 @@ html.gmail-extension-panel #root {
     color: var(--tertiary-foreground);
   }
 
-  .handout-editor-gif-picker-search[data-slot="input"] {
-    background: var(--input) !important;
-    border-color: var(--border) !important;
-    color: var(--foreground) !important;
-    box-shadow: none !important;
-  }
-
-  .handout-editor-gif-picker-search[data-slot="input"]::placeholder {
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-gif-picker-search[data-slot="input"]:focus-visible {
-    border-color: color-mix(in oklab, var(--ring) 64%, transparent) !important;
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent) !important;
-  }
-
   .handout-editor-gif-picker-results {
     background: var(--background);
   }
@@ -604,6 +574,10 @@ html.gmail-extension-panel #root {
   .handout-editor-gif-picker-results [data-giphy-gif],
   .handout-editor-gif-picker-results img {
     border-radius: 10px;
+  }
+
+  .handout-editor-gif-picker-results [data-giphy-gif] {
+    cursor: pointer;
   }
 
   .handout-editor-gif-picker-empty {
@@ -614,7 +588,7 @@ html.gmail-extension-panel #root {
 
   .handout-editor-gif-picker-footer {
     border-top: 1px solid var(--border);
-    background: var(--border-subtle);
+    background: var(--popover);
   }
 
   .handout-editor .handout-editor-emoji {
@@ -888,32 +862,40 @@ html.gmail-extension-panel #root {
     @apply max-w-full rounded-xl leading-none;
   }
 
+  .handout-editor [data-resize-container][data-node="gifBlock"] [data-resize-wrapper]::after,
+  .handout-editor [data-resize-container][data-node="image"] [data-resize-wrapper]::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 border;
+    border-color: transparent;
+    border-radius: inherit;
+    z-index: 1;
+  }
+
   .handout-editor .handout-editor-gif,
   .handout-editor .handout-editor-image {
-    @apply block h-auto max-w-full rounded-xl border object-contain align-top;
+    @apply block h-auto max-w-full rounded-xl border-0 object-contain align-top;
     background: var(--muted);
-    border-color: var(--border);
   }
 
   .handout-editor
     [data-resize-container][data-node="gifBlock"]:hover
-    [data-resize-wrapper],
+    [data-resize-wrapper]::after,
   .handout-editor
     [data-resize-container][data-node="gifBlock"].ProseMirror-selectednode
-    [data-resize-wrapper],
+    [data-resize-wrapper]::after,
   .handout-editor
     [data-resize-container][data-node="gifBlock"][data-resize-state="true"]
-    [data-resize-wrapper],
+    [data-resize-wrapper]::after,
   .handout-editor
     [data-resize-container][data-node="image"]:hover
-    [data-resize-wrapper],
+    [data-resize-wrapper]::after,
   .handout-editor
     [data-resize-container][data-node="image"].ProseMirror-selectednode
-    [data-resize-wrapper],
+    [data-resize-wrapper]::after,
   .handout-editor
     [data-resize-container][data-node="image"][data-resize-state="true"]
-    [data-resize-wrapper] {
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--ring) 56%, transparent);
+    [data-resize-wrapper]::after {
+    border-color: color-mix(in oklab, var(--ring) 56%, transparent);
   }
 
   .handout-editor [data-resize-container][data-node="gifBlock"] [data-resize-handle],
@@ -966,36 +948,6 @@ html.gmail-extension-panel #root {
     right: -4px !important;
   }
 
-  .handout-editor .ProseMirror > * + * {
-    margin-top: 20px;
-  }
-
-  .handout-editor .ProseMirror > blockquote,
-  .handout-editor .ProseMirror > pre,
-  .handout-editor .ProseMirror > ul,
-  .handout-editor .ProseMirror > ol {
-    margin-top: 24px;
-  }
-
-  .handout-editor .ProseMirror > h1 + blockquote,
-  .handout-editor .ProseMirror > h1 + pre,
-  .handout-editor .ProseMirror > h1 + ul,
-  .handout-editor .ProseMirror > h1 + ol {
-    margin-top: 24px;
-  }
-
-  .handout-editor .ProseMirror > h1:not(:first-child) {
-    margin-top: 72px;
-  }
-
-  .handout-editor .ProseMirror > h2:not(:first-child) {
-    margin-top: 50px;
-  }
-
-  .handout-editor .ProseMirror > h3:not(:first-child) {
-    margin-top: 36px;
-  }
-
   .handout-editor .ProseMirror > p {
     @apply px-0 py-0 text-base leading-[26px];
     color: var(--tertiary-foreground);
@@ -1014,49 +966,6 @@ html.gmail-extension-panel #root {
   .handout-editor .ProseMirror > h3 {
     @apply px-0 py-0 text-base leading-[26px];
     color: var(--foreground);
-  }
-
-  .handout-editor .ProseMirror > ul,
-  .handout-editor .ProseMirror > ol {
-    @apply py-0 pl-6 text-base leading-[26px];
-    color: var(--tertiary-foreground);
-  }
-
-  .handout-editor .ProseMirror > ul[data-type="taskList"] {
-    @apply list-none pl-0;
-  }
-
-  .handout-editor .ProseMirror > ul {
-    @apply list-disc;
-  }
-
-  .handout-editor .ProseMirror ul[data-handout-icon-list],
-  .handout-editor .ProseMirror li[data-handout-icon-list-item] {
-    @apply list-none;
-  }
-
-  .handout-editor .ProseMirror ul[data-handout-icon-list] {
-    @apply pl-0;
-  }
-
-  .handout-editor .ProseMirror li[data-handout-icon-list-item]::marker {
-    content: "";
-  }
-
-  .handout-editor .ProseMirror > ol {
-    @apply list-decimal;
-  }
-
-  .handout-editor .ProseMirror li p {
-    @apply m-0;
-  }
-
-  .handout-editor .ProseMirror > ul[data-handout-icon-list] > li {
-    @apply relative py-0 pl-0;
-  }
-
-  .handout-editor .ProseMirror > ul[data-handout-icon-list] > li + li {
-    margin-top: 6px;
   }
 
   .handout-editor [data-handout-grid] {
@@ -1267,10 +1176,6 @@ html.gmail-extension-panel #root {
     cursor: text;
   }
 
-  .handout-editor-icon-list-inner {
-    @apply grid grid-cols-[20px_minmax(0,1fr)] items-start gap-2;
-  }
-
   .handout-editor-icon-bullet {
     @apply mt-[3px] flex size-5 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent p-0 outline-none transition;
   }
@@ -1288,12 +1193,7 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor-icon-list-content {
-    @apply min-w-0 text-base leading-[26px] outline-none;
-    color: var(--tertiary-foreground);
-  }
-
-  .handout-editor-icon-list-content > p {
-    @apply m-0;
+    @apply outline-none;
   }
 
   .handout-editor-icon-card-picker-anchor {
@@ -1315,7 +1215,7 @@ html.gmail-extension-panel #root {
 
   .handout-editor-icon-picker {
     --handout-editor-icon-picker-height: 278px;
-    @apply absolute left-0 top-7 z-50 flex h-auto w-[256px] items-stretch overflow-hidden rounded-lg border p-0 shadow-xl;
+    @apply fixed z-50 flex w-[256px] items-stretch overflow-hidden rounded-lg border p-0 shadow-xl;
     background: var(--popover);
     border-color: var(--border);
     color: var(--popover-foreground);
@@ -1327,7 +1227,7 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor-icon-scroll {
-    @apply min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-3;
+    @apply min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-3;
     max-height: var(--handout-editor-icon-picker-height);
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
@@ -1372,10 +1272,6 @@ html.gmail-extension-panel #root {
     shape-rendering: auto;
   }
 
-  .handout-editor-icon-picker-card {
-    @apply top-10;
-  }
-
   .handout-editor-icon-color-button {
     @apply flex size-5 shrink-0 items-center justify-center rounded-full border border-transparent p-0 outline-none transition;
     background: var(--handout-editor-icon-color);
@@ -1391,52 +1287,52 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor-icon-color-neutral {
-    --handout-editor-icon-color: var(--muted-foreground);
+    --handout-editor-icon-color: var(--color-muted-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-purple {
-    --handout-editor-icon-color: var(--purple-foreground);
+    --handout-editor-icon-color: var(--color-purple-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-blue {
-    --handout-editor-icon-color: var(--blue-foreground);
+    --handout-editor-icon-color: var(--color-blue-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-cyan {
-    --handout-editor-icon-color: var(--cyan-foreground);
+    --handout-editor-icon-color: var(--color-cyan-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-teal {
-    --handout-editor-icon-color: var(--teal-foreground);
+    --handout-editor-icon-color: var(--color-teal-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-green {
-    --handout-editor-icon-color: var(--green-foreground);
+    --handout-editor-icon-color: var(--color-green-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-yellow {
-    --handout-editor-icon-color: var(--yellow-foreground);
+    --handout-editor-icon-color: var(--color-yellow-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-orange {
-    --handout-editor-icon-color: var(--orange-foreground);
+    --handout-editor-icon-color: var(--color-orange-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-red {
-    --handout-editor-icon-color: var(--red-foreground);
+    --handout-editor-icon-color: var(--color-red-foreground);
     color: var(--handout-editor-icon-color);
   }
 
   .handout-editor-icon-color-pink {
-    --handout-editor-icon-color: var(--pink-foreground);
+    --handout-editor-icon-color: var(--color-pink-foreground);
     color: var(--handout-editor-icon-color);
   }
 
@@ -1620,58 +1516,6 @@ html.gmail-extension-panel #root {
     display: grid;
     gap: 8px;
     padding: 6px 4px 4px;
-  }
-
-  .handout-editor-logo-grid-domain-label {
-    padding: 0 4px;
-    color: var(--tertiary-foreground);
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 16px;
-  }
-
-  .handout-editor-logo-grid-domain-control {
-    display: flex;
-    height: 36px;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--input);
-    padding: 0 9px;
-    color: var(--tertiary-foreground);
-  }
-
-  .handout-editor-logo-grid-domain-control:focus-within {
-    border-color: color-mix(in oklab, var(--ring) 72%, var(--popover));
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent);
-  }
-
-  .handout-editor-logo-grid-domain-input {
-    min-width: 0;
-    flex: 1;
-    border: 0;
-    background: transparent;
-    color: var(--popover-foreground);
-    font-size: 14px;
-    line-height: 20px;
-    outline: none;
-  }
-
-  .handout-editor-logo-grid-domain-input::placeholder {
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-logo-grid-domain-input:disabled {
-    cursor: progress;
-    opacity: 0.72;
-  }
-
-  .handout-editor-logo-grid-domain-error {
-    margin: -2px 4px 0;
-    color: var(--destructive);
-    font-size: 12px;
-    line-height: 16px;
   }
 
   .handout-editor-logo-grid-domain-actions {
@@ -1890,59 +1734,6 @@ html.gmail-extension-panel #root {
     color: var(--popover-foreground);
   }
 
-  .handout-editor-button-settings-label {
-    @apply mb-1.5 block text-xs font-medium leading-4;
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-button-settings-field + .handout-editor-button-settings-label {
-    @apply mt-3;
-  }
-
-  .handout-editor-button-settings-error + .handout-editor-button-settings-label {
-    @apply mt-3;
-  }
-
-  .handout-editor-button-settings-field {
-    @apply flex h-9 items-center gap-2 rounded-md border px-2;
-    background: var(--input);
-    border-color: var(--border);
-  }
-
-  .handout-editor-button-settings-field-textarea {
-    @apply h-auto items-start py-2;
-  }
-
-  .handout-editor-button-settings-field:focus-within {
-    border-color: color-mix(in oklab, var(--ring) 72%, var(--popover));
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, var(--popover));
-  }
-
-  .handout-editor-button-settings-field svg {
-    @apply size-4 shrink-0;
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-button-settings-field input {
-    @apply h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none;
-    color: var(--popover-foreground);
-  }
-
-  .handout-editor-button-settings-field textarea {
-    @apply min-h-16 min-w-0 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-5 outline-none;
-    color: var(--popover-foreground);
-  }
-
-  .handout-editor-button-settings-field input::placeholder,
-  .handout-editor-button-settings-field textarea::placeholder {
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-button-settings-error {
-    @apply mt-1 text-xs leading-4;
-    color: var(--destructive);
-  }
-
   .handout-editor-button-settings-toggle {
     @apply mt-3 flex w-full items-center gap-2 rounded-md border-0 bg-transparent px-2 py-2 text-left outline-none transition;
     color: var(--popover-foreground);
@@ -2112,6 +1903,18 @@ html.gmail-extension-panel #root {
     color: var(--muted-faint);
   }
 
+  .handout-editor
+    .handout-editor-page-title-shell[data-align="center"]
+    :is(
+      [data-handout-page-title-heading],
+      [data-handout-page-title-subtitle]
+    ).is-empty::before {
+    display: block;
+    float: none;
+    height: 0;
+    text-align: center;
+  }
+
   .handout-editor[data-editor-mode="preview"] .is-empty::before,
   .handout-editor[data-editor-mode="preview"]
     .handout-editor-card-placeholder-empty::before,
@@ -2268,39 +2071,6 @@ html.gmail-extension-panel #root {
     @apply size-3.5;
   }
 
-  .handout-editor-variable-field {
-    @apply grid gap-1.5 text-xs font-medium;
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-variable-control[data-slot] {
-    border-radius: var(--radius-md) !important;
-    border-color: var(--border) !important;
-    background: var(--input) !important;
-    color: var(--popover-foreground) !important;
-    box-shadow: none !important;
-    font-size: 0.875rem !important;
-  }
-
-  .handout-editor-variable-control[data-slot="input"] {
-    height: 36px !important;
-    padding: 0 8px !important;
-  }
-
-  .handout-editor-variable-control[data-slot="textarea"] {
-    padding: 8px !important;
-  }
-
-  .handout-editor-variable-control[data-slot]::placeholder {
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-variable-control[data-slot]:focus,
-  .handout-editor-variable-control[data-slot]:focus-visible {
-    border-color: color-mix(in oklab, var(--ring) 72%, var(--popover)) !important;
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, var(--popover)) !important;
-  }
-
   .handout-editor-variable-popover-actions {
     @apply flex justify-end gap-1.5;
   }
@@ -2454,26 +2224,6 @@ html.gmail-extension-panel #root {
     @apply px-2 py-2;
   }
 
-  .handout-editor-block-menu-url-input {
-    @apply h-8 w-full rounded-md border bg-transparent px-2 text-sm outline-none;
-    border-color: var(--border);
-    color: var(--popover-foreground);
-  }
-
-  .handout-editor-block-menu-url-input::placeholder {
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor-block-menu-url-input:focus-visible {
-    border-color: color-mix(in oklab, var(--ring) 70%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 20%, transparent);
-  }
-
-  .handout-editor-block-menu-url-error {
-    @apply mt-1 text-xs leading-4;
-    color: var(--destructive);
-  }
-
   .handout-editor-block-menu-url-actions {
     @apply mt-2 flex items-center justify-end gap-1;
   }
@@ -2620,14 +2370,6 @@ html.gmail-extension-panel #root {
 
   .handout-editor-link-panel-label {
     @apply mb-1.5 block px-1 text-xs font-medium text-muted-foreground;
-  }
-
-  .handout-editor-link-panel-field {
-    @apply h-10 rounded-lg border-border bg-muted/50;
-  }
-
-  .handout-editor-link-editor-icon {
-    @apply size-4 shrink-0 text-muted-foreground;
   }
 
   .handout-editor-link-panel-actions {

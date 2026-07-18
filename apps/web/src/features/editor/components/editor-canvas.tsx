@@ -28,7 +28,9 @@ export function EditorCanvas({ editor, emptyStateFallbackKind, mode }: EditorCan
   const emptyStateKind = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) =>
-      getEditorEmptyStateKind(currentEditor, emptyStateFallbackKind),
+      currentEditor && !currentEditor.isDestroyed
+        ? getEditorEmptyStateKind(currentEditor, emptyStateFallbackKind)
+        : null,
   })
 
   return (

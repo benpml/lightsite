@@ -13,6 +13,8 @@ const badgeVariants = cva(
           "bg-background text-foreground shadow-control ring-1 ring-inset ring-border",
         inverse:
           "bg-inverse-foreground/10 text-inverse-foreground shadow-badge-inverse ring-1 ring-inset ring-inverse-border",
+        success:
+          "bg-success-background text-success-foreground ring-1 ring-inset ring-success-border",
       },
     },
     defaultVariants: {

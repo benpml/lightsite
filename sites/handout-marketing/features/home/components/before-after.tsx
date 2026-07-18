@@ -4,7 +4,7 @@ import { FallingBefore } from "@/features/home/components/falling-before"
 import {
   SectionCellDivider,
   SectionFrame,
-} from "@/features/home/components/section-frame"
+} from "@/components/layout/section-frame"
 
 function BeforeAfter() {
   return (

@@ -57,7 +57,7 @@ The public payload schema version is independent from the site-document schema. 
 
 `apps/web/src/features/editor/editor-page.tsx` loads and saves canonical `SiteContent` directly. Page switching changes the active Tiptap document; it does not create a parallel page-builder model.
 
-Editor mode uses React node views for editing controls and injects `SITE_DOCUMENT_CSS` from `@handout/site-document`. Preview mode renders `renderPublicSitePreviewHtml(...)` in a sandboxed iframe. Editor-only selection, drag, upload, and menu affordances remain in the web app stylesheet; typography, colors, spacing, cards, media, tables, and other recipient-visible presentation belong only to the canonical stylesheet.
+Editor mode uses React node views for editing controls and injects `SITE_DOCUMENT_CSS` from `@handout/site-document`. Preview mode renders `renderPublicSitePreviewHtml(...)` in a sandboxed iframe. Both editor-preview and application-hosted public-site frames use the exported `SITE_DOCUMENT_IFRAME_SANDBOX` contract so the generated document can load the same-origin canonical font and assets. Editor-only selection, drag, upload, and menu affordances remain in the web app stylesheet; typography, colors, spacing, cards, media, tables, and other recipient-visible presentation belong only to the canonical stylesheet.
 
 ### Shared renderer
 

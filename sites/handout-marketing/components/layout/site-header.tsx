@@ -7,13 +7,14 @@ import { NavItem } from "@/components/layout/nav-item"
 import { cn } from "@/lib/utils"
 
 const defaultItems = [
-  { href: "#pricing", label: "Pricing" },
-  { href: "#examples", label: "Examples" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/examples", label: "Examples" },
   { href: "#docs", label: "Docs" },
 ] as const
 
 type SiteHeaderProps = React.ComponentProps<"nav"> & {
   variant?: "normal" | "inverse" | "sticky"
+  width?: "default" | "full"
   items?: ReadonlyArray<{ href: string; label: string }>
   loginHref?: string
   signupHref?: string
@@ -22,6 +23,7 @@ type SiteHeaderProps = React.ComponentProps<"nav"> & {
 function SiteHeader({
   className,
   variant = "normal",
+  width = "default",
   items = defaultItems,
   loginHref = "https://app.handout.link/auth",
   signupHref = "https://app.handout.link/auth?mode=sign-up",
@@ -40,7 +42,9 @@ function SiteHeader({
         "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center",
         isSticky
           ? "max-w-[640px] rounded-2xl bg-background py-2.5 pr-3 pl-3.5 shadow-xl ring-1 ring-inset ring-border"
-          : "max-w-[761px]",
+          : width === "full"
+            ? "max-w-none"
+            : "max-w-[761px]",
         className,
       )}
       {...props}

@@ -5,6 +5,7 @@ export const HANDOUT_TEXT_LIMITS = {
   deleteConfirmation: 64,
   email: 320,
   embedCode: 10_000,
+  embeddedImageDataUrl: 8_000_000,
   gifSearchQuery: 160,
   imageAlt: 300,
   password: 1_024,
@@ -30,6 +31,18 @@ export const HANDOUT_COLLECTION_LIMITS = {
 } as const;
 
 export type HandoutTextLimitKey = keyof typeof HANDOUT_TEXT_LIMITS;
+
+const embeddedImageDataUrlPattern = /^data:image\/(?:avif|gif|jpeg|png|webp);base64,/i;
+
+export function isEmbeddedImageDataUrl(value: string) {
+  return embeddedImageDataUrlPattern.test(value);
+}
+
+export function getHandoutDocumentStringLimit(value: string) {
+  return isEmbeddedImageDataUrl(value)
+    ? HANDOUT_TEXT_LIMITS.embeddedImageDataUrl
+    : HANDOUT_TEXT_LIMITS.blockText;
+}
 
 export type TextLimitValidationResult =
   | { ok: true; value: string }

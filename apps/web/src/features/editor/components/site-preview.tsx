@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import {
   renderPublicSitePreviewHtml,
+  SITE_DOCUMENT_IFRAME_SANDBOX,
   type SiteContent,
 } from "@handout/site-document"
 
@@ -47,7 +48,7 @@ export function EditorSitePreview({
     <iframe
       className="h-full min-h-0 w-full border-0 bg-background"
       data-editor-site-preview=""
-      sandbox="allow-popups allow-scripts"
+      sandbox={SITE_DOCUMENT_IFRAME_SANDBOX}
       srcDoc={html}
       title={`${siteName} preview`}
     />

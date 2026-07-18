@@ -19,14 +19,15 @@ import {
   IconWebhook,
 } from "@tabler/icons-react"
 
-import { Logo } from "@/components/common/logo"
 import { NoiseOverlay } from "@/components/common/noise-overlay"
+import { MarketingCta } from "@/components/common/marketing-cta"
+import { SectionFrame } from "@/components/layout/section-frame"
+import { SiteFooter } from "@/components/layout/site-footer"
 import { SiteHeader } from "@/components/layout/site-header"
 import { StickySiteHeader } from "@/components/layout/sticky-site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { TextLink } from "@/components/ui/text-link"
 import { BeforeAfter } from "@/features/home/components/before-after"
 import {
   AgentCardRow,
@@ -34,14 +35,13 @@ import {
   type MarketingFeature,
 } from "@/features/home/components/feature-card-row"
 import { FeatureRow, FeatureSpacer } from "@/features/home/components/feature-row"
-import { SectionFrame } from "@/features/home/components/section-frame"
 import { UnicornHeroScene } from "@/features/home/components/unicorn-hero-scene"
 
 const signupHref = "https://app.handout.link/auth?mode=sign-up"
 
 const navigation = [
-  { href: "#pricing", label: "Pricing" },
-  { href: "#examples", label: "Examples" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/examples", label: "Examples" },
   { href: "#docs", label: "Docs" },
 ] as const
 
@@ -234,37 +234,10 @@ function HomePage() {
       <AgentCardRow />
       <SectionFrame aria-hidden="true" innerClassName="h-[227px]" />
 
-      <SectionFrame
-        id="pricing"
-        innerClassName="min-h-[497px]"
-      >
-        <div
-          className="relative isolate flex min-h-[497px] flex-col items-center overflow-hidden bg-cover bg-center pt-[137px] pb-8 text-center max-md:px-8"
-          style={{ backgroundImage: "url(/images/home/cloud-light.jpg)" }}
-        >
-          <NoiseOverlay id="cta-noise" />
-          <Badge variant="inverse" className="relative z-10">
-            <IconCreditCardOff data-icon="inline-start" aria-hidden="true" />
-            No card required
-          </Badge>
-          <div className="relative z-10 mt-6 flex w-full flex-col items-center gap-6">
-            <div className="flex w-full flex-col items-center gap-3">
-              <h2 className="w-full max-w-[566px] text-title-lg text-inverse-foreground">
-                Start right now for free.
-              </h2>
-              <p className="w-full text-body-lg text-inverse-secondary-foreground">
-                Have your first handout ready to share in no time.
-              </p>
-            </div>
-            <Button asChild variant="inverse" size="lg">
-              <Link href={signupHref}>Start now</Link>
-            </Button>
-          </div>
-        </div>
-      </SectionFrame>
+      <MarketingCta />
 
       <SectionFrame aria-hidden="true" innerClassName="h-[104px]" />
-      <Footer />
+      <SiteFooter />
     </main>
   )
 }
@@ -323,70 +296,6 @@ function Hero() {
         </div>
       </div>
     </section>
-  )
-}
-
-const footerGroups = [
-  {
-    title: "Company",
-    links: [
-      { href: "#features", label: "Product" },
-      { href: "#examples", label: "Examples" },
-      { href: "#pricing", label: "Pricing" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { href: "#docs", label: "AI agents" },
-      { href: "#features", label: "Features" },
-      { href: "#top", label: "Overview" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { href: "#pricing", label: "Pricing" },
-      { href: "#examples", label: "Examples" },
-      { href: "mailto:hello@handout.link", label: "Contact" },
-    ],
-  },
-] as const
-
-function Footer() {
-  return (
-    <>
-      <SectionFrame innerClassName="min-h-[359px] px-8 pt-14 pb-[100px]">
-        <div className="flex w-full flex-col gap-12 md:flex-row md:items-start md:justify-between">
-          <Logo size="footer" />
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-4 md:contents">
-            {footerGroups.map((group) => (
-              <div key={`${group.title}-${group.links[0].label}`} className="flex flex-col gap-4">
-                <h2 className="text-label-md text-foreground">{group.title}</h2>
-                <div className="flex flex-col items-start gap-3">
-                  {group.links.map((link) => (
-                    <TextLink key={link.label} href={link.href}>
-                      {link.label}
-                    </TextLink>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <div className="flex items-start justify-start gap-1.5 sm:justify-end">
-              <Button asChild variant="tertiary" size="md">
-                <Link href="https://app.handout.link/auth">Log in</Link>
-              </Button>
-              <Button asChild size="md">
-                <Link href={signupHref}>Sign up</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </SectionFrame>
-      <SectionFrame innerClassName="flex h-[52px] items-center justify-center">
-        <p className="text-body-md text-muted-foreground">© 2026 Handout</p>
-      </SectionFrame>
-    </>
   )
 }
 

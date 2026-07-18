@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   IconCirclePlus,
   IconDotsVertical,
+  IconLogout,
   IconMoon,
   IconRobot,
   IconSearch,
@@ -13,6 +14,7 @@ import {
 } from "@tabler/icons-react"
 import { Link, useLocation } from "@tanstack/react-router"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
 import type { SiteListItem } from "@handout/contracts"
 import type { AppBootstrapResponse } from "@handout/contracts"
 
@@ -48,11 +50,14 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { primaryNavItems } from "@/data/sample-data"
+import { authClient } from "@/features/auth/auth-client"
 import { listSites } from "@/features/sites/api"
 import { CreateSiteDialog } from "@/features/sites/components/create-site-dialog"
 import { SiteShareDialog } from "@/features/sites/components/site-share-dialog"
+import { disableDevAuthBypass } from "@/lib/api/dev-auth-bypass"
 import { queryKeys } from "@/lib/api/query-keys"
 
 type AppShellProps = {
@@ -64,6 +69,7 @@ export function AppShell({ bootstrap, children }: AppShellProps) {
   const activeWorkspace = bootstrap.activeWorkspace
   const userName = bootstrap.user.name?.trim() || bootstrap.user.email
   const [createSiteOpen, setCreateSiteOpen] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [shareTarget, setShareTarget] = useState<SiteListItem | null>(null)
   const sitesQuery = useQuery({
     queryKey: activeWorkspace
@@ -74,8 +80,29 @@ export function AppShell({ bootstrap, children }: AppShellProps) {
   })
   const shareableSites = sitesQuery.data?.sites ?? []
 
+  const handleSignOut = async () => {
+    if (isSigningOut) return
+
+    setIsSigningOut(true)
+
+    try {
+      const result = await authClient.signOut()
+
+      if (result.error) {
+        throw new Error(result.error.message || "Log out failed.")
+      }
+
+      disableDevAuthBypass()
+      window.location.replace("/auth")
+    } catch {
+      setIsSigningOut(false)
+      toast.error("Could not log out. Try again.")
+    }
+  }
+
   return (
     <SidebarProvider className="bg-page-background">
+      <MobileSidebarRouteSync />
       <Sidebar collapsible="offcanvas" className="shrink-0 group-data-[side=left]:border-r-0">
         <SidebarHeader>
           <div className="flex h-8 w-full items-center gap-2 px-1.5">
@@ -96,7 +123,7 @@ export function AppShell({ bootstrap, children }: AppShellProps) {
         <div className="px-2.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="compact" className="w-full">
+              <Button size="compact" className="w-full">
                 <IconCirclePlus data-icon="inline-start" />
                 Actions
               </Button>
@@ -170,15 +197,30 @@ export function AppShell({ bootstrap, children }: AppShellProps) {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="default">
-                <RecipientAvatar
-                  recipient={{ imageUrl: bootstrap.user.avatarUrl, name: userName }}
-                  shape="circle"
-                  size="2xs"
-                />
-                <span className="truncate font-semibold">{userName}</span>
-                <IconDotsVertical className="ml-auto" />
-              </SidebarMenuButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton size="default">
+                    <RecipientAvatar
+                      recipient={{ imageUrl: bootstrap.user.avatarUrl, name: userName }}
+                      shape="circle"
+                      size="2xs"
+                    />
+                    <span className="truncate font-semibold">{userName}</span>
+                    <IconDotsVertical className="ml-auto" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      disabled={isSigningOut}
+                      onSelect={() => void handleSignOut()}
+                    >
+                      <IconLogout />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
@@ -213,6 +255,17 @@ export function AppShell({ bootstrap, children }: AppShellProps) {
       </SidebarInset>
     </SidebarProvider>
   )
+}
+
+function MobileSidebarRouteSync() {
+  const location = useLocation()
+  const { setOpenMobile } = useSidebar()
+
+  useEffect(() => {
+    setOpenMobile(false)
+  }, [location.pathname, setOpenMobile])
+
+  return null
 }
 
 function ShareSiteSubmenu({

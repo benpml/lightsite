@@ -32,12 +32,10 @@ function SectionFrame({
   ...props
 }: SectionFrameProps) {
   return (
-    <section
-      className={cn("relative", className)}
-      {...props}
-    >
+    <section className={cn("relative", className)} {...props}>
       {divider === "top" && (
         <Separator
+          variant="section"
           className={cn(
             "pointer-events-none absolute inset-x-0 top-0 z-10",
             topDividerClassName,
@@ -45,7 +43,10 @@ function SectionFrame({
         />
       )}
       {bottomDivider && (
-        <Separator className="pointer-events-none absolute inset-x-0 bottom-0 z-10" />
+        <Separator
+          variant="section"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
+        />
       )}
       <div
         style={innerStyle}
@@ -55,10 +56,12 @@ function SectionFrame({
         )}
       >
         <Separator
+          variant="section"
           orientation="vertical"
           className="pointer-events-none absolute inset-y-0 left-0 z-10 h-full"
         />
         <Separator
+          variant="section"
           orientation="vertical"
           className="pointer-events-none absolute inset-y-0 right-0 z-10 h-full"
         />
@@ -108,10 +111,14 @@ function SectionCellDivider({
   return (
     <>
       {mobile && (
-        <Separator className="pointer-events-none absolute inset-x-0 bottom-0 z-10 md:hidden" />
+        <Separator
+          variant="section"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 md:hidden"
+        />
       )}
       {desktop && (
         <Separator
+          variant="section"
           orientation="vertical"
           className="pointer-events-none absolute inset-y-0 right-0 z-10 hidden h-full md:block"
         />

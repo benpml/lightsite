@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs"
 
-import { SITE_DOCUMENT_CSS } from "@handout/site-document"
+import {
+  SITE_DOCUMENT_CSS,
+  SITE_DOCUMENT_IFRAME_SANDBOX,
+} from "@handout/site-document"
 import { describe, expect, it } from "vitest"
 
 import { createBlockContent } from "./tiptap/extensions/block-commands"
@@ -21,6 +24,22 @@ const editorModules = import.meta.glob("./**/*.{ts,tsx}", {
   import: "default",
 })
 const stylesheetSource = readFileSync(new URL("../../index.css", import.meta.url), "utf8")
+const sharedInputSource = readFileSync(
+  new URL("../../components/ui/input.tsx", import.meta.url),
+  "utf8",
+)
+const sharedInputGroupSource = readFileSync(
+  new URL("../../components/ui/input-group.tsx", import.meta.url),
+  "utf8",
+)
+const sharedTextareaSource = readFileSync(
+  new URL("../../components/ui/textarea.tsx", import.meta.url),
+  "utf8",
+)
+const appearanceSettingsSource = readFileSync(
+  new URL("../site-settings/components/appearance-settings.tsx", import.meta.url),
+  "utf8",
+)
 const sharedSiteExtensionSource = readFileSync(
   new URL("../../../../../packages/site-document/src/tiptap/site-extensions.ts", import.meta.url),
   "utf8",
@@ -42,7 +61,22 @@ describe("editor architecture", () => {
     expect(stylesheetSource).toContain("border-color: var(--variable-border);")
     expect(stylesheetSource).toContain("color: var(--variable-foreground);")
     expect(stylesheetSource).toContain("rounded-md border px-1 align-baseline")
+    expect(stylesheetSource).toContain(
+      "--handout-editor-icon-color: var(--color-purple-foreground);"
+    )
+    expect(stylesheetSource).toMatch(
+      /\.handout-editor-page-title-shell\[data-align="center"\][\s\S]{0,300}\[data-handout-page-title-heading\],[\s\S]{0,200}\[data-handout-page-title-subtitle\][\s\S]{0,200}float: none;[\s\S]{0,100}text-align: center;/,
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ":where(html[data-handout-public-site],body[data-handout-public-site],.handout-site,.handout-document-editor,.handout-editor-sidebar-content),:where(.handout-site,.handout-document-editor,.handout-editor-sidebar-content) *{font-feature-settings:normal;font-kerning:normal;font-optical-sizing:auto;font-synthesis-weight:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}",
+    )
     expect(SITE_DOCUMENT_CSS).toContain(".handout-image-card{display:grid")
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-icon-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--background)"
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      "--handout-icon-color:var(--color-purple-foreground,var(--purple-foreground));--handout-icon-background:var(--color-purple-background,var(--purple-background))"
+    )
     expect(SITE_DOCUMENT_CSS).toContain(".handout-testimonial{display:grid")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-title{display:flex")
     expect(SITE_DOCUMENT_CSS).toContain("gap:24px;padding:0 0 36px")
@@ -65,12 +99,33 @@ describe("editor architecture", () => {
     expect(pageSource).not.toContain('editorProps: {\n      attributes:')
   })
 
+  it("keeps icon picker menus inside the viewport", () => {
+    const blockViewsSource = editorModules["./tiptap/nodes/block-views.tsx"] as string
+    const iconPickerStyles = stylesheetSource.slice(
+      stylesheetSource.indexOf(".handout-editor-icon-picker {"),
+      stylesheetSource.indexOf(".handout-editor-icon-color-button {")
+    )
+
+    expect(blockViewsSource).toContain("useFloatingEditorPopoverPosition")
+    expect(blockViewsSource).toContain("fallbackHeight: iconPickerHeight")
+    expect(blockViewsSource).toContain("fallbackWidth: iconPickerWidth")
+    expect(blockViewsSource).toContain("maxHeight: position.maxHeight")
+    expect(blockViewsSource).toContain('visibility: "hidden"')
+    expect(blockViewsSource).toContain("data-icon-color={iconColor}")
+    expect(iconPickerStyles).toContain("@apply fixed")
+    expect(iconPickerStyles).toContain("min-h-0")
+    expect(iconPickerStyles).not.toContain("@apply absolute")
+    expect(iconPickerStyles).not.toContain("handout-editor-icon-picker-card")
+    expect(blockViewsSource).not.toContain("handout-editor-icon-picker-card")
+  })
+
   it("keeps the edit sidebar and published-site sidebar in visual parity", () => {
     const sidebarSource = editorModules["./components/site-sidebar.tsx"] as string
     const previewSource = editorModules["./components/site-preview.tsx"] as string
+    const pageSource = editorModules["./editor-page.tsx"] as string
 
     expect(sidebarSource).toContain('data-[side=left]:w-[min(289px,86vw)]')
-    expect(sidebarSource).toContain('className="handout-editor-sidebar-content flex min-w-0 w-full flex-col gap-4"')
+    expect(sidebarSource).toContain('className="handout-editor-sidebar-content flex min-w-0 w-full flex-col gap-6"')
     expect(sidebarSource).toContain("handout-editor-sidebar-desktop")
     expect(sidebarSource).toContain("handout-editor-mobile-bar")
     expect(sidebarSource).not.toContain("md:w-[241px]")
@@ -81,11 +136,168 @@ describe("editor architecture", () => {
     expect(sidebarSource).toContain("style={popoverStyle}")
     expect(sidebarSource).toContain('bg-[var(--handout-primary)] px-4 text-sm font-medium text-[var(--handout-primary-foreground)]')
     expect(previewSource).toContain("renderPublicSitePreviewHtml")
+    expect(previewSource).toContain("SITE_DOCUMENT_IFRAME_SANDBOX")
+    expect(previewSource).not.toContain('sandbox="allow-popups allow-scripts"')
+    expect(SITE_DOCUMENT_IFRAME_SANDBOX).toBe("allow-popups allow-same-origin allow-scripts")
     expect(sidebarSource).toContain("handout-editor-sidebar-section-title")
     expect(sidebarSource).not.toContain("tracking-normal")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section>h2,.handout-editor-sidebar-section-title{height:26px;min-width:0;margin:0;overflow:hidden;color:var(--muted-foreground);font-size:14px;font-weight:500;letter-spacing:-.02em")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section>h2,.handout-editor-sidebar-section-title{height:26px;min-width:0;margin:0 0 0 4px;overflow:hidden;color:var(--foreground);font-size:14px;font-weight:500;letter-spacing:-.02em")
+    expect(sidebarSource).toContain('sectionKey === "nextSteps" ? "gap-2.5" : "gap-2"')
+    expect(sidebarSource).toContain("IconLink")
+    expect(sidebarSource).not.toContain("IconWorld")
+    expect(sidebarSource).toContain('text-[var(--handout-sidebar-link-icon)]')
+    expect(pageSource).toContain('"--handout-sidebar-link-icon": "var(--blue-foreground)"')
+    expect(pageSource).toContain('"--handout-sidebar-link-icon": `var(--${color}-foreground)`')
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-inner{display:flex;width:241px;flex-direction:column;gap:24px}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section-buttons{gap:10px}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab,.handout-sidebar-link{color:var(--tertiary-foreground)}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-link:hover,.handout-sidebar-link:focus-visible{color:var(--foreground)}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-link svg{color:var(--handout-sidebar-link-icon,var(--blue-foreground))}")
+    expect(sidebarSource).toContain('active ? "text-[var(--handout-primary)]" : "text-muted-foreground"')
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab svg{color:var(--muted-foreground)}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-row.is-active svg{color:inherit}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-mobile-title{min-width:0;flex:1;overflow:hidden;color:var(--tertiary-foreground);font-size:16px;font-weight:500")
     expect(SITE_DOCUMENT_CSS).toContain("--handout-primary")
+  })
+
+  it("offers sidebar button icons without icon color controls", () => {
+    const sidebarSource = editorModules["./components/site-sidebar.tsx"] as string
+
+    expect(sidebarSource).toContain("ButtonIconSelector")
+    expect(sidebarSource).toContain("InputTrigger")
+    expect(sidebarSource).toContain("<Popover open={open} onOpenChange={setOpen}>")
+    expect(sidebarSource).toContain("<PopoverTrigger asChild>")
+    expect(sidebarSource).toContain("SITE_ICON_OPTIONS")
+    expect(sidebarSource).toContain('aria-label="Button icons"')
+    expect(sidebarSource).toContain('className="grid grid-cols-8 gap-1"')
+    expect(sidebarSource).toContain("data-button-icon-menu-footer")
+    expect(sidebarSource).toContain("<Separator />")
+    expect(sidebarSource).toContain('size={15}')
+    expect(sidebarSource).toContain("gap-1.5")
+    expect(sidebarSource).toContain('selectedOption?.label ?? "No icon"')
+    expect(sidebarSource).not.toContain('<IconX className="size-[15px] shrink-0 text-muted-foreground" />')
+    expect(sidebarSource).not.toContain("SITE_ICON_COLOR_OPTIONS")
+    expect(sharedInputSource).toContain('data-slot="input-trigger"')
+    expect(sharedInputSource).toContain("inputVariants({ size })")
+  })
+
+  it("owns form-control shadows in the shared input primitives", () => {
+    expect(sharedInputSource).toContain("text-base shadow-xs")
+    expect(sharedInputGroupSource).toContain("border border-input shadow-xs")
+    expect(sharedTextareaSource).toContain("text-base shadow-xs")
+  })
+
+  it("provides md, lg, and xl sizes through the shared input primitives", () => {
+    expect(sharedInputSource).toContain('md: "h-8"')
+    expect(sharedInputSource).toContain('lg: "h-9"')
+    expect(sharedInputSource).toContain('xl: "h-[38px]"')
+    expect(sharedInputSource).toContain('size: "md"')
+    expect(sharedInputGroupSource).toContain('md: "h-8"')
+    expect(sharedInputGroupSource).toContain('lg: "h-9"')
+    expect(sharedInputGroupSource).toContain('xl: "h-[38px]"')
+    expect(sharedInputGroupSource).toContain('size: "md"')
+    expect(sharedInputGroupSource).toContain('"h-full flex-1')
+    expect(sharedInputGroupSource).toContain(
+      'querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea")'
+    )
+    expect(appearanceSettingsSource).toContain('size={multiline ? "md" : "lg"}')
+    expect(appearanceSettingsSource).not.toContain('"h-9"')
+  })
+
+  it("composes editor menu fields from canonical form primitives", () => {
+    const buttonSettingsSource =
+      editorModules["./components/button-settings-popover.tsx"] as string
+    const imageCardButtonSettingsSource =
+      editorModules["./components/image-card-button-settings-popover.tsx"] as string
+    const videoSettingsSource =
+      editorModules["./components/video-embed-settings-menu.tsx"] as string
+    const calendarSettingsSource =
+      editorModules["./components/calendar-embed-settings-menu.tsx"] as string
+    const blockControlsSource =
+      editorModules["./components/block-controls.tsx"] as string
+    const blockViewsSource =
+      editorModules["./tiptap/nodes/block-views.tsx"] as string
+    const variableCreateSource =
+      editorModules["./components/variable-create-popover.tsx"] as string
+    const variableTokenSource =
+      editorModules["./tiptap/nodes/variable-token-view.tsx"] as string
+    const linkMenuSource =
+      editorModules["./components/text-bubble-menu.tsx"] as string
+    const sidebarSource =
+      editorModules["./components/site-sidebar.tsx"] as string
+
+    expect(buttonSettingsSource).toContain("<FieldGroup")
+    expect(buttonSettingsSource).toContain("<InputGroup size=\"lg\">")
+    expect(buttonSettingsSource).not.toContain("<input")
+    expect(imageCardButtonSettingsSource).toContain("<FieldGroup")
+    expect(imageCardButtonSettingsSource).not.toContain("<input")
+    expect(videoSettingsSource).toContain("<InputGroupTextarea")
+    expect(videoSettingsSource).not.toContain("<textarea")
+    expect(calendarSettingsSource).toContain("<InputGroupTextarea")
+    expect(calendarSettingsSource).not.toContain("<textarea")
+    expect(blockControlsSource).not.toContain("handout-editor-block-menu-url-input")
+    expect(blockViewsSource).toContain("<InputGroup size=\"lg\">")
+    expect(blockViewsSource).not.toContain("handout-editor-logo-grid-domain-control")
+    expect(variableCreateSource).not.toContain("handout-editor-variable-control")
+    expect(variableTokenSource).not.toContain("handout-editor-variable-control")
+    expect(linkMenuSource).not.toContain("handout-editor-link-panel-field")
+    expect(sidebarSource).not.toContain('className="pl-8"')
+    expect(stylesheetSource).not.toMatch(
+      /handout-editor-(button-settings-field|logo-grid-domain-control|block-menu-url-input|variable-control|link-panel-field)/,
+    )
+  })
+
+  it("keeps tabs, links, and buttons independently sortable in the sidebar", () => {
+    const sidebarSource = editorModules["./components/site-sidebar.tsx"] as string
+    const pageSource = editorModules["./editor-page.tsx"] as string
+    const sidebarModelSource = editorModules["./site-sidebar-model.ts"] as string
+    const blockControlsSource = editorModules["./components/block-controls.tsx"] as string
+
+    expect(sidebarSource).toContain("function SortableSidebarList")
+    expect(sidebarSource).toContain("function SortableSidebarPageList")
+    expect(sidebarSource).toContain("function SortableSidebarLinkList")
+    expect(sidebarSource).toContain("function SortableSidebarButtonList")
+    expect(sidebarSource).toContain('itemKind="tab"')
+    expect(sidebarSource).toContain('itemKind="link"')
+    expect(sidebarSource).toContain('itemKind="button"')
+    expect(sidebarSource).toContain("pages.length > 1")
+    expect(sidebarSource).toContain("links.length > 1")
+    expect(sidebarSource).toContain("buttons.length > 1")
+    expect(sidebarSource).toContain("sortableKeyboardCoordinates")
+    expect(sidebarSource).toContain("activationConstraint: { distance: 6 }")
+    expect(sidebarSource).toContain("data-sidebar-sortable-kind")
+    expect(sidebarSource).toContain("group-hover/sidebar-sortable:opacity-70")
+    expect(sidebarSource).toContain("IconGripVertical")
+    expect(blockControlsSource).toContain("IconGripVertical")
+    expect(sidebarSource).toContain("function SidebarItemHoverActions")
+    expect(sidebarSource).toContain("function SidebarItemDeleteConfirmation")
+    expect(sidebarSource).toContain("group-hover/sidebar-item:opacity-100")
+    expect(sidebarSource).toContain("group-focus-within/sidebar-item:opacity-100")
+    expect(sidebarSource).toContain("min-w-0 flex-1 truncate")
+    expect(sidebarSource).toContain('>Edit {itemKind}</TooltipContent>')
+    expect(sidebarSource).toContain('>Delete {itemKind}</TooltipContent>')
+    expect(sidebarSource).toContain(
+      'tooltipLabel={showTriggerTooltip === false || link ? undefined : "Add link"}'
+    )
+    expect(sidebarSource).toContain(
+      'tooltipLabel={showTriggerTooltip === false || button ? undefined : "Add button"}'
+    )
+    expect(pageSource).toContain("reorderSidebarPages")
+    expect(pageSource).toContain("reorderSidebarLinks")
+    expect(pageSource).toContain("reorderSidebarButtons")
+    expect(sidebarModelSource).toContain("function reorderSidebarItems")
+  })
+
+  it("previews sidebar item edits live and closes valid edits with Done or Enter", () => {
+    const sidebarSource = editorModules["./components/site-sidebar.tsx"] as string
+
+    expect(sidebarSource).toContain("onRenamePage(page.id, nextName)")
+    expect(sidebarSource).toContain("updateLiveItem")
+    expect(sidebarSource).toContain("onSave(originalValueRef.current)")
+    expect(sidebarSource).toContain('className="flex gap-1.5"')
+    expect(sidebarSource).toContain('<Button type="submit" disabled={!draftName.trim()}>Done</Button>')
+    expect(sidebarSource).toContain('<Button type="submit" disabled={!isValid}>')
+    expect(sidebarSource).toContain('{isEditing ? "Done" : "Save"}')
   })
 
   it("creates icon cards with explicit Tiptap title and body nodes", () => {
@@ -220,6 +432,7 @@ describe("editor architecture", () => {
     expect(addedPageBody).not.toContain("Sites work like a doc.")
     expect(schemaSource).not.toContain("Sites work like a doc.")
     expect(canvasSource).toContain("EditorPageEmptyState")
+    expect(canvasSource).toContain("currentEditor && !currentEditor.isDestroyed")
     expect(emptyStateSource).toContain("Sites work like a doc.")
     expect(emptyStateSource).toContain("Start from a template:")
     expect(emptyStateModelSource).toContain("getEditorEmptyStateScaffold")
@@ -256,6 +469,7 @@ describe("editor architecture", () => {
     expect(extensionSource).toContain('node.type.name === "buttonBlock"')
     expect(extensionSource).not.toContain('return "Button"')
     expect(extensionSource).toContain("includeChildren: true")
+    expect(extensionSource).toContain("showOnlyWhenEditable: false")
   })
 
   it("creates grids as native Tiptap row and cell content", () => {
@@ -691,7 +905,10 @@ describe("editor architecture", () => {
     expect(stylesheetSource).toContain(".handout-editor-logo-grid")
     expect(stylesheetSource).toContain(".handout-editor-logo-grid-item")
     expect(stylesheetSource).toContain(".handout-editor-logo-grid-menu")
-    expect(stylesheetSource).toContain(".handout-editor-logo-grid-domain-control")
+    expect(stylesheetSource).not.toContain(".handout-editor-logo-grid-domain-control")
+    expect(stylesheetSource).toContain(
+      ".handout-editor-logo-grid-menu,\n  .handout-editor-variable-popover {\n    @apply font-sans font-normal tracking-normal;"
+    )
     expect(SITE_DOCUMENT_CSS).toContain("repeat(3,minmax(0,1fr))")
   })
 
@@ -809,14 +1026,38 @@ describe("editor architecture", () => {
   })
 
   it("suppresses native list markers for icon lists at every valid nesting level", () => {
-    expect(stylesheetSource).toContain(
+    const blockViewsSource = editorModules["./tiptap/nodes/block-views.tsx"]
+
+    expect(stylesheetSource).not.toContain(
       ".handout-editor .ProseMirror ul[data-handout-icon-list],"
     )
-    expect(stylesheetSource).toContain(
-      ".handout-editor .ProseMirror li[data-handout-icon-list-item]"
+    expect(stylesheetSource).not.toContain(
+      "@apply grid grid-cols-[20px_minmax(0,1fr)] items-start gap-1;",
     )
-    expect(stylesheetSource).toContain(
-      ".handout-editor .ProseMirror li[data-handout-icon-list-item]::marker"
+    expect(blockViewsSource).toContain(
+      'className="handout-icon-list-item handout-editor-icon-list-inner"',
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-document-editor .handout-prosemirror li[data-handout-icon-list-item],.handout-document-editor .handout-prosemirror li[data-handout-icon-list-item]::marker{list-style:none}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      "grid-template-columns:20px minmax(0,1fr);align-items:start;gap:2px;padding-left:4px"
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-list:is(ol)>.handout-list-item,.handout-document-editor .handout-prosemirror>ol>li{padding-left:2px}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain("--handout-list-item-gap:4px")
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-list>.handout-list-item+.handout-list-item,.handout-document-editor .handout-prosemirror :where(ul:not([data-type=taskList]):not([data-handout-icon-list]),ol)>li+li{margin-top:var(--handout-list-item-gap)}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-icon-list,.handout-document-editor .handout-prosemirror ul[data-handout-icon-list]{display:flex;flex-direction:column;gap:var(--handout-list-item-gap)",
+    )
+    expect(SITE_DOCUMENT_CSS).not.toContain(
+      ".handout-document-editor .handout-prosemirror>*+*{margin-top:20px}",
+    )
+    expect(SITE_DOCUMENT_CSS.lastIndexOf(".handout-prosemirror>blockquote,.handout-prosemirror>pre,.handout-prosemirror>ul,.handout-prosemirror>ol")).toBeGreaterThan(
+      SITE_DOCUMENT_CSS.indexOf(".handout-list,.handout-prosemirror>ul,.handout-prosemirror>ol"),
     )
   })
 
@@ -892,6 +1133,8 @@ describe("editor architecture", () => {
       editorModules["./components/block-controls.tsx"]
     const editorCanvasSource =
       editorModules["./components/editor-canvas.tsx"]
+    const gifPickerDialogSource =
+      editorModules["./components/gif-picker-dialog.tsx"]
     const gifNodeSource =
       editorModules["./tiptap/nodes/handout-gif.ts"]
     const gifPickerSource =
@@ -911,8 +1154,38 @@ describe("editor architecture", () => {
     expect(gifNodeSource).toContain("dataset.handoutGifEmpty")
     expect(gifNodeSource).toContain("Search GIPHY")
     expect(gifNodeSource).toContain('element.style.height = "auto"')
+    expect(stylesheetSource).toContain(
+      ".handout-editor-gif-picker-results [data-giphy-gif]"
+    )
+    expect(stylesheetSource).toContain("cursor: pointer;")
+    expect(stylesheetSource).toMatch(
+      /\.handout-editor-gif-picker-footer\s*\{[^}]*background: var\(--popover\);/
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-document-editor .handout-prosemirror>[data-handout-gif-empty]"
+    )
     expect(gifPickerSource).toContain("setHandoutNextGif")
     expect(gifPickerSource).toContain("subscribe")
+    expect(giphySource).toContain('light: "/editor-assets/giphy-powered-by.png"')
+    expect(giphySource).toContain('dark: "/editor-assets/giphy-powered-by-dark.png"')
+    expect(gifPickerDialogSource).toContain("dark:hidden")
+    expect(gifPickerDialogSource).toContain("dark:block")
+    expect(gifPickerDialogSource).toContain("entry.contentRect.width")
+    expect(gifPickerDialogSource).toContain('ref={setGridContainer} className="w-full"')
+    expect(gifPickerDialogSource).toContain("const [gridWidth, setGridWidth] = useState(0)")
+    expect(gifPickerDialogSource).toMatch(
+      /const setGridContainer = useCallback\(\(gridContainer: HTMLDivElement \| null\) => \{[\s\S]{0,600}gridContainer\.getBoundingClientRect\(\)\.width/
+    )
+    expect(gifPickerDialogSource).toMatch(
+      /useEffect\(\(\) => \{[\s\S]{0,200}window\.setTimeout/
+    )
+    expect(gifPickerDialogSource).not.toContain("gridContainer.clientWidth")
+    expect(gifPickerDialogSource).not.toContain('`${debouncedQuery || "trending"}:${columns}:${gridWidth}`')
+    expect(gifPickerDialogSource).toContain('<InputGroup size="xl">')
+    expect(gifPickerDialogSource).toContain("<InputGroupAddon>")
+    expect(gifPickerDialogSource).toContain("<InputGroupInput")
+    expect(gifPickerDialogSource).not.toContain("handout-editor-gif-picker-search")
+    expect(stylesheetSource).not.toContain(".handout-editor-gif-picker-search")
     expect(editorCanvasSource).toContain("EditorGifPickerDialog")
     expect(blockControlsSource).toContain('node.type.name === "gifBlock"')
     expect(blockControlsSource).toContain("Change GIF")
@@ -1090,6 +1363,17 @@ describe("editor architecture", () => {
     expect(headerSource).not.toContain('<Button variant="secondary" size="compact">Publish</Button>')
   })
 
+  it("only shows the editor save indicator when saving is unsuccessful", () => {
+    const headerSource =
+      editorModules["./components/editor-header.tsx"] as string
+
+    expect(headerSource).toContain('status !== "offline" && status !== "unavailable"')
+    expect(headerSource).toContain("return null")
+    expect(headerSource).not.toContain('saved: "Saved"')
+    expect(headerSource).not.toContain('saving: "Saving"')
+    expect(headerSource).not.toContain('connecting: "Connecting"')
+  })
+
   it("opens the reusable site settings drawer from the editor header", () => {
     const headerSource =
       editorModules["./components/editor-header.tsx"] as string
@@ -1168,6 +1452,8 @@ describe("editor architecture", () => {
     expect(textBubbleMenuSource).toContain("hasSelectedText(state.selection)")
     expect(textBubbleMenuSource).toContain("appendTo={() => document.body}")
     expect(textBubbleMenuSource).toContain("useEditorState")
+    expect(textBubbleMenuSource).toContain("if (!activeEditor || activeEditor.isDestroyed)")
+    expect(textBubbleMenuSource).toContain("return emptyTextBubbleMenuState")
     expect(textBubbleMenuSource).toContain("setColor")
     expect(textBubbleMenuSource).toContain("setHighlight")
     expect(textBubbleMenuSource).toContain("unsetColor")

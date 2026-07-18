@@ -56,6 +56,15 @@ export type RenderPublicSiteOptions = {
 
 export const PUBLIC_SITE_LOGO_ENDPOINT = "/api/public/site-logo" as const;
 export const PUBLIC_SITE_RUNTIME_PATH = "/site-runtime.v5.js" as const;
+/**
+ * Shared iframe capability contract for generated site documents.
+ *
+ * `allow-same-origin` is required for srcDoc previews to load the canonical
+ * same-origin font and asset URLs. The document itself is produced by the
+ * escaped site renderer and only executes the controlled site runtime.
+ */
+export const SITE_DOCUMENT_IFRAME_SANDBOX =
+  "allow-popups allow-same-origin allow-scripts" as const;
 
 type RenderContext = {
   logoDelivery: "preview" | "public";
@@ -415,8 +424,9 @@ function renderImage(node: TiptapNode, className: string) {
   const altText = stringAttr(node.attrs?.alt);
   const width = positiveNumberAttr(node.attrs?.width ?? node.attrs?.imageWidth);
   const height = positiveNumberAttr(node.attrs?.height ?? node.attrs?.imageHeight);
+  const sizeStyle = width ? ` style="max-width:${width}px"` : "";
   const dimensions = `${width ? ` width="${width}"` : ""}${height ? ` height="${height}"` : ""}`;
-  return `<figure class="${className}"${nodeId(node)}><img src="${attr(src)}" alt="${attr(altText)}"${dimensions} loading="lazy" decoding="async"></figure>`;
+  return `<figure class="${className}"${sizeStyle}${nodeId(node)}><img src="${attr(src)}" alt="${attr(altText)}"${dimensions} loading="lazy" decoding="async"></figure>`;
 }
 
 function renderImageCard(node: TiptapNode, children: string | string[] | undefined, context: RenderContext) {
@@ -477,12 +487,13 @@ function renderSidebar(content: SiteContent, activePageSlug: string | null, cont
   const linksHtml = links.map((link) => {
     const href = sanitizePublicActionUrl(resolveSiteTemplate(link.href, context.values));
     const label = resolveSiteTemplate(link.label, context.values).trim();
-    return href && label ? `<a class="handout-sidebar-row" href="${attr(href)}" target="_blank" rel="noopener noreferrer"${trackingAttrs(trackingElement(context, link.id))}>${icon(link.icon === "link" ? "link" : "world")}<span>${text(label)}</span></a>` : "";
+    return href && label ? `<a class="handout-sidebar-row handout-sidebar-link" href="${attr(href)}" target="_blank" rel="noopener noreferrer"${trackingAttrs(trackingElement(context, link.id))}>${icon("link")}<span>${text(label)}</span></a>` : "";
   }).join("");
   const buttonsHtml = buttons.map((button) => {
     const href = sanitizePublicActionUrl(resolveSiteTemplate(button.href, context.values));
     const label = resolveSiteTemplate(button.label, context.values).trim();
-    return href && label ? `<a class="handout-sidebar-button handout-sidebar-button-${button.style}" href="${attr(href)}" target="_blank" rel="noopener noreferrer"${trackingAttrs(trackingElement(context, button.id))}>${text(label)}</a>` : "";
+    const buttonIcon = button.icon ? icon(button.icon) : "";
+    return href && label ? `<a class="handout-sidebar-button handout-sidebar-button-${button.style}" href="${attr(href)}" target="_blank" rel="noopener noreferrer"${trackingAttrs(trackingElement(context, button.id))}>${buttonIcon}${text(label)}</a>` : "";
   }).join("");
 
   return `<aside id="handout-site-sidebar" class="handout-sidebar" aria-label="Site navigation"><div class="handout-sidebar-mobile-header"><span class="handout-sidebar-mobile-title" data-handout-active-page-label="">${text(activePageName)}</span><button class="handout-sidebar-close" type="button" aria-label="Close site navigation">${icon("x")}</button></div><div class="handout-sidebar-inner">${renderSidebarSection(content.sidebar.sections.tabs.label, tabsHtml)}${renderSidebarSection(content.sidebar.sections.links.label, linksHtml)}${renderSidebarSection(content.sidebar.sections.nextSteps.label, buttonsHtml, "handout-sidebar-section-buttons")}</div></aside><div class="handout-sidebar-backdrop" aria-hidden="true"></div>`;
@@ -498,10 +509,10 @@ function renderEmptyPage() {
 
 export function getPrimaryColorStyle(color: SiteContent["settings"]["primaryColor"]) {
   if (color === "neutral") {
-    return "--handout-primary:var(--foreground);--handout-primary-foreground:var(--background);--handout-primary-soft:var(--accent)";
+    return "--handout-primary:var(--foreground);--handout-primary-foreground:var(--background);--handout-primary-soft:var(--accent);--handout-sidebar-link-icon:var(--blue-foreground)";
   }
 
-  return `--handout-primary:var(--${color}-foreground);--handout-primary-foreground:var(--background);--handout-primary-soft:var(--${color}-background-subtle)`;
+  return `--handout-primary:var(--${color}-foreground);--handout-primary-foreground:var(--background);--handout-primary-soft:var(--${color}-background-subtle);--handout-sidebar-link-icon:var(--${color}-foreground)`;
 }
 
 function renderTrackingConsent(payload: PublishedSitePayload, hasTracking: boolean) {

@@ -3,6 +3,13 @@ import type { Editor } from "@tiptap/react"
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain"
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupTextarea,
+} from "@/components/ui/input-group"
+
 import { getVideoEmbedHost, normalizeVideoEmbedUrl } from "../lib/video-embed-url"
 import type { HandoutNextVideoEmbedSettingsTarget } from "../tiptap/extensions/video-embed-settings"
 import { useFloatingEditorPopoverPosition } from "./use-floating-editor-popover-position"
@@ -168,37 +175,39 @@ export function EditorVideoEmbedSettingsMenu({ editor }: EditorVideoEmbedSetting
       onWheel={(event) => event.stopPropagation()}
     >
       <form onSubmit={save}>
-        <label className="handout-editor-button-settings-label" htmlFor="handout-editor-video-url">
-          Video link or embed code
-        </label>
-        <div className="handout-editor-button-settings-field handout-editor-button-settings-field-textarea">
-          <IconLink aria-hidden="true" />
-          <textarea
-            ref={inputRef}
-            aria-invalid={error ? "true" : undefined}
-            id="handout-editor-video-url"
-            inputMode="url"
-            maxLength={HANDOUT_TEXT_LIMITS.embedCode}
-            placeholder="Paste link or embed code"
-            rows={3}
-            value={srcDraft}
-            onChange={(event) => {
-              setSrcDraft(event.currentTarget.value)
-              setError(null)
-            }}
-          />
-        </div>
-        {previewLabel ? (
-          <div className="handout-editor-video-settings-preview">
-            <IconVideo aria-hidden="true" />
-            {previewLabel}
-          </div>
-        ) : (
-          <div className="handout-editor-video-settings-preview">
-            Paste a video link or embed code. Handout will handle either.
-          </div>
-        )}
-        {error ? <div className="handout-editor-button-settings-error">{error}</div> : null}
+        <Field data-invalid={!!error || undefined}>
+          <FieldLabel htmlFor="handout-editor-video-url">Video link or embed code</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon className="self-start">
+              <IconLink aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupTextarea
+              ref={inputRef}
+              aria-invalid={!!error || undefined}
+              id="handout-editor-video-url"
+              inputMode="url"
+              maxLength={HANDOUT_TEXT_LIMITS.embedCode}
+              placeholder="Paste link or embed code"
+              rows={3}
+              value={srcDraft}
+              onChange={(event) => {
+                setSrcDraft(event.currentTarget.value)
+                setError(null)
+              }}
+            />
+          </InputGroup>
+          {previewLabel ? (
+            <div className="handout-editor-video-settings-preview">
+              <IconVideo aria-hidden="true" />
+              {previewLabel}
+            </div>
+          ) : (
+            <div className="handout-editor-video-settings-preview">
+              Paste a video link or embed code. Handout will handle either.
+            </div>
+          )}
+          <FieldError>{error}</FieldError>
+        </Field>
         <div className="handout-editor-button-settings-actions">
           <button
             className="handout-editor-button-settings-action"

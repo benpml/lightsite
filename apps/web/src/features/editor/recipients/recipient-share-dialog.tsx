@@ -395,7 +395,7 @@ function ModalTabsHeader({
   onViewChange: (view: ShareView) => void
 }) {
   return (
-    <div className="flex h-[42px] flex-row items-center gap-2 border-b border-border px-4 py-0">
+    <div className="flex h-[42px] flex-row items-center gap-2 border-b border-border py-0 pr-2.5 pl-4">
       <div className="flex h-full min-w-0 flex-1 items-center gap-2">
         <TabButton
           active={activeView === "new"}

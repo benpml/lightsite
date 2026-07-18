@@ -23,6 +23,7 @@ export type EditorSidebarSections = Record<EditorSidebarSectionKey, { label: str
 
 export type EditorSidebarLink = SiteSidebarLink
 export type EditorSidebarButton = SiteSidebarButton
+export type EditorSidebarButtonInput = Pick<EditorSidebarButton, "href" | "icon" | "label" | "style">
 
 export type EditorSidebarState = {
   sections: EditorSidebarSections
@@ -53,7 +54,7 @@ export function createEditorPage(name: string, existingPages: EditorSitePage[]) 
     name: trimmedName,
     slug: createSlug(trimmedName, existingSlugs),
     status: "visible" as const,
-    sortOrder: existingPages.length,
+    sortOrder: getNextSortOrder(existingPages),
     document: createBlankPageBody(),
   }
 }
@@ -97,14 +98,14 @@ export function createSidebarLink(
     id: createEditorId(),
     label: clampTextToLimit(input.label, "sidebarLabel").trim(),
     href,
-    icon: "website",
-    sortOrder: existingLinks.length,
+    icon: "link",
+    sortOrder: getNextSortOrder(existingLinks),
     status: "visible",
   }
 }
 
 export function createSidebarButton(
-  input: Pick<EditorSidebarButton, "label" | "href" | "style">,
+  input: EditorSidebarButtonInput,
   existingButtons: EditorSidebarButton[]
 ): EditorSidebarButton {
   const href = normalizeSidebarHref(input.href) ?? clampTextToLimit(input.href, "url").trim()
@@ -113,10 +114,66 @@ export function createSidebarButton(
     id: createEditorId(),
     label: clampTextToLimit(input.label, "sidebarLabel").trim(),
     href,
+    ...(input.icon ? { icon: input.icon } : {}),
     style: input.style,
-    sortOrder: existingButtons.length,
+    sortOrder: getNextSortOrder(existingButtons),
     status: "visible",
   }
+}
+
+export function reorderSidebarPages(
+  pages: EditorSitePage[],
+  activePageId: string,
+  overPageId: string
+) {
+  return reorderSidebarItems(pages, activePageId, overPageId)
+}
+
+export function reorderSidebarLinks(
+  links: EditorSidebarLink[],
+  activeLinkId: string,
+  overLinkId: string
+) {
+  return reorderSidebarItems(links, activeLinkId, overLinkId)
+}
+
+export function reorderSidebarButtons(
+  buttons: EditorSidebarButton[],
+  activeButtonId: string,
+  overButtonId: string
+) {
+  return reorderSidebarItems(buttons, activeButtonId, overButtonId)
+}
+
+function reorderSidebarItems<TItem extends { id: string; sortOrder: number }>(
+  items: TItem[],
+  activeItemId: string,
+  overItemId: string
+) {
+  if (activeItemId === overItemId) {
+    return items
+  }
+
+  const orderedItems = [...items].sort((left, right) => left.sortOrder - right.sortOrder)
+  const activeIndex = orderedItems.findIndex((item) => item.id === activeItemId)
+  const overIndex = orderedItems.findIndex((item) => item.id === overItemId)
+
+  if (activeIndex === -1 || overIndex === -1) {
+    return items
+  }
+
+  const [activeItem] = orderedItems.splice(activeIndex, 1)
+
+  if (!activeItem) {
+    return items
+  }
+
+  orderedItems.splice(overIndex, 0, activeItem)
+
+  return orderedItems.map((item, sortOrder) => ({
+    ...item,
+    sortOrder,
+  }))
 }
 
 export function getOrderedVisiblePages(pages: EditorSitePage[]) {
@@ -164,4 +221,8 @@ function createEditorId() {
   }
 
   return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function getNextSortOrder(items: Array<{ sortOrder: number }>) {
+  return items.reduce((highest, item) => Math.max(highest, item.sortOrder), -1) + 1
 }

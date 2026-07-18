@@ -1,6 +1,8 @@
 import {
+  getHandoutDocumentStringLimit,
   HANDOUT_COLLECTION_LIMITS,
   HANDOUT_TEXT_LIMITS,
+  isEmbeddedImageDataUrl,
 } from "@handout/domain";
 import {
   trackingV2PublicBootstrapSchema,
@@ -8,6 +10,7 @@ import {
 } from "@handout/tracking-schema";
 import { z } from "zod";
 
+import { SITE_ICON_OPTIONS, type SiteIconName } from "./site-icons";
 import { SITE_DOCUMENT_PROSEMIRROR_SCHEMA } from "./tiptap/site-extensions";
 
 export const SITE_DOCUMENT_SCHEMA_VERSION = 3 as const;
@@ -220,10 +223,16 @@ export const siteSidebarLinkSchema = z.object({
   sortOrder: z.number().int().nonnegative(),
 });
 
+const siteIconNames = SITE_ICON_OPTIONS.map((option) => option.name) as [
+  SiteIconName,
+  ...SiteIconName[],
+];
+
 export const siteSidebarButtonSchema = z.object({
   id: limitedTrimmedString(HANDOUT_TEXT_LIMITS.variableName).min(1),
   label: limitedString(HANDOUT_TEXT_LIMITS.sidebarLabel),
   href: limitedString(HANDOUT_TEXT_LIMITS.url),
+  icon: z.enum(siteIconNames).optional(),
   style: z.enum(["filled", "outline"]),
   status: z.enum(["visible", "hidden"]),
   sortOrder: z.number().int().nonnegative(),
@@ -317,7 +326,7 @@ const recipientWebsiteVariable: SiteVariableDefinition = {
   defaultValue: "",
 };
 
-export function createDefaultSiteContent(siteName = "Untitled Handout"): SiteContent {
+export function createDefaultSiteContent(siteName = "Overview"): SiteContent {
   const pageName = siteName.trim() || "Overview";
 
   return {
@@ -515,8 +524,16 @@ function validateUnknown(value: unknown, context: z.RefinementCtx, depth: number
   }
 
   if (typeof value === "string") {
-    if (value.length > HANDOUT_TEXT_LIMITS.blockText) {
-      context.addIssue({ code: "custom", message: "Content string is too long." });
+    const isEmbeddedImage = isEmbeddedImageDataUrl(value);
+    const limit = getHandoutDocumentStringLimit(value);
+
+    if (value.length > limit) {
+      context.addIssue({
+        code: "custom",
+        message: isEmbeddedImage
+          ? "Embedded image is too large."
+          : "Content string is too long.",
+      });
     }
     return;
   }

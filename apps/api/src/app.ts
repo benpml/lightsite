@@ -162,6 +162,10 @@ export function createApp(options: CreateAppOptions = {}) {
     TRACKING_V2_SESSION_HEARTBEAT_ENDPOINT,
     TRACKING_V2_SESSION_END_ENDPOINT,
   ], express.json({ limit: "16kb" }));
+  app.use(
+    "/api/sites/:siteId/content",
+    express.json({ limit: env.API_SITE_CONTENT_JSON_BODY_LIMIT }),
+  );
   app.use(express.json({ limit: env.API_JSON_BODY_LIMIT }));
 
   app.get("/api/health", (request, response) => {

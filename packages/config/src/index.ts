@@ -21,6 +21,7 @@ const trackingReplayStorageShape = {
 export const apiEnvSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(3011),
   API_JSON_BODY_LIMIT: z.string().min(1).default("256kb"),
+  API_SITE_CONTENT_JSON_BODY_LIMIT: z.string().min(1).default("12mb"),
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:5173"),
   DATABASE_POOL_MAX: z.coerce.number().int().positive().max(50).default(10),

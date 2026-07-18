@@ -1,6 +1,8 @@
 import {
+  getHandoutDocumentStringLimit,
   HANDOUT_COLLECTION_LIMITS,
   HANDOUT_TEXT_LIMITS,
+  isEmbeddedImageDataUrl,
   normalizeWebsiteDomain,
   slugifyName,
   validateSiteSlug,
@@ -1160,10 +1162,14 @@ function validateUnknownStringFields(
   const issues: SitePublishValidationIssue[] = [];
 
   if (typeof value === "string") {
-    if (value.length > HANDOUT_TEXT_LIMITS.blockText) {
+    const limit = getHandoutDocumentStringLimit(value);
+
+    if (value.length > limit) {
       issues.push({
         path,
-        message: `Text must be ${HANDOUT_TEXT_LIMITS.blockText.toLocaleString("en-US")} characters or fewer.`,
+        message: isEmbeddedImageDataUrl(value)
+          ? `Embedded image must be ${HANDOUT_TEXT_LIMITS.embeddedImageDataUrl.toLocaleString("en-US")} characters or fewer.`
+          : `Text must be ${HANDOUT_TEXT_LIMITS.blockText.toLocaleString("en-US")} characters or fewer.`,
       });
     }
 

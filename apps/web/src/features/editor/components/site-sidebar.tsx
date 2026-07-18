@@ -1,23 +1,50 @@
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type ComponentProps,
   type CSSProperties,
+  type PointerEventHandler,
   type ReactNode,
+  type Ref,
 } from "react"
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import {
+  IconChevronDown,
+  IconGripVertical,
   IconLink,
   IconMenu2,
   IconNotes,
   IconPencil,
   IconPlus,
   IconTrash,
-  IconWorld,
   IconX,
 } from "@tabler/icons-react"
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain"
+import {
+  SITE_ICON_OPTIONS,
+  getSiteIconSvgBody,
+  normalizeSiteIconName,
+  type SiteIconName,
+} from "@handout/site-document"
 
 import {
   AlertDialog,
@@ -31,7 +58,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Input, InputTrigger } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import {
   Popover,
   PopoverContent,
@@ -39,6 +72,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
   SheetClose,
@@ -56,13 +90,14 @@ import {
 import { cn } from "@/lib/utils"
 import type {
   EditorSidebarButton,
+  EditorSidebarButtonInput,
   EditorSidebarButtonStyle,
   EditorSidebarLink,
   EditorSidebarSectionKey,
   EditorSidebarSections,
   EditorSitePage,
 } from "../site-sidebar-model"
-import { isUrlish, normalizeSidebarHref } from "../site-sidebar-model"
+import { normalizeSidebarHref } from "../site-sidebar-model"
 import type { EditorMode } from "../types"
 
 type EditorSidebarModel = {
@@ -82,7 +117,7 @@ type EditorSiteSidebarProps = {
   mode: EditorMode
   model: EditorSidebarModel
   primaryColorStyle: CSSProperties
-  onAddButton: (input: { label: string; href: string; style: EditorSidebarButtonStyle }) => void
+  onAddButton: (input: EditorSidebarButtonInput) => void
   onAddLink: (input: { label: string; href: string }) => void
   onAddPage: () => void
   onDeletePage: (pageId: string) => void
@@ -90,10 +125,13 @@ type EditorSiteSidebarProps = {
   onDeleteLink: (linkId: string) => void
   onRenamePage: (pageId: string, name: string) => void
   onRenameSection: (section: EditorSidebarSectionKey, label: string) => void
+  onReorderButton: (activeButtonId: string, overButtonId: string) => void
+  onReorderLink: (activeLinkId: string, overLinkId: string) => void
+  onReorderPage: (activePageId: string, overPageId: string) => void
   onSelectPage: (pageId: string) => void
   onUpdateButton: (
     buttonId: string,
-    input: { label: string; href: string; style: EditorSidebarButtonStyle }
+    input: EditorSidebarButtonInput
   ) => void
   onUpdateLink: (linkId: string, input: { label: string; href: string }) => void
 }
@@ -200,6 +238,9 @@ function SidebarContent({
   onDeleteLink,
   onRenamePage,
   onRenameSection,
+  onReorderButton,
+  onReorderLink,
+  onReorderPage,
   onSelectPage,
   onUpdateButton,
   onUpdateLink,
@@ -209,7 +250,7 @@ function SidebarContent({
   isEditing: boolean
 }) {
   return (
-    <div className="handout-editor-sidebar-content flex min-w-0 w-full flex-col gap-4">
+    <div className="handout-editor-sidebar-content flex min-w-0 w-full flex-col gap-6">
       <SidebarSection
         isEditing={isEditing}
         label={model.sections.tabs.label}
@@ -220,20 +261,32 @@ function SidebarContent({
         onRenameSection={onRenameSection}
       >
         {model.pages.length > 0 ? (
-          <div className="flex flex-col gap-1">
-            {model.pages.map((page) => (
-              <PageRow
-                key={page.id}
-                active={page.id === activePageId}
-                canDelete={model.pages.length > 1}
-                isEditing={isEditing}
-                onDeletePage={onDeletePage}
-                onRenamePage={onRenamePage}
-                onSelectPage={onSelectPage}
-                page={page}
-              />
-            ))}
-          </div>
+          isEditing ? (
+            <SortableSidebarPageList
+              activePageId={activePageId}
+              onDeletePage={onDeletePage}
+              onRenamePage={onRenamePage}
+              onReorderPage={onReorderPage}
+              onSelectPage={onSelectPage}
+              pages={model.pages}
+            />
+          ) : (
+            <div className="flex flex-col gap-1">
+              {model.pages.map((page) => (
+                <PageRow
+                  key={page.id}
+                  active={page.id === activePageId}
+                  canDelete={false}
+                  canReorder={false}
+                  isEditing={false}
+                  onDeletePage={onDeletePage}
+                  onRenamePage={onRenamePage}
+                  onSelectPage={onSelectPage}
+                  page={page}
+                />
+              ))}
+            </div>
+          )
         ) : null}
       </SidebarSection>
 
@@ -254,38 +307,29 @@ function SidebarContent({
         onRenameSection={onRenameSection}
       >
         {model.links.length > 0 ? (
-          <div className="flex flex-col gap-1">
-            {model.links.map((link) => (
-              isEditing ? (
-                <LinkEditorPopover
-                  key={link.id}
-                  link={link}
-                  onDelete={() => onDeleteLink(link.id)}
-                  onSave={(input) => onUpdateLink(link.id, input)}
-                  tooltipSide="right"
-                  triggerClassName="group/sidebar-link flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-base leading-6 text-foreground outline-none transition hover:bg-muted focus-visible:bg-muted"
-                  trigger={
-                    <>
-                      <IconWorld className="size-4 shrink-0 text-tertiary-foreground" />
-                      <span className="min-w-0 flex-1 truncate">{link.label}</span>
-                      <IconPencil className="size-3.5 shrink-0 text-tertiary-foreground opacity-0 transition-opacity group-hover/sidebar-link:opacity-100 group-focus-visible/sidebar-link:opacity-100" />
-                    </>
-                  }
-                />
-              ) : (
+          isEditing ? (
+            <SortableSidebarLinkList
+              links={model.links}
+              onDeleteLink={onDeleteLink}
+              onReorderLink={onReorderLink}
+              onUpdateLink={onUpdateLink}
+            />
+          ) : (
+            <div className="flex flex-col gap-1">
+              {model.links.map((link) => (
                 <a
                   key={link.id}
                   href={link.href}
                   rel="noreferrer"
                   target="_blank"
-                  className="flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-base leading-6 text-foreground outline-none transition hover:bg-muted focus-visible:bg-muted"
+                  className="flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-base leading-6 text-tertiary-foreground outline-none transition hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
                 >
-                  <IconWorld className="size-4 shrink-0 text-tertiary-foreground" />
+                  <IconLink className="size-4 shrink-0 text-[var(--handout-sidebar-link-icon)]" />
                   <span className="min-w-0 flex-1 truncate">{link.label}</span>
                 </a>
-              )
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         ) : null}
       </SidebarSection>
 
@@ -312,51 +356,527 @@ function SidebarContent({
         onRenameSection={onRenameSection}
       >
         {model.nextSteps.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {model.nextSteps.map((button) => (
-              isEditing ? (
-                <ButtonEditorPopover
-                  key={button.id}
-                  button={button}
-                  onDelete={() => onDeleteButton(button.id)}
-                  onSave={(input) => onUpdateButton(button.id, input)}
-                  primaryColorStyle={primaryColorStyle}
-                  tooltipSide="right"
-                  triggerClassName={cn(
-                    "handout-editor-sidebar-button flex h-9 w-full items-center justify-center gap-2 rounded-[10px] px-3 text-[15px] leading-5 font-medium outline-none transition",
-                    button.style === "filled"
-                      ? "bg-[var(--handout-primary)] text-[var(--handout-primary-foreground)] hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50"
-                      : "border border-border bg-background text-foreground hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-                  )}
-                  trigger={<span className="min-w-0 truncate">{button.label}</span>}
-                />
-              ) : (
+          isEditing ? (
+            <SortableSidebarButtonList
+              buttons={model.nextSteps}
+              onDeleteButton={onDeleteButton}
+              onReorderButton={onReorderButton}
+              onUpdateButton={onUpdateButton}
+              primaryColorStyle={primaryColorStyle}
+            />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {model.nextSteps.map((button) => (
                 <a
                   key={button.id}
                   href={button.href}
                   rel="noreferrer"
                   target="_blank"
                   className={cn(
-                    "handout-editor-sidebar-button flex h-9 w-full items-center justify-center gap-2 rounded-[10px] px-3 text-[15px] leading-5 font-medium outline-none transition",
+                    "handout-editor-sidebar-button flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] px-3 text-[15px] leading-5 font-medium outline-none transition",
                     button.style === "filled"
                       ? "bg-[var(--handout-primary)] text-[var(--handout-primary-foreground)] hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50"
                       : "border border-border bg-background text-foreground hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
                   )}
                 >
+                  {button.icon ? <SiteIconGlyph name={button.icon} size={15} /> : null}
                   <span className="min-w-0 truncate">{button.label}</span>
                 </a>
-              )
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         ) : null}
       </SidebarSection>
     </div>
   )
 }
 
+type SortableSidebarListItem = {
+  id: string
+  label: string
+}
+
+function SortableSidebarList({
+  children,
+  gapClassName,
+  itemKind,
+  items,
+  onReorder,
+}: {
+  children: ReactNode
+  gapClassName: string
+  itemKind: "button" | "link" | "tab"
+  items: SortableSidebarListItem[]
+  onReorder: (activeItemId: string, overItemId: string) => void
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+  const itemIds = useMemo(() => items.map((item) => item.id), [items])
+  const announcements = useMemo<Announcements>(() => {
+    const itemLabels = new Map(items.map((item) => [item.id, item.label]))
+    const fallbackLabel = itemKind[0]?.toUpperCase() + itemKind.slice(1)
+    const getLabel = (id: string | number) => itemLabels.get(String(id)) ?? fallbackLabel
+    const getPosition = (id: string | number) => itemIds.indexOf(String(id)) + 1
+
+    return {
+      onDragStart: ({ active }) =>
+        `Picked up ${getLabel(active.id)}. Position ${getPosition(active.id)} of ${items.length}.`,
+      onDragOver: ({ active, over }) => over
+        ? `${getLabel(active.id)} is over position ${getPosition(over.id)} of ${items.length}.`
+        : `${getLabel(active.id)} is no longer over the ${itemKind} list.`,
+      onDragEnd: ({ active, over }) => over
+        ? `${getLabel(active.id)} was moved to position ${getPosition(over.id)} of ${items.length}.`
+        : `${getLabel(active.id)} was returned to its original position.`,
+      onDragCancel: ({ active }) => `Reordering ${getLabel(active.id)} was canceled.`,
+    }
+  }, [itemIds, itemKind, items])
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    onReorder(String(active.id), String(over.id))
+  }
+
+  return (
+    <DndContext
+      accessibility={{
+        announcements,
+        screenReaderInstructions: {
+          draggable: `To pick up a ${itemKind}, press space. Use the arrow keys to move it, then press space again to drop it.`,
+        },
+      }}
+      collisionDetection={closestCenter}
+      sensors={sensors}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+        <div className={cn("flex flex-col", gapClassName)}>{children}</div>
+      </SortableContext>
+    </DndContext>
+  )
+}
+
+function SortableSidebarPageList({
+  activePageId,
+  onDeletePage,
+  onRenamePage,
+  onReorderPage,
+  onSelectPage,
+  pages,
+}: {
+  activePageId: string
+  onDeletePage: (pageId: string) => void
+  onRenamePage: (pageId: string, name: string) => void
+  onReorderPage: (activePageId: string, overPageId: string) => void
+  onSelectPage: (pageId: string) => void
+  pages: EditorSitePage[]
+}) {
+  const items = useMemo(
+    () => pages.map((page) => ({
+      id: page.id,
+      label: `${page.name.trim() || "Untitled"} tab`,
+    })),
+    [pages]
+  )
+
+  return (
+    <SortableSidebarList
+      gapClassName="gap-1"
+      itemKind="tab"
+      items={items}
+      onReorder={onReorderPage}
+    >
+      {pages.map((page) => (
+        <SortablePageRow
+          key={page.id}
+          active={page.id === activePageId}
+          canDelete={pages.length > 1}
+          canReorder={pages.length > 1}
+          onDeletePage={onDeletePage}
+          onRenamePage={onRenamePage}
+          onSelectPage={onSelectPage}
+          page={page}
+        />
+      ))}
+    </SortableSidebarList>
+  )
+}
+
+function SortableSidebarLinkList({
+  links,
+  onDeleteLink,
+  onReorderLink,
+  onUpdateLink,
+}: {
+  links: EditorSidebarLink[]
+  onDeleteLink: (linkId: string) => void
+  onReorderLink: (activeLinkId: string, overLinkId: string) => void
+  onUpdateLink: (linkId: string, input: { label: string; href: string }) => void
+}) {
+  const items = useMemo(
+    () => links.map((link) => ({
+      id: link.id,
+      label: `${link.label.trim() || "Untitled"} link`,
+    })),
+    [links]
+  )
+
+  return (
+    <SortableSidebarList
+      gapClassName="gap-1"
+      itemKind="link"
+      items={items}
+      onReorder={onReorderLink}
+    >
+      {links.map((link) => (
+        <SortableSidebarLink
+          key={link.id}
+          canReorder={links.length > 1}
+          link={link}
+          onDelete={() => onDeleteLink(link.id)}
+          onSave={(input) => onUpdateLink(link.id, input)}
+        />
+      ))}
+    </SortableSidebarList>
+  )
+}
+
+function SortableSidebarButtonList({
+  buttons,
+  onDeleteButton,
+  onReorderButton,
+  onUpdateButton,
+  primaryColorStyle,
+}: {
+  buttons: EditorSidebarButton[]
+  onDeleteButton: (buttonId: string) => void
+  onReorderButton: (activeButtonId: string, overButtonId: string) => void
+  onUpdateButton: (
+    buttonId: string,
+    input: EditorSidebarButtonInput
+  ) => void
+  primaryColorStyle: CSSProperties
+}) {
+  const items = useMemo(
+    () => buttons.map((button) => ({
+      id: button.id,
+      label: `${button.label.trim() || "Untitled"} button`,
+    })),
+    [buttons]
+  )
+
+  return (
+    <SortableSidebarList
+      gapClassName="gap-2"
+      itemKind="button"
+      items={items}
+      onReorder={onReorderButton}
+    >
+      {buttons.map((button) => (
+        <SortableSidebarButton
+          key={button.id}
+          button={button}
+          canReorder={buttons.length > 1}
+          onDelete={() => onDeleteButton(button.id)}
+          onSave={(input) => onUpdateButton(button.id, input)}
+          primaryColorStyle={primaryColorStyle}
+        />
+      ))}
+    </SortableSidebarList>
+  )
+}
+
+function SortableSidebarItem({
+  accessibleLabel,
+  canReorder,
+  children,
+  className,
+  handleClassName,
+  id,
+  itemKind,
+}: {
+  accessibleLabel: string
+  canReorder: boolean
+  children: (props: { onSurfacePointerDown: PointerEventHandler<HTMLElement> }) => ReactNode
+  className?: string
+  handleClassName?: string
+  id: string
+  itemKind: "button" | "link" | "tab"
+}) {
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    id,
+    disabled: !canReorder,
+  })
+  const onSurfacePointerDown: PointerEventHandler<HTMLElement> = (event) => {
+    if (event.pointerType !== "touch") {
+      listeners?.onPointerDown?.(event)
+    }
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "group/sidebar-sortable relative z-0",
+        className,
+        isDragging && "z-10 opacity-80 drop-shadow-md"
+      )}
+      data-sidebar-sortable-kind={itemKind}
+      data-sidebar-sortable-dragging={isDragging ? "true" : undefined}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+    >
+      {children({ onSurfacePointerDown })}
+      {canReorder ? (
+        <button
+          ref={setActivatorNodeRef}
+          type="button"
+          aria-label={`Reorder ${accessibleLabel}`}
+          className={cn(
+            "absolute top-1/2 left-1 z-10 inline-flex size-7 -translate-y-1/2 touch-none cursor-grab items-center justify-center rounded-md text-tertiary-foreground opacity-0 outline-none transition-opacity active:cursor-grabbing group-hover/sidebar-sortable:opacity-70 group-focus-within/sidebar-sortable:opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-3.5",
+            handleClassName
+          )}
+          title="Drag to reorder"
+          {...attributes}
+          {...listeners}
+        >
+          <IconGripVertical data-icon />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function SortableSidebarLink({
+  canReorder,
+  link,
+  onDelete,
+  onSave,
+}: {
+  canReorder: boolean
+  link: EditorSidebarLink
+  onDelete: () => void
+  onSave: (input: { label: string; href: string }) => void
+}) {
+  const editorTriggerRef = useRef<HTMLButtonElement>(null)
+
+  return (
+    <SortableSidebarItem
+      accessibleLabel={`${link.label.trim() || "untitled"} link`}
+      canReorder={canReorder}
+      className="group/sidebar-item flex h-9 w-full items-center rounded-lg text-tertiary-foreground transition hover:bg-muted hover:text-foreground focus-within:text-foreground"
+      id={link.id}
+      itemKind="link"
+    >
+      {({ onSurfacePointerDown }) => (
+        <>
+          <LinkEditorPopover
+            link={link}
+            onDelete={onDelete}
+            onSave={onSave}
+            onTriggerPointerDown={onSurfacePointerDown}
+            triggerClassName="flex h-full min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 pr-[62px] text-left text-base leading-6 outline-none focus-visible:bg-muted focus-visible:text-foreground"
+            trigger={
+              <>
+                <IconLink
+                  className={cn(
+                    "size-4 shrink-0 text-[var(--handout-sidebar-link-icon)] transition-opacity",
+                    canReorder && "group-hover/sidebar-sortable:opacity-0 group-focus-within/sidebar-sortable:opacity-0"
+                  )}
+                />
+                <span className="min-w-0 flex-1 truncate">{link.label}</span>
+              </>
+            }
+            triggerRef={editorTriggerRef}
+          />
+          <SidebarItemHoverActions
+            itemKind="link"
+            itemLabel={link.label}
+            onDelete={onDelete}
+            onEdit={() => editorTriggerRef.current?.click()}
+          />
+        </>
+      )}
+    </SortableSidebarItem>
+  )
+}
+
+function SortableSidebarButton({
+  button,
+  canReorder,
+  onDelete,
+  onSave,
+  primaryColorStyle,
+}: {
+  button: EditorSidebarButton
+  canReorder: boolean
+  onDelete: () => void
+  onSave: (input: EditorSidebarButtonInput) => void
+  primaryColorStyle: CSSProperties
+}) {
+  const editorTriggerRef = useRef<HTMLButtonElement>(null)
+  const filled = button.style === "filled"
+
+  return (
+    <SortableSidebarItem
+      accessibleLabel={`${button.label.trim() || "untitled"} button`}
+      canReorder={canReorder}
+      className={cn(
+        "handout-editor-sidebar-button group/sidebar-item flex h-9 w-full items-center rounded-[10px] outline-none transition",
+        filled
+          ? "bg-[var(--handout-primary)] text-[var(--handout-primary-foreground)] hover:brightness-95 focus-within:ring-3 focus-within:ring-ring/50"
+          : "border border-border bg-background text-foreground hover:bg-muted focus-within:ring-3 focus-within:ring-ring/50"
+      )}
+      handleClassName={filled
+        ? "text-[var(--handout-primary-foreground)]"
+        : undefined}
+      id={button.id}
+      itemKind="button"
+    >
+      {({ onSurfacePointerDown }) => (
+        <>
+          <ButtonEditorPopover
+            button={button}
+            onDelete={onDelete}
+            onSave={onSave}
+            primaryColorStyle={primaryColorStyle}
+            onTriggerPointerDown={onSurfacePointerDown}
+            triggerClassName="flex h-full min-w-0 flex-1 items-center justify-center rounded-[10px] px-[62px] text-[15px] leading-5 font-medium outline-none"
+            trigger={
+              <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1.5">
+                {button.icon ? <SiteIconGlyph name={button.icon} size={15} /> : null}
+                <span className="min-w-0 truncate text-center">{button.label}</span>
+              </span>
+            }
+            triggerRef={editorTriggerRef}
+          />
+          <SidebarItemHoverActions
+            itemKind="button"
+            itemLabel={button.label}
+            onDelete={onDelete}
+            onEdit={() => editorTriggerRef.current?.click()}
+            tone={filled ? "inverse" : "default"}
+          />
+        </>
+      )}
+    </SortableSidebarItem>
+  )
+}
+
+function SidebarItemHoverActions({
+  itemKind,
+  itemLabel,
+  onDelete,
+  onEdit,
+  tone = "default",
+}: {
+  itemKind: "button" | "link"
+  itemLabel: string
+  onDelete: () => void
+  onEdit: () => void
+  tone?: "default" | "inverse"
+}) {
+  const actionClassName = cn(
+    "inline-flex size-[26px] shrink-0 items-center justify-center rounded-lg outline-none transition focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-3.5",
+    tone === "inverse"
+      ? "text-[var(--handout-primary-foreground)] hover:bg-background/15 focus-visible:bg-background/15"
+      : "text-tertiary-foreground hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+  )
+
+  return (
+    <div className="pointer-events-none absolute top-1/2 right-1 z-20 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover/sidebar-item:pointer-events-auto group-hover/sidebar-item:opacity-100 group-focus-within/sidebar-item:pointer-events-auto group-focus-within/sidebar-item:opacity-100">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Edit ${itemLabel} ${itemKind}`}
+            className={actionClassName}
+            onClick={onEdit}
+          >
+            <IconPencil data-icon />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">Edit {itemKind}</TooltipContent>
+      </Tooltip>
+      <SidebarItemDeleteConfirmation
+        actionClassName={actionClassName}
+        itemKind={itemKind}
+        itemLabel={itemLabel}
+        onDelete={onDelete}
+      />
+    </div>
+  )
+}
+
+function SidebarItemDeleteConfirmation({
+  actionClassName,
+  itemKind,
+  itemLabel,
+  onDelete,
+}: {
+  actionClassName: string
+  itemKind: "button" | "link"
+  itemLabel: string
+  onDelete: () => void
+}) {
+  const sectionName = itemKind === "link" ? "Links" : "Next steps"
+
+  return (
+    <AlertDialog>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <AlertDialogTrigger
+              type="button"
+              aria-label={`Delete ${itemLabel} ${itemKind}`}
+              className={actionClassName}
+            >
+              <IconTrash data-icon />
+            </AlertDialogTrigger>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right">Delete {itemKind}</TooltipContent>
+      </Tooltip>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {itemKind}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This removes {itemLabel} from the {sectionName} section. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onDelete}>
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 function PageRow({
   active,
   canDelete,
+  canReorder,
   onDeletePage,
   onRenamePage,
   onSelectPage,
@@ -365,6 +885,7 @@ function PageRow({
 }: {
   active: boolean
   canDelete: boolean
+  canReorder: boolean
   isEditing: boolean
   onDeletePage: (pageId: string) => void
   onRenamePage: (pageId: string, name: string) => void
@@ -372,21 +893,93 @@ function PageRow({
   page: EditorSitePage
 }) {
   return (
-    <div
-      className={cn(
-        "group/page relative flex h-9 w-full items-center rounded-lg outline-none transition",
-        active
-          ? "bg-[var(--handout-primary-soft)] text-[var(--handout-primary)]"
-          : "text-tertiary-foreground hover:bg-muted"
-      )}
+    <div className={getPageRowClassName(active)}>
+      <PageRowContent
+        active={active}
+        canDelete={canDelete}
+        canReorder={canReorder}
+        isEditing={isEditing}
+        onDeletePage={onDeletePage}
+        onRenamePage={onRenamePage}
+        onSelectPage={onSelectPage}
+        page={page}
+      />
+    </div>
+  )
+}
+
+function SortablePageRow({
+  active,
+  canDelete,
+  canReorder,
+  onDeletePage,
+  onRenamePage,
+  onSelectPage,
+  page,
+}: Omit<Parameters<typeof PageRow>[0], "isEditing">) {
+  return (
+    <SortableSidebarItem
+      accessibleLabel={`${page.name.trim() || "untitled"} tab`}
+      canReorder={canReorder}
+      className={getPageRowClassName(active)}
+      handleClassName={active ? "text-[var(--handout-primary)]" : undefined}
+      id={page.id}
+      itemKind="tab"
     >
+      {({ onSurfacePointerDown }) => (
+        <PageRowContent
+          active={active}
+          canDelete={canDelete}
+          canReorder={canReorder}
+          isEditing
+          onDeletePage={onDeletePage}
+          onRenamePage={onRenamePage}
+          onSelectPage={onSelectPage}
+          onSurfacePointerDown={onSurfacePointerDown}
+          page={page}
+        />
+      )}
+    </SortableSidebarItem>
+  )
+}
+
+function PageRowContent({
+  active,
+  canDelete,
+  canReorder,
+  isEditing,
+  onDeletePage,
+  onRenamePage,
+  onSelectPage,
+  onSurfacePointerDown,
+  page,
+}: {
+  active: boolean
+  canDelete: boolean
+  canReorder: boolean
+  isEditing: boolean
+  onDeletePage: (pageId: string) => void
+  onRenamePage: (pageId: string, name: string) => void
+  onSelectPage: (pageId: string) => void
+  onSurfacePointerDown?: PointerEventHandler<HTMLElement>
+  page: EditorSitePage
+}) {
+  return (
+    <>
       <button
         type="button"
         aria-current={active ? "page" : undefined}
         className="flex h-full min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 text-left text-base leading-6 outline-none focus-visible:bg-muted"
         onClick={() => onSelectPage(page.id)}
+        onPointerDown={onSurfacePointerDown}
       >
-        <IconNotes className="size-4 shrink-0" />
+        <IconNotes
+          className={cn(
+            "size-4 shrink-0 transition-opacity",
+            active ? "text-[var(--handout-primary)]" : "text-muted-foreground",
+            canReorder && "group-hover/sidebar-sortable:opacity-0 group-focus-within/sidebar-sortable:opacity-0"
+          )}
+        />
         <span className="min-w-0 flex-1 truncate">{page.name}</span>
       </button>
       {isEditing ? (
@@ -397,7 +990,16 @@ function PageRow({
           ) : null}
         </div>
       ) : null}
-    </div>
+    </>
+  )
+}
+
+function getPageRowClassName(active: boolean) {
+  return cn(
+    "group/page relative flex h-9 w-full items-center rounded-lg outline-none transition",
+    active
+      ? "bg-[var(--handout-primary-soft)] text-[var(--handout-primary)]"
+      : "text-tertiary-foreground hover:bg-muted"
   )
 }
 
@@ -455,6 +1057,12 @@ function PageRenamePopover({
   const [open, setOpen] = useState(false)
   const [draftName, setDraftName] = useState(page.name)
   const panelRef = useRef<HTMLDivElement>(null)
+  const originalNameRef = useRef(page.name)
+
+  const cancel = () => {
+    onRenamePage(page.id, originalNameRef.current)
+    setOpen(false)
+  }
 
   useEffect(() => {
     if (!open) {
@@ -468,6 +1076,7 @@ function PageRenamePopover({
     }
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        onRenamePage(page.id, originalNameRef.current)
         setOpen(false)
       }
     }
@@ -478,7 +1087,7 @@ function PageRenamePopover({
       document.removeEventListener("pointerdown", closeOnOutsidePointer)
       document.removeEventListener("keydown", closeOnEscape)
     }
-  }, [open])
+  }, [open, onRenamePage, page.id])
 
   return (
     <div ref={panelRef} className="relative inline-flex">
@@ -490,6 +1099,7 @@ function PageRenamePopover({
               aria-label={`Edit ${page.name} tab name`}
               className="inline-flex size-[26px] shrink-0 items-center justify-center rounded-lg text-tertiary-foreground outline-none transition hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground [&_svg]:size-3.5"
               onClick={() => {
+                originalNameRef.current = page.name
                 setDraftName(page.name)
                 setOpen(true)
               }}
@@ -511,7 +1121,11 @@ function PageRenamePopover({
             className="flex flex-col gap-3"
             onSubmit={(event) => {
               event.preventDefault()
-              onRenamePage(page.id, draftName)
+
+              if (!draftName.trim()) {
+                return
+              }
+
               setOpen(false)
             }}
           >
@@ -519,18 +1133,31 @@ function PageRenamePopover({
               autoFocus
               maxLength={HANDOUT_TEXT_LIMITS.siteName}
               value={draftName}
-              onChange={(event) => setDraftName(event.target.value)}
+              onChange={(event) => {
+                const nextName = event.target.value
+                setDraftName(nextName)
+
+                if (nextName.trim()) {
+                  onRenamePage(page.id, nextName)
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && draftName.trim()) {
+                  event.preventDefault()
+                  setOpen(false)
+                }
+              }}
             />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-1.5">
               <Button
                 type="button"
                 variant="ghost"
                 className={cancelButtonClassName}
-                onClick={() => setOpen(false)}
+                onClick={cancel}
               >
                 Cancel
               </Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit" disabled={!draftName.trim()}>Done</Button>
             </div>
           </form>
         </div>
@@ -569,7 +1196,12 @@ function SidebarSection({
   }
 
   return (
-    <section className="flex flex-col gap-2">
+    <section
+      className={cn(
+        "flex flex-col",
+        sectionKey === "nextSteps" ? "gap-2.5" : "gap-2"
+      )}
+    >
       <div className="group/section-header flex h-[26px] items-center gap-1">
         <h2 className="handout-editor-sidebar-section-title min-w-0 flex-1">
           {label}
@@ -714,31 +1346,39 @@ function LinkEditorPopover({
   link,
   onDelete,
   onSave,
+  onTriggerPointerDown,
   showTriggerTooltip,
   tooltipSide,
   trigger,
   triggerClassName,
+  triggerRef,
 }: {
   link?: EditorSidebarLink
   onDelete?: () => void
   onSave: (input: { label: string; href: string }) => void
+  onTriggerPointerDown?: PointerEventHandler<HTMLElement>
   showTriggerTooltip?: boolean
   tooltipSide?: TooltipSide
   trigger?: ReactNode
   triggerClassName?: string
+  triggerRef?: Ref<HTMLButtonElement>
 }) {
   return (
     <SidebarItemEditorPopover
       initialHref={link?.href ?? ""}
       initialLabel={link?.label ?? ""}
+      isEditing={Boolean(link)}
       onDelete={onDelete}
       onSave={(input) => onSave({ label: input.label, href: input.href })}
+      onTriggerPointerDown={onTriggerPointerDown}
       title={link ? "Edit link" : "Add link"}
       trigger={trigger}
       triggerClassName={triggerClassName}
       triggerLabel={link ? "Edit link" : "Add link"}
       triggerIcon={<IconPlus />}
-      tooltipLabel={showTriggerTooltip === false ? undefined : link ? "Edit link" : "Add link"}
+      triggerRef={triggerRef}
+      triggerWrapperClassName={link ? "w-full" : undefined}
+      tooltipLabel={showTriggerTooltip === false || link ? undefined : "Add link"}
       tooltipSide={tooltipSide}
     />
   )
@@ -751,33 +1391,43 @@ function ButtonEditorPopover({
   primaryColorStyle,
   showTriggerTooltip,
   tooltipSide,
+  onTriggerPointerDown,
   trigger,
   triggerClassName,
+  triggerRef,
 }: {
   button?: EditorSidebarButton
   onDelete?: () => void
-  onSave: (input: { label: string; href: string; style: EditorSidebarButtonStyle }) => void
+  onSave: (input: EditorSidebarButtonInput) => void
   primaryColorStyle: CSSProperties
   showTriggerTooltip?: boolean
   tooltipSide?: TooltipSide
+  onTriggerPointerDown?: PointerEventHandler<HTMLElement>
   trigger?: ReactNode
   triggerClassName?: string
+  triggerRef?: Ref<HTMLButtonElement>
 }) {
   return (
     <SidebarItemEditorPopover
       initialHref={button?.href ?? ""}
+      initialIcon={button?.icon}
       initialLabel={button?.label ?? ""}
       initialStyle={button?.style ?? "filled"}
+      isEditing={Boolean(button)}
       onDelete={onDelete}
       onSave={onSave}
+      onTriggerPointerDown={onTriggerPointerDown}
       popoverStyle={primaryColorStyle}
       showStyle
+      showIcon
       title={button ? "Edit button" : "Add button"}
       trigger={trigger}
       triggerClassName={triggerClassName}
       triggerLabel={button ? "Edit button" : "Add button"}
       triggerIcon={<IconPlus />}
-      tooltipLabel={showTriggerTooltip === false ? undefined : button ? "Edit button" : "Add button"}
+      triggerRef={triggerRef}
+      triggerWrapperClassName={button ? "w-full" : undefined}
+      tooltipLabel={showTriggerTooltip === false || button ? undefined : "Add button"}
       tooltipSide={tooltipSide}
     />
   )
@@ -785,47 +1435,91 @@ function ButtonEditorPopover({
 
 function SidebarItemEditorPopover({
   initialHref,
+  initialIcon,
   initialLabel,
   initialStyle = "filled",
+  isEditing,
   onDelete,
   onSave,
+  onTriggerPointerDown,
   popoverStyle,
   showStyle = false,
+  showIcon = false,
   title,
   trigger,
   triggerClassName,
   triggerIcon,
   triggerLabel,
+  triggerRef,
+  triggerWrapperClassName,
   tooltipLabel,
   tooltipSide,
 }: {
   initialHref: string
+  initialIcon?: SiteIconName
   initialLabel: string
   initialStyle?: EditorSidebarButtonStyle
+  isEditing: boolean
   onDelete?: () => void
-  onSave: (input: { label: string; href: string; style: EditorSidebarButtonStyle }) => void
+  onSave: (input: EditorSidebarButtonInput) => void
+  onTriggerPointerDown?: PointerEventHandler<HTMLElement>
   popoverStyle?: CSSProperties
   showStyle?: boolean
+  showIcon?: boolean
   title: string
   trigger?: ReactNode
   triggerClassName?: string
   triggerIcon: ReactNode
   triggerLabel: string
+  triggerRef?: Ref<HTMLButtonElement>
+  triggerWrapperClassName?: string
   tooltipLabel?: string
   tooltipSide?: TooltipSide
 }) {
   const [open, setOpen] = useState(false)
   const [label, setLabel] = useState(initialLabel)
   const [href, setHref] = useState(initialHref)
+  const [icon, setIcon] = useState<SiteIconName | undefined>(initialIcon)
   const [style, setStyle] = useState<EditorSidebarButtonStyle>(initialStyle)
   const [submitted, setSubmitted] = useState(false)
+  const labelInputId = useId()
+  const hrefInputId = useId()
+  const originalValueRef = useRef<EditorSidebarButtonInput>({
+    href: initialHref,
+    icon: initialIcon,
+    label: initialLabel,
+    style: initialStyle,
+  })
+  const normalizedHref = normalizeSidebarHref(href)
+  const isValid = label.trim().length > 0 && normalizedHref !== null
   const labelError = submitted && label.trim().length === 0
-  const hrefError = submitted && !isUrlish(href)
+  const hrefError = submitted && normalizedHref === null
+
+  const updateLiveItem = (nextValue: EditorSidebarButtonInput) => {
+    if (!isEditing || !nextValue.label.trim()) {
+      return
+    }
+
+    const nextNormalizedHref = normalizeSidebarHref(nextValue.href)
+
+    if (!nextNormalizedHref) {
+      return
+    }
+
+    onSave({ ...nextValue, href: nextNormalizedHref })
+  }
 
   const setPopoverOpen = (nextOpen: boolean) => {
     if (nextOpen) {
+      originalValueRef.current = {
+        href: initialHref,
+        icon: initialIcon,
+        label: initialLabel,
+        style: initialStyle,
+      }
       setLabel(initialLabel)
       setHref(initialHref)
+      setIcon(initialIcon)
       setStyle(initialStyle)
       setSubmitted(false)
     }
@@ -835,22 +1529,34 @@ function SidebarItemEditorPopover({
 
   const save = () => {
     setSubmitted(true)
-    const normalizedHref = normalizeSidebarHref(href)
 
-    if (!label.trim() || !normalizedHref) {
+    if (!isValid || !normalizedHref) {
       return
     }
 
-    onSave({ label, href: normalizedHref, style })
-    setOpen(false)
+    if (!isEditing) {
+      onSave({ label, href: normalizedHref, icon, style })
+    }
+
+    setPopoverOpen(false)
+  }
+
+  const cancel = () => {
+    if (isEditing) {
+      onSave(originalValueRef.current)
+    }
+
+    setPopoverOpen(false)
   }
 
   const renderedTrigger = useMemo(() => trigger ?? triggerIcon, [trigger, triggerIcon])
 
   const popoverTrigger = (
     <PopoverTrigger
+      ref={triggerRef}
       type="button"
       aria-label={triggerLabel}
+      onPointerDown={onTriggerPointerDown}
       className={cn(
         triggerClassName ??
           "inline-flex size-[26px] shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground [&_svg]:size-3.5"
@@ -865,7 +1571,7 @@ function SidebarItemEditorPopover({
       {tooltipLabel ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="inline-flex">{popoverTrigger}</span>
+            <span className={cn("inline-flex", triggerWrapperClassName)}>{popoverTrigger}</span>
           </TooltipTrigger>
           <TooltipContent side={tooltipSide}>{tooltipLabel}</TooltipContent>
         </Tooltip>
@@ -883,40 +1589,86 @@ function SidebarItemEditorPopover({
         <PopoverHeader>
           <PopoverTitle>{title}</PopoverTitle>
         </PopoverHeader>
-        <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            <span>{showStyle ? "Button text" : "Name"}</span>
-            <Input
-              autoFocus
-              value={label}
-              aria-invalid={labelError}
-              maxLength={HANDOUT_TEXT_LIMITS.sidebarLabel}
-              onChange={(event) => setLabel(event.target.value)}
-              placeholder={showStyle ? "Book a call" : "Website"}
-            />
-            {labelError ? (
-              <span className="text-xs font-normal text-destructive">Name is required.</span>
-            ) : null}
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            <span>URL</span>
-            <div className="relative">
-              <IconLink className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            save()
+          }}
+        >
+          <FieldGroup className="gap-3">
+            <Field data-invalid={labelError || undefined}>
+              <FieldLabel htmlFor={labelInputId}>
+                {showStyle ? "Button text" : "Name"}
+              </FieldLabel>
               <Input
-                value={href}
-                aria-invalid={hrefError}
-                className="pl-8"
-                maxLength={HANDOUT_TEXT_LIMITS.url}
-                onChange={(event) => setHref(event.target.value)}
-                placeholder="https://example.com"
+                id={labelInputId}
+                autoFocus
+                value={label}
+                aria-invalid={labelError}
+                maxLength={HANDOUT_TEXT_LIMITS.sidebarLabel}
+                onChange={(event) => {
+                  const nextLabel = event.target.value
+                  setLabel(nextLabel)
+                  updateLiveItem({ href, icon, label: nextLabel, style })
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && isValid) {
+                    event.preventDefault()
+                    save()
+                  }
+                }}
+                placeholder={showStyle ? "Book a call" : "Website"}
               />
-            </div>
-            {hrefError ? (
-              <span className="text-xs font-normal text-destructive">Enter a valid public website URL.</span>
-            ) : null}
-          </label>
+              <FieldError>{labelError ? "Name is required." : null}</FieldError>
+            </Field>
+            <Field data-invalid={hrefError || undefined}>
+              <FieldLabel htmlFor={hrefInputId}>URL</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <IconLink aria-hidden="true" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id={hrefInputId}
+                  value={href}
+                  aria-invalid={hrefError}
+                  maxLength={HANDOUT_TEXT_LIMITS.url}
+                  onChange={(event) => {
+                    const nextHref = event.target.value
+                    setHref(nextHref)
+                    updateLiveItem({ href: nextHref, icon, label, style })
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && isValid) {
+                      event.preventDefault()
+                      save()
+                    }
+                  }}
+                  placeholder="https://example.com"
+                />
+              </InputGroup>
+              <FieldError>
+                {hrefError ? "Enter a valid public website URL." : null}
+              </FieldError>
+            </Field>
+          </FieldGroup>
+          {showIcon ? (
+            <ButtonIconSelector
+              value={icon}
+              onChange={(nextIcon) => {
+                setIcon(nextIcon)
+                updateLiveItem({ href, icon: nextIcon, label, style })
+              }}
+            />
+          ) : null}
           {showStyle ? (
-            <ButtonStyleSelector value={style} onChange={setStyle} />
+            <ButtonStyleSelector
+              value={style}
+              onChange={(nextStyle) => {
+                setStyle(nextStyle)
+                updateLiveItem({ href, icon, label, style: nextStyle })
+              }}
+            />
           ) : null}
           <div className="flex items-center justify-between gap-2">
             {onDelete ? (
@@ -926,7 +1678,7 @@ function SidebarItemEditorPopover({
                 className="text-muted-foreground hover:text-muted-foreground"
                 onClick={() => {
                   onDelete()
-                  setOpen(false)
+                  setPopoverOpen(false)
                 }}
               >
                 <IconTrash data-icon="inline-start" />
@@ -935,23 +1687,128 @@ function SidebarItemEditorPopover({
             ) : (
               <span />
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <Button
                 type="button"
                 variant="ghost"
                 className={cancelButtonClassName}
-                onClick={() => setOpen(false)}
+                onClick={cancel}
               >
                 Cancel
               </Button>
-              <Button type="button" onClick={save}>
-                Save
+              <Button type="submit" disabled={!isValid}>
+                {isEditing ? "Done" : "Save"}
               </Button>
             </div>
           </div>
-        </div>
+        </form>
       </PopoverContent>
     </Popover>
+  )
+}
+
+function ButtonIconSelector({
+  onChange,
+  value,
+}: {
+  onChange: (icon: SiteIconName | undefined) => void
+  value: SiteIconName | undefined
+}) {
+  const [open, setOpen] = useState(false)
+  const selectedOption = value
+    ? SITE_ICON_OPTIONS.find((option) => option.name === value)
+    : undefined
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium">Icon</span>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <InputTrigger
+            aria-haspopup="menu"
+            className={cn(!value && "text-muted-foreground")}
+          >
+            {value ? <SiteIconGlyph name={value} size={15} /> : null}
+            <span className="min-w-0 flex-1 truncate">{selectedOption?.label ?? "No icon"}</span>
+            <IconChevronDown
+              className={cn("size-4 shrink-0 text-muted-foreground transition", open && "rotate-180")}
+            />
+          </InputTrigger>
+        </PopoverTrigger>
+        <PopoverContent
+          aria-label="Button icons"
+          align="start"
+          side="bottom"
+          sideOffset={6}
+          collisionPadding={12}
+          className="w-auto gap-0 overflow-hidden p-0"
+          role="menu"
+        >
+          <div className="handout-editor-icon-scroll max-h-40 p-2" aria-label="Icons">
+            <div className="grid grid-cols-8 gap-1">
+              {SITE_ICON_OPTIONS.map((option) => (
+                <button
+                  key={option.name}
+                  type="button"
+                  aria-label={option.label}
+                  aria-checked={option.name === value}
+                  className={cn(
+                    "handout-editor-icon-picker-button",
+                    option.name === value && "handout-editor-icon-picker-button-active"
+                  )}
+                  role="menuitemradio"
+                  onClick={() => {
+                    onChange(option.name)
+                    setOpen(false)
+                  }}
+                >
+                  <SiteIconGlyph name={option.name} size={18} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <Separator />
+          <div className="p-1.5" data-button-icon-menu-footer>
+            <Button
+              type="button"
+              aria-checked={!value}
+              className="w-full justify-start"
+              role="menuitemradio"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                onChange(undefined)
+                setOpen(false)
+              }}
+            >
+              <IconX data-icon="inline-start" />
+              No icon
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+function SiteIconGlyph({ name, size }: { name: unknown; size: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="shrink-0"
+      focusable="false"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      dangerouslySetInnerHTML={{
+        __html: getSiteIconSvgBody(normalizeSiteIconName(name)),
+      }}
+    />
   )
 }
 

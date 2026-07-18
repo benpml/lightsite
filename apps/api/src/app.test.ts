@@ -1284,6 +1284,35 @@ describe("Handout API", () => {
     });
   });
 
+  it("accepts bounded embedded images above the default JSON request limit", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const site = buildMemorySite({ workspaceId: workspace.id });
+    const app = createTestAppWithActiveWorkspace({
+      workspace,
+      sites: [site],
+    });
+    const embeddedImage = `data:image/webp;base64,${"a".repeat(300_000)}`;
+
+    const response = await request(app)
+      .put(`/api/sites/${site.id}/content`)
+      .send({
+        expectedDraftRevision: 1,
+        draftContent: buildDraftContent({
+          document: {
+            type: "doc",
+            content: [{
+              type: "image",
+              attrs: { src: embeddedImage },
+            }],
+          },
+        }),
+      })
+      .expect(200);
+
+    expect(response.body.draftContent.pages[0].document.content[0].attrs.src)
+      .toBe(embeddedImage);
+  });
+
   it("blocks drafts with too many tab blocks before saving", async () => {
     const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({ workspaceId: workspace.id });

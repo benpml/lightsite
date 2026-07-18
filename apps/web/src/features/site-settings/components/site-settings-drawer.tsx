@@ -11,6 +11,7 @@ import type { SiteContent, SiteVariableDefinition } from "@handout/site-document
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Sheet,
   SheetClose,
@@ -40,6 +41,10 @@ export type SiteSettingsDrawerProps = {
   usageCounts: Readonly<Record<string, number>>
   variables: SiteVariableDefinition[]
   workspaceId: string
+  loading?: boolean
+  onOpenChange?: (open: boolean) => void
+  open?: boolean
+  trigger?: ReactNode
 }
 
 export function SiteSettingsDrawer({
@@ -55,14 +60,22 @@ export function SiteSettingsDrawer({
   usageCounts,
   variables,
   workspaceId,
+  loading = false,
+  onOpenChange,
+  open,
+  trigger,
 }: SiteSettingsDrawerProps) {
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon-compact" aria-label="Site settings" title="Site settings">
-          <IconDotsVertical />
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      {trigger === null ? null : (
+        <SheetTrigger asChild>
+          {trigger ?? (
+            <Button variant="ghost" size="icon-compact" aria-label="Site settings" title="Site settings">
+              <IconDotsVertical />
+            </Button>
+          )}
+        </SheetTrigger>
+      )}
       <SheetContent
         aria-describedby={undefined}
         className="inset-y-1.5! right-1.5! h-[calc(100%-12px)]! w-[384px] max-w-[calc(100vw-12px)] gap-5 overflow-hidden rounded-2xl border-0 bg-background px-4 pt-2 pb-4 sm:max-w-[384px]"
@@ -77,51 +90,72 @@ export function SiteSettingsDrawer({
             </Button>
           </SheetClose>
         </SheetHeader>
-        <Tabs defaultValue="appearance" className="min-h-0 flex-1 gap-5">
-          <TabsList variant="line" className="h-[42px]! w-full shrink-0 justify-start gap-2 border-b border-border-subtle p-0">
-            <TabsTrigger value="appearance" className="h-full! flex-none -translate-y-0.5 px-1 after:bottom-[-3px]! after:h-px! [&_svg:not([class*='size-'])]:size-3.5">
-              <IconPalette data-icon="inline-start" />
-              Appearance
-            </TabsTrigger>
-            <TabsTrigger value="tracking" className="h-full! flex-none -translate-y-0.5 px-1 after:bottom-[-3px]! after:h-px! [&_svg:not([class*='size-'])]:size-3.5">
-              <IconScanPosition data-icon="inline-start" />
-              Tracking
-            </TabsTrigger>
-            <TabsTrigger value="variables" className="h-full! flex-none -translate-y-0.5 px-1 after:bottom-[-3px]! after:h-px! [&_svg:not([class*='size-'])]:size-3.5">
-              <IconCodeAsterisk data-icon="inline-start" />
-              Variables
-            </TabsTrigger>
-          </TabsList>
-          <SettingsTab value="appearance">
-            <AppearanceSettings
-              content={content}
-              onChange={onChange}
-              siteName={siteName}
-              variables={variables}
-            />
-          </SettingsTab>
-          <SettingsTab value="tracking">
-            <TrackingSettings
-              canManage={canManageTracking}
-              content={content}
-              onChange={onChange}
-              plan={plan}
-              siteId={siteId}
-              workspaceId={workspaceId}
-            />
-          </SettingsTab>
-          <SettingsTab value="variables">
-            <VariablesSettings
-              onCreate={onCreateVariable}
-              onDelete={onDeleteVariable}
-              onEdit={onEditVariable}
-              usageCounts={usageCounts}
-              variables={variables}
-            />
-          </SettingsTab>
-        </Tabs>
+        {loading ? (
+          <SiteSettingsLoadingState />
+        ) : (
+          <Tabs defaultValue="appearance" className="min-h-0 flex-1 gap-5">
+            <TabsList variant="line" className="h-[42px]! w-full shrink-0 justify-start gap-2 border-b border-border-subtle p-0">
+              <TabsTrigger value="appearance" className="h-full! flex-none -translate-y-0.5 px-1 after:bottom-[-3px]! after:h-px! [&_svg:not([class*='size-'])]:size-3.5">
+                <IconPalette data-icon="inline-start" />
+                Appearance
+              </TabsTrigger>
+              <TabsTrigger value="tracking" className="h-full! flex-none -translate-y-0.5 px-1 after:bottom-[-3px]! after:h-px! [&_svg:not([class*='size-'])]:size-3.5">
+                <IconScanPosition data-icon="inline-start" />
+                Tracking
+              </TabsTrigger>
+              <TabsTrigger value="variables" className="h-full! flex-none -translate-y-0.5 px-1 after:bottom-[-3px]! after:h-px! [&_svg:not([class*='size-'])]:size-3.5">
+                <IconCodeAsterisk data-icon="inline-start" />
+                Variables
+              </TabsTrigger>
+            </TabsList>
+            <SettingsTab value="appearance">
+              <AppearanceSettings
+                content={content}
+                onChange={onChange}
+                siteName={siteName}
+                variables={variables}
+              />
+            </SettingsTab>
+            <SettingsTab value="tracking">
+              <TrackingSettings
+                canManage={canManageTracking}
+                content={content}
+                onChange={onChange}
+                plan={plan}
+                siteId={siteId}
+                workspaceId={workspaceId}
+              />
+            </SettingsTab>
+            <SettingsTab value="variables">
+              <VariablesSettings
+                onCreate={onCreateVariable}
+                onDelete={onDeleteVariable}
+                onEdit={onEditVariable}
+                usageCounts={usageCounts}
+                variables={variables}
+              />
+            </SettingsTab>
+          </Tabs>
+        )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+function SiteSettingsLoadingState() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-5" aria-busy="true" aria-label="Loading site settings">
+      <div className="flex h-[42px] items-center gap-2 border-b border-border-subtle">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-5 w-20" />
+        <Skeleton className="h-5 w-20" />
+      </div>
+      <div className="flex flex-col gap-5 px-px">
+        <Skeleton className="h-16 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+      </div>
+    </div>
   )
 }
 

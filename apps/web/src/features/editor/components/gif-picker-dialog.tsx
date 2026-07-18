@@ -11,13 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import { cn } from "@/lib/utils"
 import {
   createHandoutGifSelection,
   createHandoutGiphyFetchGifs,
   hasHandoutGiphyApiKey,
-  handoutGiphyAttributionAssetPath,
+  handoutGiphyAttributionAssetPaths,
   handoutGiphyClient,
 } from "../tiptap/giphy"
 import type { HandoutNextGifPickerTarget } from "../tiptap/extensions/gif-picker"
@@ -34,16 +38,46 @@ export function EditorGifPickerDialog({ editor }: EditorGifPickerDialogProps) {
   const [target, setTarget] = useState<HandoutNextGifPickerTarget | null>(null)
   const [query, setQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")
-  const gridContainerRef = useRef<HTMLDivElement | null>(null)
-  const [gridWidth, setGridWidth] = useState(864)
+  const gridResizeObserverRef = useRef<ResizeObserver | null>(null)
+  const [gridWidth, setGridWidth] = useState(0)
   const open = target !== null
 
   const close = useCallback(() => {
     setTarget(null)
     setQuery("")
     setDebouncedQuery("")
+    setGridWidth(0)
     editor.commands.focus()
   }, [editor])
+
+  const setGridContainer = useCallback((gridContainer: HTMLDivElement | null) => {
+    gridResizeObserverRef.current?.disconnect()
+    gridResizeObserverRef.current = null
+
+    if (!gridContainer) {
+      return
+    }
+
+    const updateWidth = (width: number) => {
+      const nextWidth = Math.floor(width)
+
+      if (nextWidth > 0) {
+        setGridWidth((currentWidth) =>
+          currentWidth === nextWidth ? currentWidth : nextWidth
+        )
+      }
+    }
+
+    updateWidth(gridContainer.getBoundingClientRect().width)
+
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        updateWidth(entry.contentRect.width)
+      }
+    })
+    observer.observe(gridContainer)
+    gridResizeObserverRef.current = observer
+  }, [])
 
   useEffect(() => {
     const storage = (
@@ -73,33 +107,6 @@ export function EditorGifPickerDialog({ editor }: EditorGifPickerDialogProps) {
     return () => window.clearTimeout(timeoutId)
   }, [open, query])
 
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    const gridContainer = gridContainerRef.current
-
-    if (!gridContainer) {
-      return
-    }
-
-    const updateWidth = () => {
-      const nextWidth = Math.floor(gridContainer.clientWidth)
-
-      if (nextWidth > 0) {
-        setGridWidth(nextWidth)
-      }
-    }
-
-    updateWidth()
-
-    const observer = new ResizeObserver(updateWidth)
-    observer.observe(gridContainer)
-
-    return () => observer.disconnect()
-  }, [open])
-
   const fetchGifs = useMemo(() => {
     if (!hasHandoutGiphyApiKey) {
       return null
@@ -109,7 +116,7 @@ export function EditorGifPickerDialog({ editor }: EditorGifPickerDialogProps) {
   }, [debouncedQuery])
 
   const columns = gridWidth >= 840 ? 4 : gridWidth >= 560 ? 3 : 2
-  const gridKey = `${debouncedQuery || "trending"}:${columns}:${gridWidth}`
+  const gridKey = debouncedQuery || "trending"
 
   return (
     <Dialog
@@ -129,50 +136,53 @@ export function EditorGifPickerDialog({ editor }: EditorGifPickerDialogProps) {
             <DialogTitle>Select GIF</DialogTitle>
             <DialogDescription>Search GIPHY and choose a GIF for this block.</DialogDescription>
           </div>
-          <label className="relative block">
-            <IconSearch
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
-            />
-            <Input
+          <InputGroup size="xl">
+            <InputGroupAddon>
+              <IconSearch aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              aria-label="Search GIFs"
               autoFocus
-              className="handout-editor-gif-picker-search h-10 pl-9"
               maxLength={HANDOUT_TEXT_LIMITS.gifSearchQuery}
               placeholder="Search GIFs"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-          </label>
+          </InputGroup>
         </DialogHeader>
 
-        <div ref={gridContainerRef} className="handout-editor-gif-picker-results min-h-0 overflow-y-auto px-4 py-4">
+        <div className="handout-editor-gif-picker-results min-h-0 overflow-y-auto px-4 py-4">
           {fetchGifs && handoutGiphyClient ? (
-            <Grid
-              key={gridKey}
-              columns={columns}
-              fetchGifs={fetchGifs}
-              gutter={12}
-              hideAttribution
-              noLink
-              noResultsMessage={
-                <div className="handout-editor-gif-picker-empty flex h-32 items-center justify-center rounded-xl border border-dashed text-sm">
-                  No GIFs found
-                </div>
-              }
-              width={gridWidth}
-              onGifClick={(gif, event) => {
-                event.preventDefault()
-                const activeTarget = target
-                const selection = createHandoutGifSelection(gif)
+            <div ref={setGridContainer} className="w-full">
+              {gridWidth > 0 ? (
+                <Grid
+                  key={gridKey}
+                  columns={columns}
+                  fetchGifs={fetchGifs}
+                  gutter={12}
+                  hideAttribution
+                  noLink
+                  noResultsMessage={
+                    <div className="handout-editor-gif-picker-empty flex h-32 items-center justify-center rounded-xl border border-dashed text-sm">
+                      No GIFs found
+                    </div>
+                  }
+                  width={gridWidth}
+                  onGifClick={(gif, event) => {
+                    event.preventDefault()
+                    const activeTarget = target
+                    const selection = createHandoutGifSelection(gif)
 
-                if (!activeTarget || !selection.src) {
-                  return
-                }
+                    if (!activeTarget || !selection.src) {
+                      return
+                    }
 
-                editor.chain().focus().setHandoutNextGif(activeTarget.pos, selection).run()
-                close()
-              }}
-            />
+                    editor.chain().focus().setHandoutNextGif(activeTarget.pos, selection).run()
+                    close()
+                  }}
+                />
+              ) : null}
+            </div>
           ) : (
             <div className="handout-editor-gif-picker-empty flex h-full min-h-[320px] items-center justify-center rounded-xl border border-dashed px-6 text-center text-sm">
               Add VITE_GIPHY_API_KEY to enable GIF search in the editor.
@@ -187,11 +197,18 @@ export function EditorGifPickerDialog({ editor }: EditorGifPickerDialogProps) {
           )}
         >
           {hasHandoutGiphyApiKey ? (
-            <img
-              alt="Powered by GIPHY"
-              className="h-5 w-auto object-contain"
-              src={handoutGiphyAttributionAssetPath}
-            />
+            <>
+              <img
+                alt="Powered by GIPHY"
+                className="h-5 w-auto object-contain dark:hidden"
+                src={handoutGiphyAttributionAssetPaths.light}
+              />
+              <img
+                alt="Powered by GIPHY"
+                className="hidden h-5 w-auto object-contain dark:block"
+                src={handoutGiphyAttributionAssetPaths.dark}
+              />
+            </>
           ) : null}
         </div>
       </DialogContent>

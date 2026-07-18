@@ -11,6 +11,7 @@ import {
 } from "react"
 
 import { Button } from "@/components/ui/button"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -174,47 +175,50 @@ export function EditorVariableCreatePopover({
         <p className="handout-editor-variable-create-description">
           Create a variable to insert custom content for each recipient.
         </p>
-        <div className="handout-editor-variable-field">
-          <label htmlFor={nameId}>Name</label>
-          <Input
-            id={nameId}
-            ref={nameInputRef}
-            className="handout-editor-variable-control"
-            maxLength={HANDOUT_TEXT_LIMITS.variableName}
-            placeholder="Enter a variable name..."
-            value={nameDraft}
-            onChange={(event) => {
-              setNameDraft(event.target.value)
-              setError("")
-            }}
-            onClick={(event) => event.currentTarget.focus()}
-          />
-          {error ? <span className="handout-editor-variable-create-error">{error}</span> : null}
-        </div>
-        <div className="handout-editor-variable-field">
-          <label htmlFor={descriptionId}>Description</label>
-          <Textarea
-            id={descriptionId}
-            className="handout-editor-variable-control min-h-18 resize-none"
-            maxLength={HANDOUT_TEXT_LIMITS.variableDescription}
-            placeholder="Optional. Useful for AI and teammates."
-            value={descriptionDraft}
-            onChange={(event) => setDescriptionDraft(event.target.value)}
-            onClick={(event) => event.currentTarget.focus()}
-          />
-        </div>
-        <div className="handout-editor-variable-field">
-          <label htmlFor={defaultValueId}>Default value</label>
-          <Textarea
-            id={defaultValueId}
-            className="handout-editor-variable-control min-h-18 resize-none"
-            maxLength={HANDOUT_TEXT_LIMITS.variableDefaultValue}
-            placeholder="Optional fallback"
-            value={defaultValueDraft}
-            onChange={(event) => setDefaultValueDraft(event.target.value)}
-            onClick={(event) => event.currentTarget.focus()}
-          />
-        </div>
+        <FieldGroup className="gap-3">
+          <Field data-invalid={!!error || undefined}>
+            <FieldLabel htmlFor={nameId}>Name</FieldLabel>
+            <Input
+              id={nameId}
+              ref={nameInputRef}
+              aria-invalid={!!error || undefined}
+              maxLength={HANDOUT_TEXT_LIMITS.variableName}
+              placeholder="Enter a variable name..."
+              size="lg"
+              value={nameDraft}
+              onChange={(event) => {
+                setNameDraft(event.target.value)
+                setError("")
+              }}
+              onClick={(event) => event.currentTarget.focus()}
+            />
+            <FieldError>{error}</FieldError>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={descriptionId}>Description</FieldLabel>
+            <Textarea
+              id={descriptionId}
+              className="min-h-18 resize-none"
+              maxLength={HANDOUT_TEXT_LIMITS.variableDescription}
+              placeholder="Optional. Useful for AI and teammates."
+              value={descriptionDraft}
+              onChange={(event) => setDescriptionDraft(event.target.value)}
+              onClick={(event) => event.currentTarget.focus()}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={defaultValueId}>Default value</FieldLabel>
+            <Textarea
+              id={defaultValueId}
+              className="min-h-18 resize-none"
+              maxLength={HANDOUT_TEXT_LIMITS.variableDefaultValue}
+              placeholder="Optional fallback"
+              value={defaultValueDraft}
+              onChange={(event) => setDefaultValueDraft(event.target.value)}
+              onClick={(event) => event.currentTarget.focus()}
+            />
+          </Field>
+        </FieldGroup>
         <div className="handout-editor-variable-popover-actions">
           <Button
             type="button"

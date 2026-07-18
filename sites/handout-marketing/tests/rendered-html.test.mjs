@@ -48,11 +48,12 @@ test("server-renders the Handout homepage", async () => {
 });
 
 test("keeps homepage styling in canonical primitives and feature components", async () => {
-  const [page, layout, home, frame, falling, gravity, scene, noise, card, button, badge, globals, header, logo, navItem, utils] = await Promise.all([
+  const [page, layout, home, frame, separator, falling, gravity, scene, noise, card, button, badge, globals, header, logo, navItem, utils] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/home-page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../features/home/components/section-frame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/layout/section-frame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/ui/separator.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/components/falling-before.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/components/gravity.tsx", import.meta.url), "utf8"),
     readFile(new URL("../features/home/components/unicorn-hero-scene.tsx", import.meta.url), "utf8"),
@@ -90,7 +91,8 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(scene, /data-us-fps="24"/);
   assert.match(noise, /NOISE_TILE_SIZE = "256px 256px"/);
   assert.match(noise, /\/images\/home\/noise\.png/);
-  assert.match(noise, /bg-top-left bg-repeat opacity-35 mix-blend-screen/);
+  assert.match(noise, /bg-top-left bg-repeat/);
+  assert.match(noise, /className: "opacity-35 mix-blend-screen"/);
   assert.doesNotMatch(noise, /<canvas|ResizeObserver|feTurbulence/);
   assert.match(header, /size="md"/);
   assert.match(header, /ring-1 ring-inset ring-border/);
@@ -107,8 +109,11 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(frame, /"pointer-events-none absolute inset-x-0 top-0 z-10"/);
   assert.match(frame, /topDividerClassName/);
   assert.match(frame, /function SectionCellDivider/);
+  assert.match(frame, /variant="section"/);
   assert.doesNotMatch(frame, /<span[^>]+bg-border/);
   assert.match(frame, /<CornerDecoration/);
+  assert.match(separator, /default: "bg-border"/);
+  assert.match(separator, /section: "bg-section-divider"/);
   assert.match(falling, /IntersectionObserver/);
   assert.match(falling, /prefers-reduced-motion/);
   assert.match(falling, /<Gravity/);
@@ -144,4 +149,204 @@ test("keeps homepage styling in canonical primitives and feature components", as
   assert.match(falling, /flex flex-col gap-2 text-body-item text-tertiary-foreground/);
   assert.match(card, /canvas: "bg-background ring-0"/);
   assert.doesNotMatch(home, /border-neutral-|bg-neutral-|text-neutral-/);
+});
+
+test("server-renders the monthly pricing page and preserves both billing states", async () => {
+  const response = await render("/pricing");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /<title>Pricing — Handout<\/title>/i);
+  assert.match(html, /Pays for itself in more deals won\./);
+  assert.match(html, /Monthly/);
+  assert.match(html, /Annual/);
+  assert.match(html, /\$49/);
+  assert.match(html, /\$89/);
+
+  const [pricing, tabs, badge, footer, frame, globals] = await Promise.all([
+    readFile(new URL("../features/pricing/pricing-page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/ui/tabs.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/ui/badge.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/layout/site-footer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/layout/section-frame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(pricing, /monthlyPrice: "\$49"/);
+  assert.match(pricing, /annualPrice: "\$39"/);
+  assert.match(pricing, /monthlyPrice: "\$89"/);
+  assert.match(pricing, /annualPrice: "\$72"/);
+  assert.match(pricing, /<TabsContent value="monthly"/);
+  assert.match(pricing, /<TabsContent value="annual"/);
+  assert.match(pricing, /<Badge variant="success">Save 20%<\/Badge>/);
+  assert.match(pricing, /<SiteHeader items=\{navigation\} width="full"/);
+  assert.match(tabs, /rounded-full p-0\.5/);
+  assert.match(tabs, /rounded-full border border-transparent/);
+  assert.match(tabs, /data-active:border-border/);
+  assert.match(badge, /success:[\s\S]*bg-success-background/);
+  assert.match(globals, /--shadow-tab: var\(--tab-shadow\)/);
+  assert.match(footer, /<SectionFrame/);
+  assert.match(frame, /<SectionCellDivider|function SectionCellDivider/);
+});
+
+test("server-renders the data-driven examples page", async () => {
+  const response = await render("/examples");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /<title>Examples — Handout<\/title>/i);
+  assert.match(html, /Check out some Handout examples to get inspired\./);
+  assert.match(html, /Start right now for free\./);
+  assert.match(html, /View example/);
+  assert.match(html, /\/images\/examples\/preview-gradient\.png/);
+
+  const [page, content, card, cta, header, footer] = await Promise.all([
+    readFile(new URL("../features/examples/examples-page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../features/examples/examples-content.ts", import.meta.url), "utf8"),
+    readFile(new URL("../features/examples/components/example-card.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/common/marketing-cta.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/layout/site-header.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/layout/site-footer.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /getPublishedExamples\(\)/);
+  assert.match(page, /examples\.map\(\(example, index\)/);
+  assert.equal((page.match(/<ExampleCard/g) ?? []).length, 1);
+  assert.equal((content.match(/slug: "example-/g) ?? []).length, 6);
+  assert.match(content, /status: "draft" \| "published"/);
+  assert.match(content, /previewImage\?:/);
+  assert.match(card, /min-h-\[416px\]/);
+  assert.match(card, /h-64/);
+  assert.match(card, /inset-x-4 top-4 bottom-0/);
+  assert.match(card, /z-20 rounded-md ring-1 ring-inset ring-border/);
+  assert.match(card, /<SectionCellDivider/);
+  assert.match(card, /<Button asChild variant="secondary" size="lg" className="w-full">/);
+  assert.match(cta, /min-h-\[497px\]/);
+  assert.match(cta, /<Badge variant="inverse"/);
+  assert.match(header, /href: "\/examples"/);
+  assert.match(footer, /href: "\/examples"/);
+  assert.doesNotMatch(`${page}${header}${footer}`, /\/#examples|href: "#examples"/);
+});
+
+test("server-renders the CMS-ready blog index and article pages", async () => {
+  const indexResponse = await render("/blog");
+  assert.equal(indexResponse.status, 200);
+
+  const indexHtml = await indexResponse.text();
+  assert.match(indexHtml, /<title>Blog — Handout<\/title>/i);
+  assert.match(indexHtml, /Product announcements, sales insights, and practical guides\./);
+  assert.match(indexHtml, /Introducing Handout/);
+  assert.match(indexHtml, /Load more/);
+  assert.match(indexHtml, /\/images\/blog\/post-cover\.jpg/);
+
+  const articleResponse = await render("/blog/introducing-handout");
+  assert.equal(articleResponse.status, 200);
+
+  const articleHtml = await articleResponse.text();
+  assert.match(articleHtml, /<title>Introducing Handout — Handout<\/title>/i);
+  assert.match(articleHtml, /One link, built for the buyer/);
+  assert.match(articleHtml, /All your sales materials in a single, trackable link\./);
+  assert.match(articleHtml, /\/images\/blog\/post-noise\.png/);
+  assert.match(articleHtml, /\/images\/blog\/post-cta-background\.png/);
+  assert.match(articleHtml, /application\/ld\+json/);
+  assert.match(articleHtml, /https:\/\/www\.handout\.link\/blog\/introducing-handout/);
+
+  const [sitemapResponse, robotsResponse, rssResponse] = await Promise.all([
+    render("/sitemap.xml"),
+    render("/robots.txt"),
+    render("/blog/rss.xml"),
+  ]);
+  assert.equal(sitemapResponse.status, 200);
+  assert.match(await sitemapResponse.text(), /\/blog\/introducing-handout/);
+  assert.equal(robotsResponse.status, 200);
+  assert.match(await robotsResponse.text(), /Sitemap: https:\/\/www\.handout\.link\/sitemap\.xml/);
+  assert.equal(rssResponse.status, 200);
+  assert.match(rssResponse.headers.get("content-type") ?? "", /^application\/rss\+xml/i);
+  assert.match(await rssResponse.text(), /<title>Handout Blog<\/title>/);
+
+  const [page, content, grid, card, article, articleBody, articleCta, noise, route, sitemap, robots, rss, footer] =
+    await Promise.all([
+      readFile(new URL("../features/blog/blog-page.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/blog/blog-content.ts", import.meta.url), "utf8"),
+      readFile(new URL("../features/blog/components/blog-grid.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/blog/components/blog-card.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/blog/blog-post-page.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/blog/components/article-body.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../features/blog/components/blog-post-cta.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../components/common/noise-overlay.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../app/blog/[slug]/page.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../app/sitemap.ts", import.meta.url), "utf8"),
+      readFile(new URL("../app/robots.ts", import.meta.url), "utf8"),
+      readFile(new URL("../app/blog/rss.xml/route.ts", import.meta.url), "utf8"),
+      readFile(new URL("../components/layout/site-footer.tsx", import.meta.url), "utf8"),
+    ]);
+
+  assert.match(page, /getPublishedBlogPosts\(\)/);
+  assert.match(page, /<BlogGrid posts=\{posts\}/);
+  assert.match(content, /status: BlogPostStatus/);
+  assert.match(content, /type BlogPostStatus = "draft" \| "published"/);
+  assert.match(content, /seo: \{/);
+  assert.match(content, /body: readonly BlogPostBlock\[\]/);
+  assert.match(content, /function getBlogPost/);
+  assert.match(content, /\.toSorted\(/);
+  assert.equal((content.match(/definePost\(\{/g) ?? []).length, 12);
+  assert.match(grid, /const INITIAL_POST_COUNT = 8/);
+  assert.match(grid, /const POSTS_PER_LOAD = 4/);
+  assert.match(grid, /variant="secondary"/);
+  assert.match(grid, /size="lg"/);
+  assert.match(grid, /You&apos;ve reached the end/);
+  assert.match(grid, /text-center text-body-lg text-tertiary-foreground/);
+  assert.match(card, /h-\[377px\]/);
+  assert.match(card, /aspect-video/);
+  assert.match(card, /rounded-md/);
+  assert.match(card, /ring-1 ring-inset ring-border/);
+  assert.match(card, /text-label-2xl/);
+  assert.doesNotMatch(card, /truncate|line-clamp/);
+  assert.match(card, /text-body-md text-neutral-500/);
+  assert.match(article, /"@type": "BlogPosting"/);
+  assert.match(article, /"@type": "BreadcrumbList"/);
+  assert.match(article, /wordCount:/);
+  assert.match(article, /max-w-\[699px\]/);
+  assert.match(article, /h-\[139px\]/);
+  assert.match(article, /aspect-video/);
+  assert.match(articleBody, /text-title-md/);
+  assert.match(articleBody, /text-title-sm/);
+  assert.match(articleBody, /text-title-xs/);
+  assert.match(articleBody, /text-body-xl text-tertiary-foreground/);
+  assert.match(articleCta, /h-\[497px\]/);
+  assert.match(articleCta, /post-cta-background\.png/);
+  assert.match(articleCta, /<Logo[\s\S]*type="icon"[\s\S]*color="inverse"/);
+  assert.match(articleCta, /<Button asChild variant="inverse" size="lg">/);
+  assert.match(noise, /blog:[\s\S]*post-noise\.png[\s\S]*332\.5px 332\.5px/);
+  assert.match(route, /generateStaticParams/);
+  assert.match(route, /generateMetadata/);
+  assert.match(route, /notFound\(\)/);
+  assert.match(route, /"max-image-preview": "large"/);
+  assert.match(sitemap, /getPublishedBlogPosts\(\)/);
+  assert.match(robots, /sitemap: "https:\/\/www\.handout\.link\/sitemap\.xml"/);
+  assert.match(rss, /application\/rss\+xml/);
+  assert.match(footer, /href: "\/blog"/);
+});
+
+test("falls back to direct local images when optimizer bindings are unavailable", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("optimizer-test", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+
+  const response = await worker.fetch(
+    new Request(
+      "http://localhost/_vinext/image?url=%2Fimages%2Fblog%2Fpost-cover.jpg&w=640&q=75",
+    ),
+    {},
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+
+  assert.equal(response.status, 307);
+  assert.equal(
+    response.headers.get("location"),
+    "http://localhost/images/blog/post-cover.jpg",
+  );
 });

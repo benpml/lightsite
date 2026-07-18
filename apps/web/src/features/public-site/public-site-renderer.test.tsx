@@ -1,6 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { renderPublicSiteHtml } from "@handout/site-document"
+import {
+  renderPublicSiteHtml,
+  SITE_DOCUMENT_IFRAME_SANDBOX,
+} from "@handout/site-document"
 
 import { getDemoPublishedSite } from "./public-site-fixture"
 import { PublicSiteRenderer } from "./public-site-renderer"
@@ -11,7 +14,7 @@ describe("public site renderer", () => {
 
     expect(html).toContain('data-public-site-document=""')
     expect(html).toContain('title="Rollout brief"')
-    expect(html).toContain("allow-same-origin")
+    expect(html).toContain(`sandbox="${SITE_DOCUMENT_IFRAME_SANDBOX}"`)
     expect(html).toContain("root.addEventListener")
     expect(html).not.toContain("site-runtime.v4.js")
     expect(html).not.toContain("data-handout-consent-popup=&quot;")

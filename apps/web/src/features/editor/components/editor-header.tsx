@@ -9,8 +9,6 @@ import {
   IconCalendarClock,
   IconCards,
   IconChevronLeft,
-  IconCloud,
-  IconCloudCheck,
   IconCloudOff,
   IconCopy,
   IconEye,
@@ -74,15 +72,15 @@ type EditorHeaderProps = {
   onPublish: () => Promise<void>
   onRedo: () => void
   onShare: () => void
-  onToggleSiteTheme: () => void
+  onToggleEditorTheme: () => void
   onUndo: () => void
   plan: WorkspacePlan
   publishStatus: EditorPublishStatus
   recipientCount: number
   saveStatus: EditorSaveStatus
+  editorTheme: SiteTheme
   siteName: string
   siteId: string
-  siteTheme: SiteTheme
   usageCounts: Readonly<Record<string, number>>
   variables: SiteVariableDefinition[]
   workspaceId: string
@@ -107,15 +105,15 @@ export function EditorHeader({
   onPublish,
   onRedo,
   onShare,
-  onToggleSiteTheme,
+  onToggleEditorTheme,
   onUndo,
   plan,
   publishStatus,
   recipientCount,
   saveStatus,
+  editorTheme,
   siteName,
   siteId,
-  siteTheme,
   usageCounts,
   variables,
   workspaceId,
@@ -162,10 +160,10 @@ export function EditorHeader({
               variant="ghost"
               size="icon-compact"
               className="hidden text-tertiary-foreground hover:text-accent-foreground min-[480px]:inline-flex"
-              aria-label={siteTheme === "dark" ? "Switch published page to light mode" : "Switch published page to dark mode"}
-              onClick={onToggleSiteTheme}
+              aria-label={`Switch editor to ${editorTheme === "dark" ? "light" : "dark"} mode`}
+              onClick={onToggleEditorTheme}
             >
-              {siteTheme === "dark" ? <IconSun /> : <IconMoon />}
+              {editorTheme === "dark" ? <IconSun /> : <IconMoon />}
             </Button>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -222,31 +220,23 @@ export function EditorHeader({
 }
 
 function EditorSaveStatusBadge({ status }: { status: EditorSaveStatus }) {
-  const label = {
-    connecting: "Connecting",
-    offline: "Offline",
-    saved: "Saved",
-    saving: "Saving",
-    unavailable: "Sync unavailable",
-  }[status]
+  if (status !== "offline" && status !== "unavailable") {
+    return null
+  }
+
+  const label = status === "offline" ? "Offline" : "Sync unavailable"
   const description = status === "offline"
     ? "Changes are safe on this device and will sync when you reconnect."
-    : status === "unavailable"
-      ? "This site could not connect to collaborative saving."
-      : label
+    : "This site could not connect to collaborative saving."
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Badge variant="ghost" role="status" aria-label={description}>
-          {status === "saving" || status === "connecting" ? (
-            <Spinner data-icon="inline-start" />
-          ) : status === "saved" ? (
-            <IconCloudCheck data-icon="inline-start" />
-          ) : status === "offline" ? (
+          {status === "offline" ? (
             <IconCloudOff data-icon="inline-start" />
           ) : (
-            <IconCloud data-icon="inline-start" />
+            <IconAlertTriangle data-icon="inline-start" />
           )}
           <span className="hidden min-[560px]:inline">{label}</span>
         </Badge>

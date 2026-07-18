@@ -6,6 +6,7 @@ import { useEditor, useEditorState } from "@tiptap/react"
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
 import type { Transaction } from "@tiptap/pm/state"
 import type { ListSitesResponse } from "@handout/contracts"
+import { useTheme } from "next-themes"
 import {
   getSitePageCollaborationField,
   type SiteVariableDefinition,
@@ -16,6 +17,7 @@ import {
 } from "@handout/domain"
 import { toast } from "sonner"
 
+import { useAppThemeOverride } from "@/components/common/app-theme-context"
 import {
   useActiveWorkspace,
   useAppBootstrap,
@@ -43,18 +45,22 @@ import {
   createSidebarLink,
   getEditorSidebarModel,
   normalizeSectionLabel,
-  type EditorSidebarButtonStyle,
+  reorderSidebarButtons,
+  reorderSidebarLinks,
+  reorderSidebarPages,
+  type EditorSidebarButtonInput,
   type EditorSidebarSectionKey,
   type EditorSiteDraft,
 } from "./site-sidebar-model"
 import { createEditorExtensions } from "./tiptap/extensions"
 import { initialEditorContent, type HandoutVariableOption } from "./tiptap/schema"
+import { getAppTheme, resolveEditorSiteTheme } from "./theme"
 import {
   getHandoutVariableStorage,
   setHandoutVariableDefinitions,
 } from "./tiptap/variable-state"
 import { editorVariables, editorVariableValues } from "./tiptap/variables"
-import type { EditorMode, SiteTheme } from "./types"
+import type { EditorMode } from "./types"
 import { useSiteCollaboration } from "./use-site-collaboration"
 
 const editorProps = {
@@ -62,14 +68,6 @@ const editorProps = {
     class: "handout-editor-prosemirror handout-prosemirror",
   },
 } as const
-
-function getSystemTheme(): SiteTheme {
-  if (typeof window === "undefined") {
-    return "dark"
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-}
 
 async function invalidateSiteQueries(
   queryClient: QueryClient,
@@ -178,6 +176,8 @@ function ReadyEditorPage({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { resolvedTheme, setTheme } = useTheme()
+  const appTheme = getAppTheme(resolvedTheme)
   const activeWorkspace = useActiveWorkspace()
   const [publishUpgradeOpen, setPublishUpgradeOpen] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
@@ -186,7 +186,6 @@ function ReadyEditorPage({
   const variableDefinitionsRef = useRef(variableDefinitions)
   const [editorMode, setEditorMode] = useState<EditorMode>("edit")
   const [documentRevision, setDocumentRevision] = useState(0)
-  const [systemTheme, setSystemTheme] = useState<SiteTheme>(getSystemTheme)
   const sitesQuery = useQuery({
     queryKey: queryKeys.sites(activeWorkspace.id),
     queryFn: ({ signal }) => listSites(signal),
@@ -266,7 +265,8 @@ function ReadyEditorPage({
   const [unpublishedChangeKey, setUnpublishedChangeKey] = useState<string | null>(null)
   const hasUnpublishedChanges = siteIsPublished && unpublishedChangeKey === publishSnapshotKey
   const siteThemeMode = siteDraft.themeMode
-  const siteTheme = siteThemeMode === "system" ? systemTheme : siteThemeMode
+  const siteTheme = resolveEditorSiteTheme(siteThemeMode, appTheme)
+  useAppThemeOverride(siteThemeMode === "system" ? null : siteTheme)
   const [activePageId, setActivePageId] = useState(
     () => collaboration.siteDraft?.pages[0]?.id ?? ""
   )
@@ -398,12 +398,12 @@ function ReadyEditorPage({
 
   const publishCurrentSite = useCallback(
     () => publishSiteMutation.mutateAsync().then(() => undefined),
-    [publishSiteMutation.mutateAsync]
+    [publishSiteMutation]
   )
 
   const openShareDialog = useCallback(() => {
     setShareDialogOpen(true)
-  }, [])
+  }, [setShareDialogOpen])
 
   const createSiteVariable = useCallback((input: Pick<
     SiteVariableDefinition,
@@ -423,7 +423,7 @@ function ReadyEditorPage({
       ...currentDraft,
       variables: toSiteVariableDefinitions(nextDefinitions),
     }))
-  }, [editor, updateSiteDraft])
+  }, [editor, setVariableDefinitions, updateSiteDraft])
 
   const editSiteVariable = useCallback((variableId: string, input: Pick<
     SiteVariableDefinition,
@@ -443,7 +443,7 @@ function ReadyEditorPage({
       ...currentDraft,
       variables: toSiteVariableDefinitions(nextDefinitions),
     }))
-  }, [editor, updateSiteDraft])
+  }, [editor, setVariableDefinitions, updateSiteDraft])
 
   const deleteSiteVariable = useCallback((variableId: string) => {
     if (!editor || editor.isDestroyed || systemShareVariableIds.has(variableId)) return
@@ -457,19 +457,21 @@ function ReadyEditorPage({
       ...currentDraft,
       variables: toSiteVariableDefinitions(nextDefinitions),
     }))
-  }, [editor, updateSiteDraft])
+  }, [editor, setVariableDefinitions, updateSiteDraft])
 
-  const toggleSiteTheme = useCallback(() => {
-    updateSiteDraft((currentDraft) => {
-      const currentThemeMode = currentDraft.themeMode
-      const currentTheme = currentThemeMode === "system" ? getSystemTheme() : currentThemeMode
+  const toggleEditorTheme = useCallback(() => {
+    const nextTheme = siteTheme === "dark" ? "light" : "dark"
 
-      return {
-        ...currentDraft,
-        themeMode: currentTheme === "dark" ? "light" : "dark",
-      }
-    })
-  }, [updateSiteDraft])
+    if (siteThemeMode === "system") {
+      setTheme(nextTheme)
+      return
+    }
+
+    updateSiteDraft((currentDraft) => ({
+      ...currentDraft,
+      themeMode: nextTheme,
+    }))
+  }, [setTheme, siteTheme, siteThemeMode, updateSiteDraft])
 
   useEffect(() => {
     publishSnapshotRef.current = {
@@ -501,22 +503,6 @@ function ReadyEditorPage({
 
     toast.warning("A concurrent addition exceeded this site's item limit and was not kept.")
   }, [collaboration.repairNotice])
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return
-    }
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
-    const updateSystemTheme = () => setSystemTheme(mediaQuery.matches ? "dark" : "light")
-
-    updateSystemTheme()
-    mediaQuery.addEventListener("change", updateSystemTheme)
-
-    return () => {
-      mediaQuery.removeEventListener("change", updateSystemTheme)
-    }
-  }, [])
 
   useEffect(() => {
     if (!editor) {
@@ -609,17 +595,6 @@ function ReadyEditorPage({
       setVariableDefinitions(loadedVariables)
     }
   }, [collaboration.isReady, editor, siteDraft.variables])
-
-  useEffect(() => {
-    const root = document.documentElement
-    const previousDarkState = root.classList.contains("dark")
-
-    root.classList.toggle("dark", siteTheme === "dark")
-
-    return () => {
-      root.classList.toggle("dark", previousDarkState)
-    }
-  }, [siteTheme])
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) {
@@ -822,11 +797,29 @@ function ReadyEditorPage({
     }))
   }, [updateSiteDraft])
 
-  const addSidebarButton = useCallback((input: {
-    label: string
-    href: string
-    style: EditorSidebarButtonStyle
-  }) => {
+  const reorderSidebarLink = useCallback((activeLinkId: string, overLinkId: string) => {
+    updateSiteDraft((currentDraft) => {
+      const links = reorderSidebarLinks(
+        currentDraft.sidebar.links,
+        activeLinkId,
+        overLinkId
+      )
+
+      if (links === currentDraft.sidebar.links) {
+        return currentDraft
+      }
+
+      return {
+        ...currentDraft,
+        sidebar: {
+          ...currentDraft.sidebar,
+          links,
+        },
+      }
+    })
+  }, [updateSiteDraft])
+
+  const addSidebarButton = useCallback((input: EditorSidebarButtonInput) => {
     if (siteDraftRef.current.sidebar.nextSteps.length >= HANDOUT_COLLECTION_LIMITS.links) {
       toast.error(`You can add up to ${HANDOUT_COLLECTION_LIMITS.links} buttons.`)
       return
@@ -846,7 +839,7 @@ function ReadyEditorPage({
 
   const updateSidebarButton = useCallback((
     buttonId: string,
-    input: { label: string; href: string; style: EditorSidebarButtonStyle }
+    input: EditorSidebarButtonInput
   ) => {
     updateSiteDraft((currentDraft) => ({
       ...currentDraft,
@@ -858,6 +851,7 @@ function ReadyEditorPage({
                 ...button,
                 label: clampTextToLimit(input.label, "sidebarLabel").trim(),
                 href: clampTextToLimit(input.href, "url").trim(),
+                icon: input.icon,
                 style: input.style,
               }
             : button
@@ -874,6 +868,43 @@ function ReadyEditorPage({
         nextSteps: currentDraft.sidebar.nextSteps.filter((button) => button.id !== buttonId),
       },
     }))
+  }, [updateSiteDraft])
+
+  const reorderSidebarButton = useCallback((activeButtonId: string, overButtonId: string) => {
+    updateSiteDraft((currentDraft) => {
+      const nextSteps = reorderSidebarButtons(
+        currentDraft.sidebar.nextSteps,
+        activeButtonId,
+        overButtonId
+      )
+
+      if (nextSteps === currentDraft.sidebar.nextSteps) {
+        return currentDraft
+      }
+
+      return {
+        ...currentDraft,
+        sidebar: {
+          ...currentDraft.sidebar,
+          nextSteps,
+        },
+      }
+    })
+  }, [updateSiteDraft])
+
+  const reorderSidebarPage = useCallback((activePageId: string, overPageId: string) => {
+    updateSiteDraft((currentDraft) => {
+      const pages = reorderSidebarPages(currentDraft.pages, activePageId, overPageId)
+
+      if (pages === currentDraft.pages) {
+        return currentDraft
+      }
+
+      return {
+        ...currentDraft,
+        pages,
+      }
+    })
   }, [updateSiteDraft])
 
   const previewContent = useMemo(() => {
@@ -924,6 +955,7 @@ function ReadyEditorPage({
       data-editor-mode={editorMode}
       data-theme={siteTheme}
       data-site-id={siteId}
+      data-site-theme={siteTheme}
       className={cn(siteTheme, "flex h-svh min-h-0 flex-col overflow-hidden bg-background text-foreground")}
       style={primaryColorStyle}
     >
@@ -951,12 +983,12 @@ function ReadyEditorPage({
         recipientCount={recipients.length}
         saveStatus={collaboration.saveStatus}
         siteId={siteId}
-        siteTheme={siteTheme}
+        editorTheme={siteTheme}
         usageCounts={siteVariableUsageCounts}
         variables={siteSettingsVariables}
         workspaceId={activeWorkspace.id}
         onRedo={redo}
-        onToggleSiteTheme={toggleSiteTheme}
+        onToggleEditorTheme={toggleEditorTheme}
         onUndo={undo}
       />
       <div className="flex min-h-0 flex-1 flex-col bg-background md:flex-row">
@@ -980,6 +1012,9 @@ function ReadyEditorPage({
             onDeleteLink={deleteSidebarLink}
             onRenamePage={renamePage}
             onRenameSection={renameSidebarSection}
+            onReorderButton={reorderSidebarButton}
+            onReorderLink={reorderSidebarLink}
+            onReorderPage={reorderSidebarPage}
             onSelectPage={switchToPage}
             onUpdateButton={updateSidebarButton}
             onUpdateLink={updateSidebarLink}
@@ -1132,6 +1167,7 @@ function getEditorPrimaryColorStyle(
       "--handout-primary": "var(--foreground)",
       "--handout-primary-foreground": "var(--background)",
       "--handout-primary-soft": "var(--accent)",
+      "--handout-sidebar-link-icon": "var(--blue-foreground)",
     } as CSSProperties
   }
 
@@ -1139,5 +1175,6 @@ function getEditorPrimaryColorStyle(
     "--handout-primary": `var(--${color}-foreground)`,
     "--handout-primary-foreground": "var(--background)",
     "--handout-primary-soft": `var(--${color}-background-subtle)`,
+    "--handout-sidebar-link-icon": `var(--${color}-foreground)`,
   } as CSSProperties
 }

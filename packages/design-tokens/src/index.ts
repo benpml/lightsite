@@ -73,6 +73,11 @@ export const handoutWebsiteComponentTokens = {
   "secondary-hover": "var(--neutral-50)",
   "control-shadow": "0 1px 0.5px rgb(0 0 0 / 6%)",
   "badge-inverse-shadow": "0 1px 1px rgb(0 0 0 / 6%)",
+  "success-background": "rgb(43 154 102 / 12%)",
+  "success-foreground": "#2b9a66",
+  "success-border": "rgb(43 154 102 / 8%)",
+  "section-divider": "#ededed",
+  "tab-shadow": "0 1px 1.5px rgb(0 0 0 / 10%)",
 } as const
 
 export const handoutLightTokens = {
@@ -98,6 +103,7 @@ export const handoutLightTokens = {
   "border-strong": "var(--neutral-alpha-a700)",
   "border-subtle": "var(--neutral-alpha-a500)",
   input: "var(--neutral-alpha-a700)",
+  "input-background": "var(--neutral-alpha-a200)",
   ring: "var(--neutral-500)",
   "chart-1": "#8da4ef",
   "chart-2": "#3e63dd",
@@ -186,6 +192,7 @@ export const handoutDarkTokens = {
   border: "var(--neutral-alpha-a700)",
   "border-strong": "var(--neutral-alpha-a900)",
   "border-subtle": "var(--neutral-alpha-a300)",
+  "input-background": "var(--neutral-alpha-a300)",
   ring: "var(--neutral-400)",
   link: "#8da4ef",
   "tertiary-foreground": "var(--neutral-300)",

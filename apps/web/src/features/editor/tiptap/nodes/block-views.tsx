@@ -13,13 +13,22 @@ import {
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type React from "react"
 
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import { cn } from "@/lib/utils"
 import { getDevAuthBypassHeaders } from "@/lib/api/dev-auth-bypass"
 
+import { useFloatingEditorPopoverPosition } from "../../components/use-floating-editor-popover-position"
 import { fitImageDimensions, loadImageDimensions, readImageFileAsAttrs } from "../image-utils"
 import { getHandoutVariableValue } from "../variable-state"
 
 const iconListOptions = SITE_ICON_OPTIONS
+const iconPickerHeight = 278
+const iconPickerWidth = 256
 
 const iconColorOptions = SITE_ICON_COLOR_OPTIONS.map((option) => ({
   ...option,
@@ -29,7 +38,19 @@ const iconColorOptions = SITE_ICON_COLOR_OPTIONS.map((option) => ({
 function useIconPickerMenu(editor: NodeViewProps["editor"]) {
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
+  const getAnchorRect = useCallback(
+    () => wrapperRef.current?.getBoundingClientRect() ?? null,
+    []
+  )
+  const position = useFloatingEditorPopoverPosition({
+    fallbackHeight: iconPickerHeight,
+    fallbackWidth: iconPickerWidth,
+    floatingRef: menuRef,
+    getAnchorRect,
+    open,
+  })
 
   useEffect(() => {
     if (!open) {
@@ -76,34 +97,48 @@ function useIconPickerMenu(editor: NodeViewProps["editor"]) {
 
   return {
     closeAndFocusEditor,
+    menuRef,
     menuId,
     open,
     openMenu,
+    position,
     wrapperRef,
   }
 }
 
 function IconSelectorMenu({
-  className,
   iconColor,
   iconName,
+  menuRef,
   menuId,
   onSelectColor,
   onSelectIcon,
+  position,
 }: {
-  className?: string
   iconColor: string
   iconName: string
+  menuRef: React.RefObject<HTMLDivElement | null>
   menuId: string
   onSelectColor: (color: string) => void
   onSelectIcon: (icon: string) => void
+  position: { maxHeight: number; x: number; y: number } | null
 }) {
   return (
     <div
+      ref={menuRef}
       id={menuId}
-      className={cn("handout-editor-icon-picker", className)}
+      className="handout-editor-icon-picker"
       contentEditable={false}
       role="menu"
+      style={
+        position
+          ? {
+              left: position.x,
+              maxHeight: position.maxHeight,
+              top: position.y,
+            }
+          : { visibility: "hidden" }
+      }
       onMouseDown={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -154,7 +189,8 @@ function IconSelectorMenu({
 }
 
 export function IconListItemView({ editor, node, updateAttributes }: NodeViewProps) {
-  const { closeAndFocusEditor, menuId, open, openMenu, wrapperRef } = useIconPickerMenu(editor)
+  const { closeAndFocusEditor, menuId, menuRef, open, openMenu, position, wrapperRef } =
+    useIconPickerMenu(editor)
   const iconName = stringAttr(node.attrs.icon, "box")
   const iconColor = normalizeSiteIconColor(node.attrs.iconColor)
   const iconColorClass = getIconColorClass(iconColor)
@@ -177,7 +213,7 @@ export function IconListItemView({ editor, node, updateAttributes }: NodeViewPro
   return (
     <NodeViewWrapper
       ref={wrapperRef}
-      className="handout-editor-icon-list-inner"
+      className="handout-icon-list-item handout-editor-icon-list-inner"
     >
       <button
         aria-expanded={open}
@@ -207,9 +243,11 @@ export function IconListItemView({ editor, node, updateAttributes }: NodeViewPro
         <IconSelectorMenu
           iconColor={iconColor}
           iconName={iconName}
+          menuRef={menuRef}
           menuId={menuId}
           onSelectColor={selectColor}
           onSelectIcon={selectIcon}
+          position={position}
         />
       ) : null}
     </NodeViewWrapper>
@@ -1023,39 +1061,37 @@ export function LogoGridItemView({ editor, getPos, node, updateAttributes }: Nod
           </button>
           <div className="handout-editor-logo-grid-menu-separator" />
           <form className="handout-editor-logo-grid-domain-form" onSubmit={applyLogoFromDomain}>
-            <label className="handout-editor-logo-grid-domain-label" htmlFor={domainInputId}>
-              Company website
-            </label>
-            <div className="handout-editor-logo-grid-domain-control">
-              <IconWorld aria-hidden="true" focusable="false" size={16} stroke={2} />
-              <input
-                id={domainInputId}
-                autoComplete="off"
-                className="handout-editor-logo-grid-domain-input"
-                disabled={domainLoading}
-                maxLength={HANDOUT_TEXT_LIMITS.url}
-                name="logo_company_website"
-                placeholder="acme.com"
-                type="text"
-                value={domainInput}
-                onChange={(event) => {
-                  setDomainInput(event.target.value)
-                  setDomainError(null)
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    event.stopPropagation()
-                    setLogoMenuOpen(false)
-                  }
-                }}
-              />
-            </div>
-            {domainError ? (
-              <p className="handout-editor-logo-grid-domain-error">{domainError}</p>
-            ) : null}
-            {uploadError ? (
-              <p className="handout-editor-logo-grid-domain-error">Could not upload that image.</p>
-            ) : null}
+            <Field data-invalid={!!domainError || !!uploadError || undefined}>
+              <FieldLabel htmlFor={domainInputId}>Company website</FieldLabel>
+              <InputGroup size="lg">
+                <InputGroupAddon>
+                  <IconWorld aria-hidden="true" focusable="false" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id={domainInputId}
+                  autoComplete="off"
+                  aria-invalid={!!domainError || !!uploadError || undefined}
+                  disabled={domainLoading}
+                  maxLength={HANDOUT_TEXT_LIMITS.url}
+                  name="logo_company_website"
+                  placeholder="acme.com"
+                  type="text"
+                  value={domainInput}
+                  onChange={(event) => {
+                    setDomainInput(event.target.value)
+                    setDomainError(null)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.stopPropagation()
+                      setLogoMenuOpen(false)
+                    }
+                  }}
+                />
+              </InputGroup>
+              <FieldError>{domainError}</FieldError>
+              <FieldError>{uploadError ? "Could not upload that image." : null}</FieldError>
+            </Field>
             <div className="handout-editor-logo-grid-domain-actions">
               <button
                 className="handout-editor-logo-grid-domain-cancel"
@@ -1268,7 +1304,8 @@ export function TestimonialCardView({ editor, node, updateAttributes }: NodeView
 }
 
 export function IconCardView({ editor, node, updateAttributes }: NodeViewProps) {
-  const { closeAndFocusEditor, menuId, open, openMenu, wrapperRef } = useIconPickerMenu(editor)
+  const { closeAndFocusEditor, menuId, menuRef, open, openMenu, position, wrapperRef } =
+    useIconPickerMenu(editor)
   const iconName = stringAttr(node.attrs.icon, "bolt")
   const iconColor = normalizeSiteIconColor(node.attrs.iconColor)
   const iconColorClass = getIconColorClass(iconColor)
@@ -1306,6 +1343,7 @@ export function IconCardView({ editor, node, updateAttributes }: NodeViewProps) 
             aria-label="Change card icon"
             aria-controls={open ? menuId : undefined}
             className={cn("handout-editor-icon-card-button handout-card-icon", iconColorClass)}
+            data-icon-color={iconColor}
             type="button"
             onClick={openMenu}
             onKeyDown={(event) => {
@@ -1324,12 +1362,13 @@ export function IconCardView({ editor, node, updateAttributes }: NodeViewProps) 
           </button>
           {open ? (
             <IconSelectorMenu
-              className="handout-editor-icon-picker-card"
               iconColor={iconColor}
               iconName={iconName}
+              menuRef={menuRef}
               menuId={menuId}
               onSelectColor={selectColor}
               onSelectIcon={selectIcon}
+              position={position}
             />
           ) : null}
         </div>

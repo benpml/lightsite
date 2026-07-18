@@ -8,7 +8,6 @@ import Highlight from "@tiptap/extension-highlight"
 import Link from "@tiptap/extension-link"
 import { BulletList, ListItem, ListKeymap, OrderedList, TaskItem, TaskList } from "@tiptap/extension-list"
 import NodeRange from "@tiptap/extension-node-range"
-import Placeholder from "@tiptap/extension-placeholder"
 import { TableKit } from "@tiptap/extension-table"
 import { TextStyle } from "@tiptap/extension-text-style"
 import Typography from "@tiptap/extension-typography"
@@ -65,6 +64,7 @@ import { HandoutNextImageCardButtonSettings } from "./image-card-button-settings
 import { HandoutNextMarkdownShortcuts } from "./markdown-shortcuts"
 import { HandoutPaletteColorMigration } from "./palette-color-migration"
 import { HandoutNextSelectionCleanup } from "./selection-cleanup"
+import { StablePlaceholder } from "./stable-placeholder"
 import { HandoutNextVideoEmbedSettings } from "./video-embed-settings"
 import {
   createHandoutNextEmojiSuggestion,
@@ -111,7 +111,7 @@ export function createEditorExtensions(
       underline: false,
       undoRedo: collaboration ? false : undefined,
     }),
-    Placeholder.configure({
+    StablePlaceholder.configure({
       emptyNodeClass: ({ editor, hasAnchor, node, pos }) => {
         if (node.type.name === "buttonBlock") {
           return "handout-editor-placeholder-hidden"
@@ -132,6 +132,10 @@ export function createEditorExtensions(
         return hasAnchor ? "is-empty" : "handout-editor-placeholder-hidden"
       },
       includeChildren: true,
+      // Preview uses a separate renderer and hides this editor. Keep its
+      // decorations mounted so toggling read-only mode cannot discard empty
+      // block placeholders before the editor becomes editable again.
+      showOnlyWhenEditable: false,
       showOnlyCurrent: false,
       placeholder: ({ editor, node, pos }) => {
         if (node.type.name === "heading") {

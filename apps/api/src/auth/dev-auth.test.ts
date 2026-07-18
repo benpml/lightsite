@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEV_AUTH_BYPASS_HEADER,
   devActor,
+  getDevAppBootstrap,
   isDevAuthBypassRequest,
 } from "./dev-auth";
 
@@ -38,5 +39,16 @@ describe("dev auth bypass", () => {
     expect(isDevAuthBypassRequest(buildRequest({
       [DEV_AUTH_BYPASS_HEADER]: "1",
     }))).toBe(false);
+  });
+
+  it("uses the uploaded workspace logo in the dev bootstrap", () => {
+    const bootstrap = getDevAppBootstrap();
+
+    expect(bootstrap.activeWorkspace?.logoUrl).toBe(
+      "/editor-assets/dev-workspace-logo.jpg",
+    );
+    expect(bootstrap.workspaces[0]?.logoUrl).toBe(
+      "/editor-assets/dev-workspace-logo.jpg",
+    );
   });
 });

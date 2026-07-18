@@ -197,10 +197,8 @@ function VariableTemplateField({
     <Field className="gap-2">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <InputGroup
-        className={cn(
-          "overflow-hidden rounded-lg shadow-xs",
-          multiline ? "min-h-20 items-start" : "h-9",
-        )}
+        size={multiline ? "md" : "lg"}
+        className={cn("overflow-hidden", multiline && "min-h-20 items-start")}
       >
         {multiline ? (
           <InputGroupTextarea

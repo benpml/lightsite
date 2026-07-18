@@ -9,7 +9,7 @@ import {
 import {
   SectionCellDivider,
   SectionFrame,
-} from "@/features/home/components/section-frame"
+} from "@/components/layout/section-frame"
 
 type MarketingFeature = {
   title: string

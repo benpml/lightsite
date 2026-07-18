@@ -3,6 +3,14 @@ import type { Editor } from "@tiptap/react"
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain"
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
+
 import { getFormValue, normalizeButtonHref } from "../lib/button-link"
 import type { HandoutNextImageCardButtonSettingsTarget } from "../tiptap/extensions/image-card-button-settings"
 import { useFloatingEditorPopoverPosition } from "./use-floating-editor-popover-position"
@@ -208,52 +216,53 @@ export function EditorImageCardButtonSettingsPopover({
       onWheel={(event) => event.stopPropagation()}
     >
       <form onSubmit={save}>
-        <label className="handout-editor-button-settings-label" htmlFor="handout-editor-card-button-label">
-          Button text
-        </label>
-        <div className="handout-editor-button-settings-field">
-          <input
-            ref={labelInputRef}
-            id="handout-editor-card-button-label"
-            maxLength={HANDOUT_TEXT_LIMITS.sidebarLabel}
-            name="label"
-            placeholder="Learn more"
-            type="text"
-            value={labelDraft}
-            onChange={(event) => {
-              const nextLabel = event.currentTarget.value
+        <FieldGroup className="gap-3">
+          <Field data-invalid={error?.field === "label" || undefined}>
+            <FieldLabel htmlFor="handout-editor-card-button-label">Button text</FieldLabel>
+            <Input
+              ref={labelInputRef}
+              id="handout-editor-card-button-label"
+              aria-invalid={error?.field === "label" || undefined}
+              maxLength={HANDOUT_TEXT_LIMITS.sidebarLabel}
+              name="label"
+              placeholder="Learn more"
+              size="lg"
+              type="text"
+              value={labelDraft}
+              onChange={(event) => {
+                const nextLabel = event.currentTarget.value
 
-              setLabelDraft(nextLabel)
-              setError(null)
-              previewCreateDraft({ label: nextLabel.trim() || "Learn more" })
-            }}
-          />
-        </div>
-        {error?.field === "label" ? (
-          <div className="handout-editor-button-settings-error">{error.message}</div>
-        ) : null}
-        <label className="handout-editor-button-settings-label" htmlFor="handout-editor-card-button-link">
-          Button link
-        </label>
-        <div className="handout-editor-button-settings-field">
-          <IconLink aria-hidden="true" />
-          <input
-            id="handout-editor-card-button-link"
-            inputMode="url"
-            maxLength={HANDOUT_TEXT_LIMITS.url}
-            name="href"
-            placeholder="https://example.com"
-            type="text"
-            value={hrefDraft}
-            onChange={(event) => {
-              setHrefDraft(event.currentTarget.value)
-              setError(null)
-            }}
-          />
-        </div>
-        {error?.field === "href" ? (
-          <div className="handout-editor-button-settings-error">{error.message}</div>
-        ) : null}
+                setLabelDraft(nextLabel)
+                setError(null)
+                previewCreateDraft({ label: nextLabel.trim() || "Learn more" })
+              }}
+            />
+            <FieldError>{error?.field === "label" ? error.message : null}</FieldError>
+          </Field>
+          <Field data-invalid={error?.field === "href" || undefined}>
+            <FieldLabel htmlFor="handout-editor-card-button-link">Button link</FieldLabel>
+            <InputGroup size="lg">
+              <InputGroupAddon>
+                <IconLink aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
+                id="handout-editor-card-button-link"
+                aria-invalid={error?.field === "href" || undefined}
+                inputMode="url"
+                maxLength={HANDOUT_TEXT_LIMITS.url}
+                name="href"
+                placeholder="https://example.com"
+                type="text"
+                value={hrefDraft}
+                onChange={(event) => {
+                  setHrefDraft(event.currentTarget.value)
+                  setError(null)
+                }}
+              />
+            </InputGroup>
+            <FieldError>{error?.field === "href" ? error.message : null}</FieldError>
+          </Field>
+        </FieldGroup>
         <div className="handout-editor-button-settings-actions">
           <button className="handout-editor-button-settings-action" type="button" onClick={cancel}>
             Cancel

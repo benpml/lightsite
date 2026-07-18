@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { findHandoutVariable } from "../variable-state"
@@ -158,8 +159,8 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
               <VariableField id={nameId} label="Name">
                 <Input
                   id={nameId}
-                  className="handout-editor-variable-control"
                   maxLength={HANDOUT_TEXT_LIMITS.variableName}
+                  size="lg"
                   value={draft.name}
                   onChange={(event) => updateDraft("name", event.target.value)}
                   onClick={(event) => event.currentTarget.focus()}
@@ -168,9 +169,9 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
               <VariableField id={defaultValueId} label="Default value">
                 <Input
                   id={defaultValueId}
-                  className="handout-editor-variable-control"
                   maxLength={HANDOUT_TEXT_LIMITS.variableDefaultValue}
                   placeholder="Optional fallback for preview/share"
+                  size="lg"
                   value={draft.defaultValue}
                   onChange={(event) => updateDraft("defaultValue", event.target.value)}
                   onClick={(event) => event.currentTarget.focus()}
@@ -179,7 +180,7 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
               <VariableField id={descriptionId} label="Description">
                 <Textarea
                   id={descriptionId}
-                  className="handout-editor-variable-control min-h-20 resize-none"
+                  className="min-h-20 resize-none"
                   maxLength={HANDOUT_TEXT_LIMITS.variableDescription}
                   placeholder="Helps AI and teammates understand what should go here."
                   value={draft.description}
@@ -231,10 +232,10 @@ function VariableField({
   label: string
 }) {
   return (
-    <div className="handout-editor-variable-field">
-      <label htmlFor={id}>{label}</label>
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       {children}
-    </div>
+    </Field>
   )
 }
 

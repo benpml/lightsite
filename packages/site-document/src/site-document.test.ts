@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HANDOUT_THEME_CSS } from "@handout/design-tokens";
+import { HANDOUT_TEXT_LIMITS } from "@handout/domain";
 
 import {
   createDefaultSiteContent,
@@ -18,12 +19,22 @@ import {
   renderSiteIconSvg,
   SITE_ICON_OPTIONS,
   SITE_DOCUMENT_CSS,
+  SITE_DOCUMENT_IFRAME_SANDBOX,
   SITE_DOCUMENT_SCHEMA_VERSION,
   siteContentSchema,
   type PublishedSitePayload,
 } from "./index";
 
 describe("canonical site document", () => {
+  it("names the first tab Overview by default", () => {
+    const content = createDefaultSiteContent();
+
+    expect(content.pages[0]).toMatchObject({
+      name: "Overview",
+      slug: "overview",
+    });
+  });
+
   it("does not translate legacy block payloads into the new document", () => {
     const content = normalizeSiteContent({
       schemaVersion: 2,
@@ -48,6 +59,35 @@ describe("canonical site document", () => {
 
     expect(siteContentSchema.safeParse(unknownNode).success).toBe(false);
     expect(siteContentSchema.safeParse(unknownMark).success).toBe(false);
+  });
+
+  it("allows bounded embedded images without relaxing ordinary content limits", () => {
+    const embeddedImage = createDefaultSiteContent();
+    embeddedImage.pages[0]!.document.content = [{
+      type: "image",
+      attrs: {
+        src: `data:image/webp;base64,${"a".repeat(HANDOUT_TEXT_LIMITS.blockText)}`,
+      },
+    }];
+    const oversizedImage = createDefaultSiteContent();
+    oversizedImage.pages[0]!.document.content = [{
+      type: "image",
+      attrs: {
+        src: `data:image/webp;base64,${"a".repeat(HANDOUT_TEXT_LIMITS.embeddedImageDataUrl)}`,
+      },
+    }];
+    const oversizedTextAttribute = createDefaultSiteContent();
+    oversizedTextAttribute.pages[0]!.document.content = [{
+      type: "image",
+      attrs: {
+        alt: "a".repeat(HANDOUT_TEXT_LIMITS.blockText + 1),
+        src: "https://example.com/image.webp",
+      },
+    }];
+
+    expect(siteContentSchema.safeParse(embeddedImage).success).toBe(true);
+    expect(siteContentSchema.safeParse(oversizedImage).success).toBe(false);
+    expect(siteContentSchema.safeParse(oversizedTextAttribute).success).toBe(false);
   });
 
   it("adds site settings defaults without discarding older valid documents", () => {
@@ -135,6 +175,15 @@ describe("canonical site document", () => {
       status: "visible",
       sortOrder: 0,
     });
+    content.sidebar.nextSteps.push({
+      id: "book-demo",
+      label: "Book a demo",
+      href: "https://example.com/demo",
+      icon: "calendar",
+      style: "filled",
+      status: "visible",
+      sortOrder: 0,
+    });
 
     const html = renderPublicSiteHtml(payload, {
       includeTracking: false,
@@ -152,6 +201,8 @@ describe("canonical site document", () => {
     expect(html).toContain('data-handout-track="link" data-handout-element-id="proposal-link"');
     expect(html).toContain('data-handout-page-id="page-pricing" data-handout-track="tab"');
     expect(html).toContain(renderSiteIconSvg("notes"));
+    expect(html).toContain(renderSiteIconSvg("calendar"));
+    expect(html).toContain("Book a demo</a>");
     expect(html).not.toContain("data-handout-element-kind");
     expect(html).not.toContain("data-handout-element-label");
     expect(html).not.toContain("data-handout-element-href");
@@ -170,6 +221,51 @@ describe("canonical site document", () => {
     expect(html).toContain('<span class="handout-footer-logo" role="img" aria-label="Handout"></span>');
     expect(html).not.toContain('<img src="/handout-logo.svg" alt="Handout">');
     expect(html).toContain(`<style>${HANDOUT_THEME_CSS}${SITE_DOCUMENT_CSS}</style>`);
+  });
+
+  it("preserves resized image and GIF widths in preview and published output", () => {
+    const payload = buildPayload();
+    payload.content.pages[0]!.document.content = [
+      {
+        type: "image",
+        attrs: {
+          alt: "Resized image",
+          height: 180,
+          src: "https://example.com/image.webp",
+          width: 320,
+        },
+      },
+      {
+        type: "gifBlock",
+        attrs: {
+          alt: "Resized GIF",
+          height: 135,
+          src: "https://example.com/animation.gif",
+          width: 240,
+        },
+      },
+    ];
+
+    const publishedHtml = renderPublicSiteHtml(payload, { includeTracking: false });
+    const previewHtml = renderPublicSitePreviewHtml(payload.content, {
+      siteId: payload.site.id,
+      siteName: payload.site.name,
+      siteSlug: payload.site.slug,
+      workspaceId: payload.workspace.id,
+      workspaceLogoUrl: payload.workspace.logoUrl,
+      workspaceName: payload.workspace.name,
+      workspaceSlug: payload.workspace.slug,
+      workspaceWebsiteDomain: payload.workspace.websiteDomain,
+    });
+
+    for (const html of [previewHtml, publishedHtml]) {
+      expect(html).toContain(
+        '<figure class="handout-image-block" style="max-width:320px"><img src="https://example.com/image.webp" alt="Resized image" width="320" height="180"',
+      );
+      expect(html).toContain(
+        '<figure class="handout-image-block handout-gif-block" style="max-width:240px"><img src="https://example.com/animation.gif" alt="Resized GIF" width="240" height="135"',
+      );
+    }
   });
 
   it("builds a compact server-owned manifest from the same resolved controls", () => {
@@ -252,41 +348,119 @@ describe("canonical site document", () => {
     expect(html).not.toContain('class="handout-button-block handout-button-block-full"');
   });
 
+  it("renders standard and icon lists through the shared list contract", () => {
+    const payload = buildPayload();
+    payload.content.pages[0]!.document.content = [
+      {
+        type: "bulletList",
+        content: [{
+          type: "listItem",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Bullet" }] }],
+        }],
+      },
+      {
+        type: "orderedList",
+        content: [{
+          type: "listItem",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Numbered" }] }],
+        }],
+      },
+      {
+        type: "iconList",
+        content: [{
+          type: "iconListItem",
+          attrs: { icon: "box", iconColor: "neutral" },
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Icon" }] }],
+        }],
+      },
+    ];
+
+    const html = renderPublicSiteHtml(payload, { includeTracking: false });
+
+    expect(html).toContain('<ul class="handout-list"><li class="handout-list-item"><p class="handout-paragraph">Bullet</p></li></ul>');
+    expect(html).toContain('<ol class="handout-list"><li class="handout-list-item"><p class="handout-paragraph">Numbered</p></li></ol>');
+    expect(html).toContain('<ul class="handout-icon-list"><li class="handout-icon-list-item"');
+    expect(html).toContain('<div><p class="handout-paragraph">Icon</p></div></li></ul>');
+  });
+
   it("keeps the canonical editor and public typography in one stylesheet", () => {
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-document-editor .handout-prosemirror>h2");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-heading-2,.handout-prosemirror>h2");
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-document-editor .handout-prosemirror>[data-handout-gif-empty],.handout-document-editor .handout-prosemirror>[data-handout-image-empty],.handout-document-editor .handout-prosemirror>[data-resize-container][data-node=gifBlock],.handout-document-editor .handout-prosemirror>[data-resize-container][data-node=image]{width:min(612px,calc(100% - 104px))"
+    );
     expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror>h2");
     expect(SITE_DOCUMENT_CSS).toContain('font-family:"Geist Variable","Geist"')
     expect(SITE_DOCUMENT_CSS).toContain("letter-spacing:-.02em")
     expect(SITE_DOCUMENT_CSS).toContain("letter-spacing:-.03em")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-document,.handout-document-editor{font-weight:325}")
+    expect(SITE_DOCUMENT_CSS).toContain("--handout-font-weight-body:400;--handout-font-weight-heading:550;--handout-font-weight-label:500;--handout-list-item-gap:4px")
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ":where(html[data-handout-public-site],body[data-handout-public-site],.handout-site,.handout-document-editor,.handout-editor-sidebar-content),:where(.handout-site,.handout-document-editor,.handout-editor-sidebar-content) *{font-feature-settings:normal;font-kerning:normal;font-optical-sizing:auto;font-synthesis-weight:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-document,.handout-document-editor{font-weight:var(--handout-font-weight-body)}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror strong{font-weight:700}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-paragraph,.handout-prosemirror>p")
-    expect(SITE_DOCUMENT_CSS).toContain('font-weight:325;font-variation-settings:"wght" 325;line-height:26px')
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-document-editor .handout-prosemirror>p{padding:0;color:var(--tertiary-foreground);font-size:16px;font-weight:325;font-variation-settings:\"wght\" 325")
+    expect(SITE_DOCUMENT_CSS).toContain("font-weight:var(--handout-font-weight-body);line-height:26px")
+    expect(SITE_DOCUMENT_CSS).not.toContain("font-variation-settings")
+    expect(SITE_DOCUMENT_CSS).not.toContain(".handout-document-editor .handout-prosemirror>p{padding")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-title-subtitle,[data-handout-page-title-subtitle]{max-width:100%;margin:8px 0 0")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror>h1+p,.handout-prosemirror>h2+p,.handout-prosemirror>h3+p{margin-top:14px}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-title{display:flex;flex-direction:column;align-items:center;gap:24px;padding:0 0 36px")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-document-editor .handout-prosemirror>h1+p,.handout-document-editor .handout-prosemirror>h2+p,.handout-document-editor .handout-prosemirror>h3+p{margin-top:14px}")
+    expect(SITE_DOCUMENT_CSS).toContain("overflow:hidden;border:1px solid var(--border);border-radius:14px")
+    expect(SITE_DOCUMENT_CSS).toContain("background:var(--background);color:var(--foreground)}.handout-page-title-logo img")
+    expect(SITE_DOCUMENT_CSS).not.toContain("background:var(--foreground);color:var(--background)}.handout-page-title-logo img")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-page-title-logo img{width:100%;height:100%;padding:0;object-fit:cover}")
+    expect(SITE_DOCUMENT_CSS).not.toContain(".handout-page-title-logo img{width:100%;height:100%;padding:8px")
+    expect(SITE_DOCUMENT_CSS).not.toContain(".handout-document-editor .handout-prosemirror>*+*{margin-top:20px}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-document-editor .handout-prosemirror{width:100%;min-width:0;max-width:100%")
     expect(SITE_DOCUMENT_CSS).toContain("width:min(612px,calc(100% - 104px));max-width:calc(100% - 104px)")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-logo-grid{display:grid;width:100%;min-width:0;max-width:100%")
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-icon-list,.handout-document-editor .handout-prosemirror ul[data-handout-icon-list]{display:flex;flex-direction:column;gap:var(--handout-list-item-gap);padding:0!important;list-style:none!important}"
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-task-list,.handout-document-editor .handout-prosemirror ul[data-type=taskList]{display:flex;flex-direction:column;gap:var(--handout-list-item-gap);padding:0!important;list-style:none!important}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-prosemirror>blockquote,.handout-prosemirror>pre,.handout-prosemirror>ul,.handout-prosemirror>ol,.handout-prosemirror>:where(ul,ol)+*{margin-top:24px}",
+    )
+    expect(SITE_DOCUMENT_CSS.lastIndexOf(".handout-prosemirror>blockquote,.handout-prosemirror>pre,.handout-prosemirror>ul,.handout-prosemirror>ol")).toBeGreaterThan(
+      SITE_DOCUMENT_CSS.indexOf(".handout-list,.handout-prosemirror>ul,.handout-prosemirror>ol"),
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-list-item,.handout-document-editor .handout-prosemirror>:where(ul,ol)>li{padding-left:0}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-list:is(ol)>.handout-list-item,.handout-document-editor .handout-prosemirror>ol>li{padding-left:2px}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-list>.handout-list-item+.handout-list-item,.handout-document-editor .handout-prosemirror :where(ul:not([data-type=taskList]):not([data-handout-icon-list]),ol)>li+li{margin-top:var(--handout-list-item-gap)}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-icon-list-item{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:2px;padding-left:4px}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-button{display:flex;min-height:36px;align-items:center;justify-content:center;gap:6px")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-button>svg{width:15px;height:15px;flex:none}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-table th,.handout-document-editor .tableWrapper>table th{background:var(--table-header-background)")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-button-block{display:inline-flex;width:max-content;min-height:32px;max-width:100%;align-items:center;justify-content:center;padding:0 12px;border-radius:8px;background:var(--handout-primary,var(--primary));color:var(--handout-primary-foreground,var(--primary-foreground));font-size:15px")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-button-block-full{display:flex;width:100%;min-height:40px;padding:2px 12px}")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-document-editor .handout-editor-button-block-full{min-height:40px;padding:2px 12px}")
-    expect(SITE_DOCUMENT_CSS).toContain("font-size:20px;font-weight:500;letter-spacing:-.03em;line-height:32px");
+    expect(SITE_DOCUMENT_CSS).not.toContain(".handout-document-editor .handout-editor-button-block-full{")
+    expect(SITE_DOCUMENT_CSS).toContain("font-size:20px;font-weight:var(--handout-font-weight-heading);letter-spacing:-.03em;line-height:32px");
+    expect(SITE_DOCUMENT_IFRAME_SANDBOX).toBe("allow-popups allow-same-origin allow-scripts")
     expect(SITE_DOCUMENT_CSS).toContain("--handout-primary");
     expect(HANDOUT_THEME_CSS).toContain("--tertiary-foreground:var(--neutral-300)");
     expect(HANDOUT_THEME_CSS).toContain("--secondary-foreground:var(--neutral-200)");
     expect(SITE_DOCUMENT_CSS).toContain("font-size:14px;font-weight:500;letter-spacing:-.02em;line-height:24px");
     expect(SITE_DOCUMENT_CSS).not.toContain("text-transform:uppercase");
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar,.handout-editor-sidebar-content{font-family:\"Geist Variable\",\"Geist\"")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-editor-sidebar-content :where(button,a){font-family:inherit;letter-spacing:inherit}")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section>h2,.handout-editor-sidebar-section-title{height:26px;min-width:0;margin:0;overflow:hidden;color:var(--muted-foreground);font-size:14px;font-weight:500;letter-spacing:-.02em");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-editor-sidebar-content :where(button,a){font-family:inherit;letter-spacing:-.02em}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section>h2,.handout-editor-sidebar-section-title{height:26px;min-width:0;margin:0 0 0 4px;overflow:hidden;color:var(--foreground);font-size:14px;font-weight:500;letter-spacing:-.02em");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-inner{display:flex;width:241px;flex-direction:column;gap:24px}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section-buttons{gap:10px}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-link:hover,.handout-sidebar-link:focus-visible{color:var(--foreground)}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-link svg{color:var(--handout-sidebar-link-icon,var(--blue-foreground))}");
     expect(SITE_DOCUMENT_CSS).toContain("font-size:16px;font-weight:400;letter-spacing:-.02em;line-height:24px")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-mobile-title{min-width:0;flex:1;overflow:hidden;color:var(--tertiary-foreground);font-size:16px;font-weight:500");
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab{color:var(--tertiary-foreground)}");
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab svg{color:inherit}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab,.handout-sidebar-link{color:var(--tertiary-foreground)}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab svg{color:var(--muted-foreground)}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-row.is-active svg{color:inherit}");
     expect(SITE_DOCUMENT_CSS).toContain("height:44px;align-items:center;gap:8px;padding:0 12px");
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-mobile-header{display:flex;height:44px");
     expect(SITE_DOCUMENT_CSS).toContain("padding:0 8px 0 16px");
@@ -300,7 +474,7 @@ describe("canonical site document", () => {
   });
 
   it("uses the complete shared Tabler icon catalog in every renderer", () => {
-    expect(SITE_ICON_OPTIONS.length).toBeGreaterThan(100);
+    expect(SITE_ICON_OPTIONS.length).toBeGreaterThan(200);
     for (const option of SITE_ICON_OPTIONS) {
       const svg = renderSiteIconSvg(option.name);
       expect(svg).toContain("<svg");
@@ -314,6 +488,36 @@ describe("canonical site document", () => {
     expect(normalizeSiteIconColor("emerald")).toBe("green");
     expect(normalizeSiteIconColor("amber")).toBe("yellow");
     expect(normalizeSiteIconColor("rose")).toBe("red");
+  });
+
+  it("uses the selected icon color for icon-card glyphs and tiles", () => {
+    expect(SITE_DOCUMENT_CSS).toContain(
+      "--handout-icon-color:var(--color-purple-foreground,var(--purple-foreground))",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      "--handout-icon-background:var(--color-purple-background,var(--purple-background))",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      "background:var(--handout-icon-background,var(--color-muted,var(--muted)))",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-icon-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+    );
+  });
+
+  it("uses the background token for every card block surface", () => {
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-image-card{display:grid;grid-template-columns:minmax(180px,41.5%) minmax(0,1fr);align-items:center;gap:20px;overflow:hidden;padding:6px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-icon-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-testimonial{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:20px 20px minmax(40px,auto);column-gap:12px;align-items:center;padding:16px 20px 20px 16px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-logo-grid-item{display:flex;min-width:0;flex-direction:column;align-items:center;gap:8px;padding:16px 12px 12px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+    );
   });
 
   it("renders saved legacy text colors through the new palette roles", () => {
@@ -462,13 +666,32 @@ describe("canonical site document", () => {
 
   it("applies the selected primary color to buttons and active tabs", () => {
     const payload = buildPayload();
+    payload.content.sidebar.links.push({
+      id: "primary-color-link",
+      label: "Proposal",
+      href: "https://example.com/proposal",
+      icon: "website",
+      status: "visible",
+      sortOrder: 0,
+    });
+    const neutralHtml = renderPublicSiteHtml(payload, { includeTracking: false });
+
+    expect(neutralHtml).toContain("--handout-sidebar-link-icon:var(--blue-foreground)");
+
     payload.content.settings.primaryColor = "purple";
 
     const html = renderPublicSiteHtml(payload, { includeTracking: false });
 
     expect(html).toContain("--handout-primary:var(--purple-foreground)");
     expect(html).toContain("--handout-primary-soft:var(--purple-background-subtle)");
+    expect(html).toContain("--handout-sidebar-link-icon:var(--purple-foreground)");
+    expect(html).toContain("handout-sidebar-row handout-sidebar-link");
+    expect(html).toContain(renderSiteIconSvg("link"));
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-row.is-active{background:var(--handout-primary-soft");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab,.handout-sidebar-link{color:var(--tertiary-foreground)}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-tab svg{color:var(--muted-foreground)}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-row.is-active{color:var(--handout-primary,var(--foreground))}");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-row.is-active svg{color:inherit}");
     expect(SITE_DOCUMENT_CSS).toContain("background:var(--handout-primary,var(--primary))");
   });
 

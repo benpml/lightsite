@@ -57,6 +57,10 @@
   --color-ring: var(--ring);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-success-background: var(--success-background);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-border: var(--success-border);
+  --color-section-divider: var(--section-divider);
 
   --text-6xl: 3.25rem;
   --text-40: 2.5rem;
@@ -73,6 +77,7 @@
 
   --shadow-control: var(--control-shadow);
   --shadow-badge-inverse: var(--badge-inverse-shadow);
+  --shadow-tab: var(--tab-shadow);
 }
 
 @utility text-title-xl {

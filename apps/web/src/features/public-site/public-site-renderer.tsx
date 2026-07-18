@@ -1,5 +1,8 @@
 import { useMemo, type ComponentProps } from "react"
-import { renderPublicSiteHtml } from "@handout/site-document"
+import {
+  renderPublicSiteHtml,
+  SITE_DOCUMENT_IFRAME_SANDBOX,
+} from "@handout/site-document"
 
 import type { PublishedSitePayload } from "./types"
 
@@ -24,7 +27,7 @@ export function PublicSiteRenderer({
       className="block h-svh min-h-[640px] w-full border-0 bg-background"
       data-public-site-document=""
       loading={loading}
-      sandbox="allow-popups allow-same-origin allow-scripts"
+      sandbox={SITE_DOCUMENT_IFRAME_SANDBOX}
       srcDoc={html}
       title={payload.metadata.title}
     />

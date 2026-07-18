@@ -113,6 +113,11 @@ describe("shared design tokens", () => {
       "secondary-hover": "var(--neutral-50)",
       "control-shadow": "0 1px 0.5px rgb(0 0 0 / 6%)",
       "badge-inverse-shadow": "0 1px 1px rgb(0 0 0 / 6%)",
+      "success-background": "rgb(43 154 102 / 12%)",
+      "success-foreground": "#2b9a66",
+      "success-border": "rgb(43 154 102 / 8%)",
+      "section-divider": "#ededed",
+      "tab-shadow": "0 1px 1.5px rgb(0 0 0 / 10%)",
     })
     expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
       "--secondary-hover:var(--neutral-50)",
@@ -122,6 +127,9 @@ describe("shared design tokens", () => {
     )
     expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
       "--hero-benefits-backdrop:#003683",
+    )
+    expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
+      "--section-divider:#ededed",
     )
     expect(HANDOUT_WEBSITE_THEME_CSS).toContain(
       "--control-shadow:0 1px 0.5px rgb(0 0 0 / 6%)",
@@ -173,5 +181,13 @@ describe("shared design tokens", () => {
   it("gives table headers the shared translucent black fill", () => {
     expect(handoutLightTokens["table-header-background"]).toBe("rgb(0 0 0 / 5%)")
     expect(handoutDarkTokens["table-header-background"]).toBe("rgb(0 0 0 / 5%)")
+  })
+
+  it("uses a dedicated subtle input fill without weakening input borders", () => {
+    expect(handoutLightTokens.input).toBe("var(--neutral-alpha-a700)")
+    expect(handoutDarkTokens.input).toBe("var(--neutral-alpha-a700)")
+    expect(handoutLightTokens["input-background"]).toBe("var(--neutral-alpha-a200)")
+    expect(handoutDarkTokens["input-background"]).toBe("var(--neutral-alpha-a300)")
+    expect(HANDOUT_THEME_CSS).toContain("--input-background:var(--neutral-alpha-a200)")
   })
 })

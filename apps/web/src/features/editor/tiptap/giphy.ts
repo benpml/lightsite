@@ -15,7 +15,10 @@ const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY?.trim() ?? ""
 const MAX_GIF_WIDTH = 612
 
 export const hasHandoutGiphyApiKey = GIPHY_API_KEY.length > 0
-export const handoutGiphyAttributionAssetPath = "/editor-assets/giphy-powered-by-dark.png"
+export const handoutGiphyAttributionAssetPaths = {
+  dark: "/editor-assets/giphy-powered-by-dark.png",
+  light: "/editor-assets/giphy-powered-by.png",
+} as const
 export const handoutGiphyClient = hasHandoutGiphyApiKey ? new GiphyFetch(GIPHY_API_KEY) : null
 export const handoutGiphyPageSize = 24
 
