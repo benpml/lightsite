@@ -1,4 +1,4 @@
-import { Suspense, lazy, type ComponentType } from "react"
+import { Suspense, lazy, useEffect, type ComponentType } from "react"
 import { HANDOUT_THEME_CSS } from "@handout/design-tokens"
 import { QueryClientProvider } from "@tanstack/react-query"
 import {
@@ -16,11 +16,6 @@ import { createHandoutQueryClient } from "@/lib/api/query-client"
 
 const queryClient = createHandoutQueryClient()
 
-const MarketingPage = lazyWithReload(() =>
-  import("@/features/marketing/marketing-page").then((module) => ({
-    default: module.MarketingPage,
-  }))
-)
 const InternalRouteFrame = lazyWithReload(() =>
   import("@/components/layout/internal-route-frame").then((module) => ({
     default: module.InternalRouteFrame,
@@ -146,7 +141,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: MarketingPage,
+  component: MarketingWebsiteRedirect,
 })
 
 const sitesRoute = createRoute({
@@ -379,5 +374,19 @@ function RouteFallback() {
         <div className="h-32 rounded-lg bg-muted" />
       </div>
     </div>
+  )
+}
+
+function MarketingWebsiteRedirect() {
+  useEffect(() => {
+    window.location.replace("https://www.handout.link")
+  }, [])
+
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
+      <a className="text-sm text-muted-foreground underline underline-offset-4" href="https://www.handout.link">
+        Continue to Handout
+      </a>
+    </main>
   )
 }
