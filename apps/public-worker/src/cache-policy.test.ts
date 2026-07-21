@@ -13,21 +13,33 @@ describe("public worker cache policy", () => {
   it("classifies public site paths without catching API or assets", () => {
     expect(classifyPublicRoute("/acme/overview")).toBe("public-site");
     expect(classifyPublicRoute("/acme/overview/mira")).toBe("public-site");
+    expect(classifyPublicRoute("/aZ7k2Q")).toBe("public-site");
+    expect(classifyPublicRoute("/aZ7k2Qr9LmNp")).toBe("public-site");
+    expect(classifyPublicRoute("/Ab3dE5fG7hJ9/john/linear/linear.app")).toBe("recipient-link");
+    expect(classifyPublicRoute("/Ab3dE5fG7hJ9/john/linear/linear.app/embed.jpg")).toBe("recipient-link");
+    expect(classifyPublicRoute("/aZ7k2Qr9LmNp/embed.jpg")).toBe("screenshot");
     expect(classifyPublicRoute("/acme/overview/embed.jpg")).toBe("screenshot");
     expect(classifyPublicRoute("/acme/overview/mira/embed.jpg")).toBe("screenshot");
     expect(classifyPublicRoute("/api/tracking/events")).toBe("api");
+    expect(classifyPublicRoute("/assets/images/foo/bar")).toBe("not-found");
     expect(classifyPublicRoute("/editor-assets/site-avatar.png")).toBe("asset");
     expect(classifyPublicRoute("/fonts/geist-latin-wght-normal.woff2")).toBe("asset");
     expect(classifyPublicRoute("/handout-logo.svg")).toBe("asset");
-    expect(classifyPublicRoute("/site-runtime.v4.js")).toBe("asset");
+    expect(classifyPublicRoute("/site-runtime.v6.js")).toBe("asset");
+    expect(classifyPublicRoute("/site-runtime.v99.js")).toBe("asset");
+    expect(classifyPublicRoute("/site-runtime.latest.js")).toBe("not-found");
     expect(classifyPublicRoute("/health")).toBe("health");
     expect(classifyPublicRoute("/api")).toBe("api");
+    expect(classifyPublicRoute("/aZ7k2")).toBe("not-found");
+    expect(classifyPublicRoute("/aZ7k2Qr9LmNp12345")).toBe("not-found");
     expect(classifyPublicRoute("/acme")).toBe("not-found");
     expect(classifyPublicRoute("/api/site/page")).toBe("api");
   });
 
   it("recognizes only canonical site and recipient screenshot paths", () => {
     expect(isPublicSiteScreenshotPath("/workspace/site/embed.jpg")).toBe(true);
+    expect(isPublicSiteScreenshotPath("/aZ7k2Qr9LmNp/embed.jpg")).toBe(true);
+    expect(isPublicSiteScreenshotPath("/Ab3dE5fG7hJ9/john/linear/linear.app/embed.jpg")).toBe(false);
     expect(isPublicSiteScreenshotPath("/workspace/site/recipient/embed.jpg")).toBe(true);
     expect(isPublicSiteScreenshotPath("/workspace/site/recipient/embed.png")).toBe(true);
     expect(isPublicSiteScreenshotPath("/workspace/site/recipient/other.png")).toBe(false);
@@ -49,6 +61,9 @@ describe("public worker cache policy", () => {
     expect(buildPublicHtmlSnapshotKey("/acme/overview/")).toBe(
       "public-html/v1/acme/overview/index.html",
     );
+    expect(buildPublicHtmlSnapshotKey("/aZ7k2Qr9LmNp", "version-7.3")).toBe(
+      "public-html/v2/aZ7k2Qr9LmNp/version-7.3/index.html",
+    );
   });
 
   it("builds immutable recipient preview keys only for valid versioned JPEGs", () => {
@@ -61,6 +76,13 @@ describe("public worker cache policy", () => {
     expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", "version-7")).toBe(
       "recipient-previews/v1/acme/overview/version-7/embed.jpg",
     );
+    expect(buildRecipientPreviewKey("/aZ7k2Qr9LmNp/embed.jpg", "version-7.3")).toBe(
+      "recipient-previews/v1/aZ7k2Qr9LmNp/version-7.3/embed.jpg",
+    );
+    expect(buildRecipientPreviewKey(
+      "/Ab3dE5fG7hJ9/john/linear/linear.app/embed.jpg",
+      "version-7.3",
+    )).toBeNull();
     expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", null)).toBeNull();
     expect(buildRecipientPreviewKey("/acme/overview/embed.png", "version-7")).toBeNull();
     expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", "../version-7")).toBeNull();

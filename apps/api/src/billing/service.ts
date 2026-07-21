@@ -32,12 +32,20 @@ export interface BillingService {
     interval: BillingInterval;
   }): Promise<{ url: string }>;
   createPortalSession(input: {
+    actor: CurrentActor;
     workspace: BillingWorkspaceContext;
   }): Promise<{ url: string }>;
   handleWebhook(input: {
     payload: Buffer;
     signature: string;
   }): Promise<void>;
+  updateSubscription(input: {
+    workspace: BillingWorkspaceContext;
+    plan: "core" | "pro";
+    interval: BillingInterval;
+  }): Promise<void>;
+  cancelSubscription(input: { workspace: BillingWorkspaceContext }): Promise<{ currentPeriodEnd: string | null }>;
+  syncSeatCount(workspaceId: string): Promise<void>;
 }
 
 export class BillingPermissionError extends Error {
@@ -56,7 +64,7 @@ export class BillingConfigurationError extends Error {
 
 export class BillingPortalUnavailableError extends Error {
   constructor() {
-    super("Billing portal is not available until a checkout session has created a Stripe customer.");
+    super("No active Stripe subscription is available for this workspace.");
     this.name = "BillingPortalUnavailableError";
   }
 }
@@ -115,7 +123,7 @@ export function createBillingService(
         });
       }
 
-      const seatCount = Math.max(1, await repository.countActiveWorkspaceMembers(input.workspace.id));
+      const seatCount = Math.max(1, await repository.countBillableWorkspaceSeats(input.workspace.id));
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: customerId,
@@ -138,10 +146,12 @@ export function createBillingService(
             interval: input.interval,
           },
         },
-        success_url: buildWebUrl(config.webOrigin, "/billing", {
+        success_url: buildWebUrl(config.webOrigin, "/settings", {
+          tab: "billing",
           checkout: "success",
         }),
-        cancel_url: buildWebUrl(config.webOrigin, "/billing", {
+        cancel_url: buildWebUrl(config.webOrigin, "/settings", {
+          tab: "billing",
           checkout: "cancelled",
         }),
       });
@@ -158,14 +168,22 @@ export function createBillingService(
 
       const stripe = getStripe();
       const billing = await repository.findByWorkspaceId(input.workspace.id);
+      const customerId = billing?.stripeCustomerId ?? await createCustomer({
+        actor: input.actor,
+        stripe,
+        workspace: input.workspace,
+      });
 
       if (!billing?.stripeCustomerId) {
-        throw new BillingPortalUnavailableError();
+        await repository.setStripeCustomer({
+          workspaceId: input.workspace.id,
+          stripeCustomerId: customerId,
+        });
       }
 
       const session = await stripe.billingPortal.sessions.create({
-        customer: billing.stripeCustomerId,
-        return_url: buildWebUrl(config.webOrigin, "/billing"),
+        customer: customerId,
+        return_url: buildWebUrl(config.webOrigin, "/settings", { tab: "billing" }),
       });
 
       return { url: session.url };
@@ -211,6 +229,57 @@ export function createBillingService(
       ) {
         await syncSubscription(repository, config, event.data.object);
       }
+    },
+
+    async updateSubscription(input) {
+      requireBillingAdmin(input.workspace);
+      const billing = await repository.findByWorkspaceId(input.workspace.id);
+      if (!billing?.stripeSubscriptionId) throw new BillingPortalUnavailableError();
+      const stripe = getStripe();
+      const subscription = await stripe.subscriptions.retrieve(billing.stripeSubscriptionId);
+      const item = subscription.items.data[0];
+      if (!item) throw new BillingConfigurationError("Stripe subscription has no billable item.");
+      const updated = await stripe.subscriptions.update(subscription.id, {
+        items: [{
+          id: item.id,
+          price: getPriceId(config, input.plan, input.interval),
+          quantity: Math.max(1, await repository.countBillableWorkspaceSeats(input.workspace.id)),
+        }],
+        cancel_at_period_end: false,
+        proration_behavior: "create_prorations",
+        metadata: { ...subscription.metadata, plan: input.plan, interval: input.interval },
+      });
+      await syncSubscription(repository, config, updated);
+    },
+
+    async cancelSubscription(input) {
+      requireBillingAdmin(input.workspace);
+      const billing = await repository.findByWorkspaceId(input.workspace.id);
+      if (!billing?.stripeSubscriptionId) throw new BillingPortalUnavailableError();
+      const stripe = getStripe();
+      const updated = await stripe.subscriptions.update(billing.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+      await syncSubscription(repository, config, updated);
+      return {
+        currentPeriodEnd: toDate((updated as Stripe.Subscription & { current_period_end?: number }).current_period_end)?.toISOString() ?? null,
+      };
+    },
+
+    async syncSeatCount(workspaceId) {
+      const billing = await repository.findByWorkspaceId(workspaceId);
+      if (!billing?.stripeSubscriptionId || !billing.subscriptionStatus || !activeSubscriptionStatuses.has(billing.subscriptionStatus)) return;
+      const stripe = getStripe();
+      const subscription = await stripe.subscriptions.retrieve(billing.stripeSubscriptionId);
+      const item = subscription.items.data[0];
+      if (!item) return;
+      const quantity = Math.max(1, await repository.countBillableWorkspaceSeats(workspaceId));
+      if ((item.quantity ?? 1) === quantity) return;
+      const updated = await stripe.subscriptions.update(subscription.id, {
+        items: [{ id: item.id, quantity }],
+        proration_behavior: "create_prorations",
+      });
+      await syncSubscription(repository, config, updated);
     },
   };
 }

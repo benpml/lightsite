@@ -19,6 +19,7 @@ import {
   validateSiteContentResponseSchema,
 } from "@handout/contracts";
 import { Router, type Request } from "express";
+import { z } from "zod";
 import { getAgentAuthContext } from "../auth/agent-auth";
 import type { CurrentActor, CurrentActorProvider } from "../auth/current-actor";
 import { devActor, getDevAppBootstrap, isDevAuthBypassRequest } from "../auth/dev-auth";
@@ -59,9 +60,32 @@ export function createSiteRouter(options: SiteRouterOptions) {
 
   router.get("/", asyncHandler(async (request, response) => {
     const context = await resolveSiteRequestContext(request, options);
+    const status = z.enum(["active", "archived", "all"]).default("active").safeParse(request.query.status);
+    if (!status.success) {
+      throw new AppError({
+        code: "site.invalid_payload",
+        message: "Site status filter must be active, archived, or all.",
+        status: 400,
+        issues: issuesFromZodError(status.error),
+      });
+    }
+    const limit = z.coerce.number().int().min(1).max(100).default(50).safeParse(request.query.limit);
+    const cursor = z.coerce.number().int().min(0).max(1_000_000).default(0).safeParse(request.query.cursor);
+    const paginationError = !limit.success ? limit.error : !cursor.success ? cursor.error : null;
+    if (paginationError) {
+      throw new AppError({
+        code: "site.invalid_payload",
+        message: "Site pagination requires a limit from 1 to 100 and a non-negative numeric cursor.",
+        status: 400,
+        issues: issuesFromZodError(paginationError),
+      });
+    }
     const result = await context.siteService.listSites({
       workspace: context.workspace,
       userId: context.actor.userId,
+      status: status.data,
+      limit: limit.data,
+      cursor: cursor.data,
     });
 
     response.json(listSitesResponseSchema.parse({

@@ -75,12 +75,12 @@ describe("tracking v2 recording service", () => {
     await expect(service.uploadChunk({
       recordingId: started.recordingId,
       uploadToken: started.uploadToken,
-      chunk,
+      upload: chunk,
     })).resolves.toEqual({ duplicate: false, sequence: 0 });
     await expect(service.uploadChunk({
       recordingId: started.recordingId,
       uploadToken: started.uploadToken,
-      chunk,
+      upload: chunk,
     })).resolves.toEqual({ duplicate: true, sequence: 0 });
 
     const stored = [...objectStore.objects.values()][0];
@@ -118,9 +118,100 @@ describe("tracking v2 recording service", () => {
     await service.uploadChunk({
       recordingId: started.recordingId,
       uploadToken: started.uploadToken,
-      chunk: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
+      upload: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
     });
     expect(recordings.get(started.recordingId)?.status).toBe("available");
+  });
+
+  it("persists the last chunk and completion atomically from the unload request", async () => {
+    const { recordings, service } = harness();
+    const started = await service.start(startInput(validConsent()));
+    if (!started.enabled) throw new Error("Expected replay to start.");
+
+    await expect(service.uploadChunk({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      upload: {
+        ...recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
+        completion: terminalCompletion(0),
+      },
+    })).resolves.toEqual({ duplicate: false, sequence: 0 });
+
+    expect(recordings.get(started.recordingId)).toMatchObject({
+      status: "available",
+      finalSequence: 0,
+      stopReason: "pagehide",
+      errorCode: null,
+    });
+  });
+
+  it("settles a replay when terminal metadata retries an already stored chunk", async () => {
+    const { recordings, service } = harness();
+    const started = await service.start(startInput(validConsent()));
+    if (!started.enabled) throw new Error("Expected replay to start.");
+    const chunk = recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]);
+
+    await service.uploadChunk({ recordingId: started.recordingId, uploadToken: started.uploadToken, upload: chunk });
+    await expect(service.uploadChunk({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      upload: { ...chunk, completion: terminalCompletion(0) },
+    })).resolves.toEqual({ duplicate: true, sequence: 0 });
+
+    expect(recordings.get(started.recordingId)?.status).toBe("available");
+  });
+
+  it("settles when the final chunk commits immediately before completion metadata", async () => {
+    const memory = createMemoryTrackingV2RecordingRepository();
+    const completionInspectedChunks = deferred<void>();
+    const uploadInspectedCompletion = deferred<void>();
+    let findForUploadCalls = 0;
+    let listChunkCalls = 0;
+    const repository = {
+      ...memory.repository,
+      async findForUpload(input: Parameters<typeof memory.repository.findForUpload>[0]) {
+        findForUploadCalls += 1;
+        const recording = await memory.repository.findForUpload(input);
+        if (findForUploadCalls === 3) uploadInspectedCompletion.resolve();
+        return recording;
+      },
+      async listChunks(recordingId: string) {
+        listChunkCalls += 1;
+        const chunks = await memory.repository.listChunks(recordingId);
+        if (listChunkCalls === 1) completionInspectedChunks.resolve();
+        return chunks;
+      },
+      async requestCompletion(input: Parameters<typeof memory.repository.requestCompletion>[0]) {
+        await uploadInspectedCompletion.promise;
+        return memory.repository.requestCompletion(input);
+      },
+    };
+    const service = createTrackingV2RecordingService({
+      repository,
+      objectStore: createMemoryTrackingV2RecordingObjectStore(),
+      tokenSecret: "recording-service-secret-that-is-long-enough",
+      now: () => now,
+    });
+    const started = await service.start(startInput(validConsent()));
+    if (!started.enabled) throw new Error("Expected replay to start.");
+
+    const completionPromise = service.complete({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      complete: completion(started.recordingId, 0),
+    });
+    await completionInspectedChunks.promise;
+    const uploadPromise = service.uploadChunk({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      upload: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
+    });
+
+    await expect(Promise.all([completionPromise, uploadPromise])).resolves.toEqual([
+      { status: "available" },
+      { duplicate: false, sequence: 0 },
+    ]);
+    expect(memory.recordings.get(started.recordingId)?.status).toBe("available");
   });
 
   it("makes expired recordings unreadable before physical cleanup runs", async () => {
@@ -130,7 +221,7 @@ describe("tracking v2 recording service", () => {
     await service.uploadChunk({
       recordingId: started.recordingId,
       uploadToken: started.uploadToken,
-      chunk: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
+      upload: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
     });
     await service.complete({
       recordingId: started.recordingId,
@@ -152,7 +243,7 @@ describe("tracking v2 recording service", () => {
     await expect(service.uploadChunk({
       recordingId: started.recordingId,
       uploadToken: "wrong-token",
-      chunk: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
+      upload: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
     })).rejects.toBeInstanceOf(TrackingV2RecordingInvalidError);
   });
 
@@ -183,7 +274,7 @@ describe("tracking v2 recording service", () => {
     await expect(service.uploadChunk({
       recordingId: started.recordingId,
       uploadToken: started.uploadToken,
-      chunk: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
+      upload: recordingChunk(started.recordingId, [{ type: 2, timestamp: now.getTime(), data: {} }]),
     })).rejects.toThrow("Chunk metadata is temporarily unavailable.");
 
     expect(storedObjects.objects.size).toBe(1);
@@ -254,4 +345,17 @@ function completion(_recordingId: string, finalSequence: number | null) {
     endedAt: new Date(now.getTime() + 1_000).toISOString(),
     stopReason: "pagehide" as const,
   };
+}
+
+function terminalCompletion(finalSequence: number) {
+  const { endedAt, stopReason } = completion("unused", finalSequence);
+  return { finalSequence, endedAt, stopReason };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
 }

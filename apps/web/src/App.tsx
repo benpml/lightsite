@@ -41,14 +41,15 @@ const TrackingPage = lazyWithReload(() =>
     default: module.TrackingPage,
   }))
 )
+const AutomationsPage = lazyWithReload(() =>
+  import("@/features/automations/automations-page").then((module) => ({ default: module.AutomationsPage }))
+)
+const AutomationDetailPage = lazyWithReload(() =>
+  import("@/features/automations/automation-detail-page").then((module) => ({ default: module.AutomationDetailPage }))
+)
 const TeamPage = lazyWithReload(() =>
   import("@/features/team/team-page").then((module) => ({
     default: module.TeamPage,
-  }))
-)
-const BillingPage = lazyWithReload(() =>
-  import("@/features/billing/billing-page").then((module) => ({
-    default: module.BillingPage,
   }))
 )
 const SettingsPage = lazyWithReload(() =>
@@ -64,6 +65,11 @@ const OnboardingPage = lazyWithReload(() =>
 const AuthPage = lazyWithReload(() =>
   import("@/features/auth/auth-page").then((module) => ({
     default: module.AuthPage,
+  }))
+)
+const ResetPasswordPage = lazyWithReload(() =>
+  import("@/features/auth/reset-password-page").then((module) => ({
+    default: module.ResetPasswordPage,
   }))
 )
 const ExtensionConnectPage = lazyWithReload(() =>
@@ -168,6 +174,18 @@ const trackingRoute = createRoute({
   component: TrackingPage,
 })
 
+const automationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/automations",
+  component: AutomationsPage,
+})
+
+const automationDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/automations/$automationId",
+  component: AutomationDetailPage,
+})
+
 const teamRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/team",
@@ -177,7 +195,9 @@ const teamRoute = createRoute({
 const billingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/billing",
-  component: BillingPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/settings", search: { tab: "billing" } })
+  },
 })
 
 const settingsRoute = createRoute({
@@ -196,6 +216,12 @@ const authRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth",
   component: AuthPage,
+})
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/reset-password",
+  component: ResetPasswordPage,
 })
 
 const extensionConnectRoute = createRoute({
@@ -257,11 +283,14 @@ const routeTree = rootRoute.addChildren([
   siteDetailsRoute,
   recipientDetailsRoute,
   trackingRoute,
+  automationsRoute,
+  automationDetailRoute,
   teamRoute,
   billingRoute,
   settingsRoute,
   onboardingRoute,
   authRoute,
+  resetPasswordRoute,
   extensionConnectRoute,
   editIndexRoute,
   editRoute,
@@ -297,6 +326,7 @@ function RootLayout() {
   const isEditRoute = location.pathname.startsWith("/edit")
   const isOnboardingRoute = location.pathname.startsWith("/onboarding")
   const isAuthRoute = location.pathname.startsWith("/auth")
+  const isResetPasswordRoute = location.pathname.startsWith("/reset-password")
   const isExtensionConnectRoute = location.pathname.startsWith("/extension-connect")
   const isPublicRoute = isPublicSitePath(location.pathname)
 
@@ -316,6 +346,7 @@ function RootLayout() {
     isMarketingRoute ||
     isOnboardingRoute ||
     isAuthRoute ||
+    isResetPasswordRoute ||
     isExtensionConnectRoute ||
     isPublicRoute
   ) {
@@ -341,13 +372,16 @@ const reservedAppSegments = new Set([
   "",
   "sites",
   "tracking",
+  "automations",
   "team",
+  "billing",
   "settings",
   "edit",
   "editor",
   "editor-next",
   "onboarding",
   "auth",
+  "reset-password",
   "extension-connect",
   "design-system",
   "components",

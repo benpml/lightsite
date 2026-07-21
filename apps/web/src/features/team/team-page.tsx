@@ -7,10 +7,12 @@ import {
 import type {
   WorkspaceInvitation,
   WorkspaceMember,
+  WorkspacePlan,
   WorkspaceRole,
 } from "@handout/contracts"
 import {
   IconDotsVertical,
+  IconCreditCard,
   IconMailPlus,
   IconRefresh,
   IconShield,
@@ -104,6 +106,7 @@ export function TeamPage() {
     queryFn: ({ signal }) => getWorkspaceTeam(activeWorkspace.id, signal),
   })
   const team = teamQuery.data
+  const inviteRequested = new URLSearchParams(window.location.search).get("invite") === "true"
 
   return (
     <div className="flex min-h-full flex-col gap-6 px-6 pt-5 pb-6">
@@ -111,7 +114,11 @@ export function TeamPage() {
         title="Team"
         description={`Manage who can access ${activeWorkspace.name} and what they can do.`}
         actions={team?.permissions.canManageMembers ? (
-          <InviteMemberDialog workspaceId={activeWorkspace.id} />
+          <InviteMemberDialog
+            workspaceId={activeWorkspace.id}
+            workspacePlan={activeWorkspace.plan}
+            defaultOpen={inviteRequested}
+          />
         ) : undefined}
       />
 
@@ -432,9 +439,17 @@ function InvitationActions({
   )
 }
 
-function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
+function InviteMemberDialog({
+  defaultOpen = false,
+  workspaceId,
+  workspacePlan,
+}: {
+  defaultOpen?: boolean
+  workspaceId: string
+  workspacePlan: WorkspacePlan
+}) {
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<WorkspaceRole>("user")
   const [submitted, setSubmitted] = useState(false)
@@ -446,7 +461,10 @@ function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
       setEmail("")
       setRole("user")
       setSubmitted(false)
-      await queryClient.invalidateQueries({ queryKey: queryKeys.members(workspaceId) })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.members(workspaceId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.billing(workspaceId) }),
+      ])
       toast.success(response.result === "member_added" ? "Teammate added." : "Invitation created.")
     },
   })
@@ -458,6 +476,11 @@ function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen)
+        if (!nextOpen && new URLSearchParams(window.location.search).get("invite") === "true") {
+          const url = new URL(window.location.href)
+          url.searchParams.delete("invite")
+          window.history.replaceState(null, "", url)
+        }
         if (!nextOpen && !mutation.isPending) {
           mutation.reset()
           setSubmitted(false)
@@ -527,6 +550,16 @@ function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
               </Field>
             </FieldGroup>
           </FieldSet>
+
+          {workspacePlan !== "free" ? (
+            <Alert>
+              <IconCreditCard />
+              <AlertTitle>A paid seat will be added</AlertTitle>
+              <AlertDescription>
+                This invitation adds one seat to your subscription. The prorated charge will appear on your next invoice.
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           {mutation.isError && !serverEmailError ? (
             <Alert variant="destructive">

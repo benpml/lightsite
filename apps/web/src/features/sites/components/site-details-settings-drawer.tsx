@@ -5,7 +5,13 @@ import type { SiteContent, SiteVariableDefinition } from "@handout/site-document
 import { toast } from "sonner"
 
 import { SiteSettingsDrawer } from "@/features/site-settings/components/site-settings-drawer"
-import { getSiteVariableUsageCounts, SYSTEM_SITE_VARIABLE_IDS } from "@/features/site-settings/model"
+import {
+  createSiteVariableDefinition,
+  getSiteVariableUsageCounts,
+  getUniqueSiteVariableKey,
+  normalizeSiteVariableLabel,
+  SYSTEM_SITE_VARIABLE_IDS,
+} from "@/features/site-settings/model"
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
 
@@ -59,7 +65,7 @@ export function SiteDetailsSettingsDrawer({
       ...currentContent,
       variables: [
         ...currentContent.variables,
-        createVariableDefinition(input, currentContent.variables),
+        createSiteVariableDefinition(input, currentContent.variables),
       ],
     }))
   }, [updateContent])
@@ -75,11 +81,11 @@ export function SiteDetailsSettingsDrawer({
               description: input.description?.trim() || undefined,
               key: input.label === variable.label
                 ? variable.key
-                : getUniqueVariableKey(
+                : getUniqueSiteVariableKey(
                     input.label,
                     currentContent.variables.filter((candidate) => candidate.id !== variableId),
                   ),
-              label: normalizeVariableLabel(input.label),
+              label: normalizeSiteVariableLabel(input.label),
             }
           : variable,
       ),
@@ -140,47 +146,4 @@ export function SiteDetailsSettingsDrawer({
       workspaceId={workspaceId}
     />
   )
-}
-
-function createVariableDefinition(
-  input: VariableInput,
-  variables: SiteVariableDefinition[],
-): SiteVariableDefinition {
-  const label = normalizeVariableLabel(input.label)
-  const suffix = crypto.randomUUID().slice(0, 8)
-
-  return {
-    id: `var-${createVariableKey(label) || "variable"}-${suffix}`,
-    key: getUniqueVariableKey(label, variables),
-    label,
-    type: "text",
-    description: input.description?.trim() || undefined,
-    defaultValue: typeof input.defaultValue === "string" ? input.defaultValue : "",
-  }
-}
-
-function getUniqueVariableKey(label: string, variables: SiteVariableDefinition[]) {
-  const baseKey = createVariableKey(label) || "variable"
-  const existingKeys = new Set(variables.map((variable) => variable.key))
-  let key = baseKey
-  let suffix = 2
-
-  while (existingKeys.has(key)) {
-    key = `${baseKey}-${suffix}`
-    suffix += 1
-  }
-
-  return key
-}
-
-function createVariableKey(label: string) {
-  return normalizeVariableLabel(label)
-    .toLowerCase()
-    .replace(/['"]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
-
-function normalizeVariableLabel(label: string) {
-  return label.trim().replace(/\s+/g, " ")
 }

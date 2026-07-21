@@ -1,5 +1,6 @@
 import { normalizeWebsiteDomain } from "@handout/domain";
 import { normalizePublishedSitePayload } from "@handout/content-schema";
+import { getSiteVariableValues } from "@handout/site-document";
 import { Router, type Response } from "express";
 
 import { asyncHandler } from "../http/async-handler";
@@ -88,30 +89,13 @@ function resolveLogoDomain(
 ) {
   const rawValue = kind === "workspace"
     ? payload.workspace.websiteDomain
-    : buildVariableValues(payload).recipient_website;
+    : getSiteVariableValues(payload.content, {
+        recipientCompany: payload.selectedVariant?.recipientCompany,
+        recipientName: payload.selectedVariant?.recipientName,
+        variableValues: payload.selectedVariant?.variableValues,
+      }).recipient_website;
   const normalized = normalizeWebsiteDomain(rawValue ?? "");
   return normalized.ok ? normalized.domain : null;
-}
-
-function buildVariableValues(
-  payload: NonNullable<ReturnType<typeof normalizePublishedSitePayload>>,
-) {
-  const values: Record<string, string> = {};
-
-  for (const variable of payload.content.variables) {
-    const value = toStringValue(variable.defaultValue);
-    values[variable.id] = value;
-    values[variable.key] = value;
-  }
-
-  Object.assign(values, payload.selectedVariant?.variableValues ?? {});
-  return values;
-}
-
-function toStringValue(value: unknown) {
-  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-    ? String(value)
-    : "";
 }
 
 function sendUnavailableLogo(response: Response) {

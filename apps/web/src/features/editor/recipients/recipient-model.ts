@@ -9,11 +9,19 @@ import { buildPublicSiteUrl } from "@/lib/public-site-url"
 
 export { getRecipientLogoUrl } from "@/lib/recipient-logo"
 
+const builtInRecipientVariableIds = new Set([
+  "recipient-name",
+  "recipient-company",
+  "recipient_website",
+  "var-company-logo",
+])
+
 export type SiteRecipient = {
   company: string
   createdAt: string
   id: string
   linkSlug: string
+  shortCode: string
   name: string
   siteId: string
   updatedAt: string
@@ -35,6 +43,10 @@ export type UpdateSiteRecipientInput = Partial<
   Pick<SiteRecipient, "company" | "name" | "values" | "website">
 >
 
+export function isBuiltInRecipientVariableId(variableId: string) {
+  return builtInRecipientVariableIds.has(variableId)
+}
+
 export function createSiteRecipient(
   input: CreateSiteRecipientInput,
   existingRecipients: SiteRecipient[]
@@ -46,6 +58,7 @@ export function createSiteRecipient(
     createdAt: now,
     id: createRecipientId(),
     linkSlug: createStableRecipientLinkSlug(input.name, input.company, existingRecipients),
+    shortCode: "",
     name: normalizeRecipientField(input.name, "recipientName"),
     siteId: input.siteId,
     updatedAt: now,
@@ -82,6 +95,10 @@ export function buildRecipientPublicUrl({
   siteUri: string
   publicOrigin?: string
 }) {
+  if (recipient.shortCode) {
+    return buildPublicSiteUrl(recipient.shortCode, publicOrigin)
+  }
+
   return buildPublicSiteUrl(
     `${siteUri}/${recipient.linkSlug}`,
     publicOrigin
@@ -100,6 +117,13 @@ export function buildRecipientScreenshotUrl({
   publicOrigin?: string
 }) {
   const version = encodeURIComponent(`${siteVersion ?? "published"}.${recipient.updatedAt}`)
+  if (recipient.shortCode) {
+    return `${buildPublicSiteUrl(
+      `${recipient.shortCode}/embed.jpg`,
+      publicOrigin
+    )}?v=${version}`
+  }
+
   return `${buildPublicSiteUrl(
     `${siteUri}/${recipient.linkSlug}/embed.jpg`,
     publicOrigin

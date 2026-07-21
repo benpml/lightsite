@@ -38,6 +38,7 @@ export const handoutFoundationTokens = {
   "radius-4xl": "26px",
   "radius-full": "9999px",
   "border-width": "1px",
+  "shadow-xs": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
 } as const
 
 export const handoutWebsiteTokens = {
@@ -93,7 +94,9 @@ export const handoutLightTokens = {
   "secondary-foreground": "var(--neutral-800)",
   muted: "var(--neutral-100)",
   "muted-foreground": "var(--neutral-500)",
-  "table-header-background": "rgb(0 0 0 / 5%)",
+  "table-header-background": "var(--neutral-alpha-a100)",
+  "site-card-background": "var(--white-white)",
+  "site-card-border": "var(--border)",
   accent: "var(--neutral-100)",
   "accent-foreground": "var(--neutral-950)",
   destructive: "#dc2626",
@@ -185,7 +188,9 @@ export const handoutDarkTokens = {
   "secondary-foreground": "var(--neutral-200)",
   muted: "var(--neutral-800)",
   "muted-foreground": "var(--neutral-400)",
-  "table-header-background": "rgb(0 0 0 / 5%)",
+  "table-header-background": "rgb(0 0 0 / 20%)",
+  "site-card-background": "var(--neutral-800)",
+  "site-card-border": "var(--neutral-alpha-a300)",
   accent: "var(--neutral-700)",
   "accent-foreground": "var(--neutral-50)",
   destructive: "#fca5a5",

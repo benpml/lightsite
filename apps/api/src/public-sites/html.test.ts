@@ -105,7 +105,6 @@ describe("public site HTML rendering", () => {
 
 function buildPayload(): PublishedSitePayload {
   const content = createDefaultSiteContent("Rollout brief");
-  content.settings.trackingPrivacyPolicyUrl = "https://acme.example/privacy";
   return {
     schemaVersion: PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
     workspace: {

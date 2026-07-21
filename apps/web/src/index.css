@@ -109,6 +109,8 @@
     --color-border-subtle: var(--border-subtle);
     --color-border-strong: var(--border-strong);
     --color-border: var(--border);
+    --color-site-card-background: var(--site-card-background);
+    --color-site-card-border: var(--site-card-border);
     --color-destructive: var(--destructive);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
@@ -208,14 +210,6 @@ html.gmail-extension-panel #root {
 
   .handout-tiptap .ProseMirror {
     @apply outline-none;
-  }
-
-  .handout-tiptap p {
-    @apply m-0;
-  }
-
-  .handout-tiptap p + p {
-    @apply mt-3;
   }
 
   .handout-variable-token {
@@ -602,35 +596,6 @@ html.gmail-extension-panel #root {
     width: 1em;
   }
 
-  .handout-editor .handout-editor-width,
-  .handout-editor .react-renderer.node-buttonBlock,
-  .handout-editor .react-renderer.node-calendarEmbed,
-  .handout-editor .react-renderer.node-videoEmbed,
-  .handout-editor .react-renderer.node-gifBlock,
-  .handout-editor .react-renderer.node-iconCard,
-  .handout-editor .react-renderer.node-imageCard,
-  .handout-editor .react-renderer.node-logoGrid,
-  .handout-editor .react-renderer.node-pageTitleSection,
-  .handout-editor .react-renderer.node-testimonialCard,
-  .handout-editor .ProseMirror > [data-handout-grid],
-  .handout-editor .ProseMirror > .tableWrapper,
-  .handout-editor .ProseMirror > table,
-  .handout-editor .ProseMirror > [data-handout-gif-empty],
-  .handout-editor .ProseMirror > [data-handout-image-empty],
-  .handout-editor .ProseMirror > [data-resize-container][data-node="gifBlock"],
-  .handout-editor .ProseMirror > [data-resize-container][data-node="image"],
-  .handout-editor .ProseMirror > p,
-  .handout-editor .ProseMirror > h1,
-  .handout-editor .ProseMirror > h2,
-  .handout-editor .ProseMirror > h3,
-  .handout-editor .ProseMirror > ul,
-  .handout-editor .ProseMirror > ol,
-  .handout-editor .ProseMirror > blockquote,
-  .handout-editor .ProseMirror > pre,
-  .handout-editor .ProseMirror > hr {
-    @apply mx-auto w-[612px] max-w-[calc(100%-104px)];
-  }
-
   .handout-editor .ProseMirror > p,
   .handout-editor .ProseMirror > h1,
   .handout-editor .ProseMirror > h2,
@@ -753,14 +718,15 @@ html.gmail-extension-panel #root {
   .handout-editor-calendar-embed,
   .handout-editor-video-embed {
     @apply relative overflow-hidden rounded-xl border;
-    background: var(--popover);
-    border-color: var(--border);
+    background: var(--site-card-background);
+    border-color: var(--site-card-border);
+    box-shadow: var(--shadow-xs);
   }
 
   .handout-editor-calendar-embed-toolbar,
   .handout-editor-video-embed-toolbar {
     @apply flex min-h-10 items-center justify-between gap-3 border-b px-3 py-2;
-    border-color: var(--border);
+    border-color: var(--site-card-border);
     background: var(--muted);
     color: var(--foreground);
   }
@@ -948,26 +914,6 @@ html.gmail-extension-panel #root {
     right: -4px !important;
   }
 
-  .handout-editor .ProseMirror > p {
-    @apply px-0 py-0 text-base leading-[26px];
-    color: var(--tertiary-foreground);
-  }
-
-  .handout-editor .ProseMirror > h1 {
-    @apply px-0 py-0 text-2xl leading-9;
-    color: var(--foreground);
-  }
-
-  .handout-editor .ProseMirror > h2 {
-    @apply px-0 py-0 text-xl leading-8;
-    color: var(--foreground);
-  }
-
-  .handout-editor .ProseMirror > h3 {
-    @apply px-0 py-0 text-base leading-[26px];
-    color: var(--foreground);
-  }
-
   .handout-editor [data-handout-grid] {
     @apply flex flex-col gap-3;
     container-type: inline-size;
@@ -981,17 +927,20 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor [data-handout-grid-cell] {
-    @apply min-w-0 rounded-xl border p-4 transition;
+    @apply min-w-0 transition;
     background: transparent;
-    border-color: var(--border);
+    border: 0;
+    box-shadow: none;
     cursor: text;
     min-height: 38px;
+    outline: 1px dashed transparent;
+    outline-offset: 4px;
   }
 
   .handout-editor [data-handout-grid-cell]:hover,
   .handout-editor [data-handout-grid-cell]:focus-within {
-    background: var(--muted);
-    border-color: var(--border);
+    background: transparent;
+    outline-color: var(--border-subtle);
   }
 
   .handout-editor [data-handout-grid-cell] > .react-renderer {
@@ -1104,8 +1053,9 @@ html.gmail-extension-panel #root {
 
   .handout-editor .tableWrapper {
     @apply overflow-x-auto rounded-xl border;
-    background: var(--card);
-    border-color: var(--border);
+    background: var(--site-card-background);
+    border-color: var(--site-card-border);
+    box-shadow: var(--shadow-xs);
   }
 
   .handout-editor .handout-editor-table,
@@ -1117,7 +1067,7 @@ html.gmail-extension-panel #root {
   .handout-editor .handout-editor-table :where(th, td),
   .handout-editor .tableWrapper > table :where(th, td) {
     @apply min-w-28 border-0 border-r border-b px-3 py-2 text-left align-top;
-    border-color: var(--border);
+    border-color: var(--site-card-border);
   }
 
   .handout-editor .handout-editor-table tr > :last-child,
@@ -1138,7 +1088,7 @@ html.gmail-extension-panel #root {
 
   .handout-editor .handout-editor-table td,
   .handout-editor .tableWrapper > table td {
-    background: var(--card);
+    background: var(--site-card-background);
   }
 
   .handout-editor .handout-editor-table :where(th, td) > *,
@@ -1342,8 +1292,8 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor-testimonial-card[data-drag-active="true"] {
-    background: color-mix(in oklab, var(--ring) 10%, var(--card));
-    border-color: color-mix(in oklab, var(--ring) 72%, var(--border));
+    background: color-mix(in oklab, var(--ring) 10%, var(--site-card-background));
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--site-card-border));
   }
 
   .handout-editor-testimonial-avatar {
@@ -1413,8 +1363,8 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor-logo-grid-item[data-drag-active="true"] {
-    background: color-mix(in oklab, var(--ring) 10%, var(--background));
-    border-color: color-mix(in oklab, var(--ring) 72%, var(--border));
+    background: color-mix(in oklab, var(--ring) 10%, var(--site-card-background));
+    border-color: color-mix(in oklab, var(--ring) 72%, var(--site-card-border));
   }
 
   .handout-editor-logo-grid-item {
@@ -1828,60 +1778,6 @@ html.gmail-extension-panel #root {
   .handout-editor .ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div {
     color: var(--tertiary-foreground);
     text-decoration: line-through;
-  }
-
-  .handout-editor .ProseMirror a {
-    @apply underline underline-offset-2;
-    color: var(--chart-1);
-  }
-
-  .handout-editor .ProseMirror a.handout-editor-image-card-cta {
-    color: var(--foreground);
-    text-decoration-line: none;
-  }
-
-  .handout-editor .ProseMirror code {
-    @apply inline rounded-md border px-1.5 py-0.5 font-mono text-[0.875em] font-medium tracking-normal;
-    background: var(--muted);
-    border-color: var(--border);
-    color: var(--foreground);
-    line-height: calc(1em + 4px);
-  }
-
-  .handout-editor .ProseMirror > blockquote {
-    @apply border-l-4 py-1.5 pr-0 pl-4 text-base leading-[26px];
-    border-color: var(--border);
-    color: var(--muted-foreground);
-  }
-
-  .handout-editor .ProseMirror > blockquote p {
-    @apply m-0;
-  }
-
-  .handout-editor .ProseMirror > pre {
-    @apply overflow-x-auto rounded-md border px-4 py-4 text-sm leading-6;
-    background: var(--muted);
-    border-color: var(--border);
-    color: var(--foreground);
-  }
-
-  .handout-editor .ProseMirror > pre code {
-    @apply block rounded-none border-0 bg-transparent p-0 text-[inherit] font-normal;
-    color: inherit;
-    line-height: inherit;
-  }
-
-  .handout-editor .ProseMirror > hr {
-    @apply h-6 border-0 p-0;
-    background: linear-gradient(
-      to bottom,
-      transparent calc(50% - 0.5px),
-      var(--border) calc(50% - 0.5px),
-      var(--border) calc(50% + 0.5px),
-      transparent calc(50% + 0.5px)
-    );
-    margin-top: 36px;
-    margin-bottom: 0;
   }
 
   .handout-editor .ProseMirror > hr.ProseMirror-selectednode,

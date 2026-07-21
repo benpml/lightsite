@@ -1,5 +1,7 @@
 export * from "./model";
 export * from "./collaboration";
+export * from "./document-constants";
+export * from "./document-catalog";
 export * from "./site-icons";
 export * from "./renderer";
 export * from "./tracking-manifest";

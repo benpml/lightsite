@@ -75,9 +75,7 @@ export function CreateSiteDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create site</DialogTitle>
-          <DialogDescription>
-            Start with a private draft. Publishing creates the prospect-facing link.
-          </DialogDescription>
+          <DialogDescription>Create a private draft to start editing.</DialogDescription>
         </DialogHeader>
         <form
           className="contents"
@@ -104,9 +102,7 @@ export function CreateSiteDialog({
                 disabled={createSiteMutation.isPending}
               />
               {nameError ? <FieldError>{nameError}</FieldError> : null}
-              <FieldDescription>
-                Draft URL preview: /{workspaceSlug}/{slug}
-              </FieldDescription>
+              <FieldDescription>/{workspaceSlug}/{slug}</FieldDescription>
             </Field>
           </FieldGroup>
           {createSiteMutation.isError && !nameError ? (

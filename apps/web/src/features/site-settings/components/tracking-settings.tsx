@@ -1,9 +1,9 @@
-import { useId, useState, type ReactNode, type SetStateAction } from "react"
+import { useState, type ReactNode, type SetStateAction } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { IconLock } from "@tabler/icons-react"
 import type { WorkspacePlan } from "@handout/contracts"
 import {
-  sanitizeTrackingPrivacyPolicyUrl,
+  HANDOUT_PRIVACY_POLICY_URL,
   type SiteContent,
   type SiteTrackingConsentPopup,
 } from "@handout/site-document"
@@ -21,8 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { Field, FieldContent, FieldDescription, FieldTitle } from "@/components/ui/field"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -33,6 +32,7 @@ import {
 } from "@/features/tracking/api"
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
+import { cn } from "@/lib/utils"
 
 import { trackingConsentOptions } from "../model"
 
@@ -55,7 +55,6 @@ export function TrackingSettings({
 }: TrackingSettingsProps) {
   const queryClient = useQueryClient()
   const [agreementOpen, setAgreementOpen] = useState(false)
-  const [privacyPolicyOpen, setPrivacyPolicyOpen] = useState(false)
   const settingsQuery = useQuery({
     queryKey: queryKeys.trackingSiteSettings(workspaceId, siteId),
     queryFn: ({ signal }) => getTrackingV2SiteSettings(workspaceId, siteId, signal),
@@ -114,9 +113,6 @@ export function TrackingSettings({
     trackingConsentOptions.find(
       (option) => option.value === content.settings.trackingConsentPopup,
     ) ?? trackingConsentOptions[0]
-  const privacyPolicyUrl = content.settings.trackingPrivacyPolicyUrl
-  const sanitizedPrivacyPolicyUrl = sanitizeTrackingPrivacyPolicyUrl(privacyPolicyUrl)
-
   const updateSettings = (settings: Partial<SiteContent["settings"]>) => {
     onChange((currentContent) => ({
       ...currentContent,
@@ -151,8 +147,8 @@ export function TrackingSettings({
             )
           }
         />
-        <div className="border-t border-border-subtle" />
         <SettingRow
+          className="border-t border-border-subtle"
           description={
             !isPro
               ? "Watch how visitors use the site"
@@ -181,10 +177,6 @@ export function TrackingSettings({
               onCheckedChange={(checked) => {
                 if (!checked) {
                   replayMutation.mutate(false)
-                  return
-                }
-                if (!sanitizedPrivacyPolicyUrl) {
-                  setPrivacyPolicyOpen(true)
                   return
                 }
                 setAgreementOpen(true)
@@ -238,21 +230,10 @@ export function TrackingSettings({
         </Select>
         {content.settings.trackingConsentPopup === "none" ? null : (
           <ConsentPopupPreview
-            onPrivacyPolicyClick={() => setPrivacyPolicyOpen(true)}
             variant={content.settings.trackingConsentPopup}
           />
         )}
       </Field>
-
-      <PrivacyPolicyDialog
-        open={privacyPolicyOpen}
-        value={privacyPolicyUrl}
-        onOpenChange={setPrivacyPolicyOpen}
-        onSave={(trackingPrivacyPolicyUrl) => {
-          updateSettings({ trackingPrivacyPolicyUrl })
-          setPrivacyPolicyOpen(false)
-        }}
-      />
       <ReplayAgreementDialog
         open={agreementOpen}
         onOpenChange={setAgreementOpen}
@@ -267,12 +248,14 @@ export function TrackingSettings({
 
 function SettingRow({
   badge,
+  className,
   control,
   description,
   disabled = false,
   title,
 }: {
   badge?: ReactNode
+  className?: string
   control: ReactNode
   description: string
   disabled?: boolean
@@ -280,11 +263,11 @@ function SettingRow({
 }) {
   return (
     <Field
-      className="items-start gap-2.5 px-4 py-3"
+      className={cn("h-16 items-center gap-2.5 px-4 py-3", className)}
       data-disabled={disabled || undefined}
       orientation="horizontal"
     >
-      <div className="mt-px">{control}</div>
+      <div>{control}</div>
       <FieldContent className={disabled ? "opacity-60" : undefined}>
         <div className="flex items-center gap-2">
           <FieldTitle>{title}</FieldTitle>
@@ -296,29 +279,28 @@ function SettingRow({
   )
 }
 
-export function ConsentPopupPreview({
-  onPrivacyPolicyClick,
-  variant,
-}: {
-  onPrivacyPolicyClick?: () => void
+export function ConsentPopupPreview({ variant }: {
   variant: Exclude<SiteTrackingConsentPopup, "none">
 }) {
   return (
     <div className="overflow-hidden rounded-[10px] border bg-card py-4 pr-3 pl-4">
-      <div className="flex flex-col gap-3 rounded-xl border bg-popover px-3 pt-2 pb-3">
-        <div>
-          <h3 className="text-xs leading-4 font-medium">We value your privacy</h3>
-          <p className="mt-1 text-[10px] leading-[13.667px] text-tertiary-foreground">
+      <div className="mx-auto flex w-full max-w-[324px] flex-col gap-3 rounded-xl border bg-popover px-3 pt-2 pb-3">
+        <div className="flex w-full flex-col items-center gap-0.5">
+          <div className="flex w-full items-center py-[4.1px]">
+            <h3 className="text-xs leading-4 font-medium">We value your privacy</h3>
+          </div>
+          <p className="text-[10px] leading-[13.667px] text-tertiary-foreground">
             This site uses cookies and other technology upon consent to help the owner understand
             how you use it, including session behavior and where you click and scroll. By selecting
             {" "}Allow and proceed, you consent to this as described in the{" "}
-            <button
+            <a
               className="cursor-pointer underline underline-offset-1"
-              onClick={onPrivacyPolicyClick}
-              type="button"
+              href={HANDOUT_PRIVACY_POLICY_URL}
+              rel="noopener noreferrer"
+              target="_blank"
             >
               Privacy Policy
-            </button>
+            </a>
             .
             {variant === "popup-a" ? (
               <>
@@ -327,7 +309,7 @@ export function ConsentPopupPreview({
             ) : null}
           </p>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-[4.1px]">
           {variant === "popup-b" ? (
             <Button
               className="h-[22px] flex-1 rounded-[6.834px] px-2 text-[9.567px]"
@@ -345,60 +327,7 @@ export function ConsentPopupPreview({
   )
 }
 
-function PrivacyPolicyDialog({
-  onOpenChange,
-  onSave,
-  open,
-  value,
-}: {
-  onOpenChange: (open: boolean) => void
-  onSave: (value: string) => void
-  open: boolean
-  value: string
-}) {
-  const inputId = useId()
-  const [draft, setDraft] = useState(value)
-  const valid = sanitizeTrackingPrivacyPolicyUrl(draft) !== null
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen) setDraft(value)
-        onOpenChange(nextOpen)
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Privacy policy</DialogTitle>
-          <DialogDescription>
-            Add the HTTPS privacy policy shown to visitors before they consent.
-          </DialogDescription>
-        </DialogHeader>
-        <Field>
-          <FieldLabel htmlFor={inputId}>Privacy policy URL</FieldLabel>
-          <Input
-            id={inputId}
-            aria-invalid={draft.length > 0 && !valid}
-            autoFocus
-            inputMode="url"
-            placeholder="https://example.com/privacy"
-            type="url"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-          />
-        </Field>
-        <DialogFooter>
-          <Button disabled={!valid} onClick={() => onSave(draft)}>
-            Save privacy policy
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function ReplayAgreementDialog({
+export function ReplayAgreementDialog({
   onAgree,
   onOpenChange,
   open,

@@ -6,6 +6,11 @@ import type {
   BillingSummary,
   CreateBillingCheckoutRequest,
   WorkspacePlan,
+  UpdateBillingSubscriptionRequest,
+} from "@handout/contracts"
+import {
+  cancelBillingSubscriptionResponseSchema,
+  updateBillingSubscriptionResponseSchema,
 } from "@handout/contracts"
 
 import { apiRequest } from "@/lib/api/client"
@@ -29,6 +34,21 @@ export function createBillingPortal() {
   return apiRequest("/api/billing/portal", {
     method: "POST",
     responseSchema: billingPortalResponseSchema,
+  })
+}
+
+export function updateBillingSubscription(input: UpdateBillingSubscriptionRequest) {
+  return apiRequest("/api/billing/subscription", {
+    method: "PATCH",
+    body: input,
+    responseSchema: updateBillingSubscriptionResponseSchema,
+  })
+}
+
+export function cancelBillingSubscription() {
+  return apiRequest("/api/billing/subscription", {
+    method: "DELETE",
+    responseSchema: cancelBillingSubscriptionResponseSchema,
   })
 }
 

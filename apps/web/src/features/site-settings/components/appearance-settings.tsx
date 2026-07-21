@@ -22,6 +22,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
 
 import {
+  modeOptions,
   primaryColorOptions,
   SYSTEM_SITE_VARIABLE_IDS,
   systemSiteVariables,
@@ -33,16 +34,6 @@ type AppearanceSettingsProps = {
   siteName: string
   variables: SiteVariableDefinition[]
 }
-
-const modeOptions = [
-  { value: "light", label: "Light", description: "Always light mode" },
-  { value: "dark", label: "Dark", description: "Always dark mode" },
-  {
-    value: "system",
-    label: "Automatic",
-    description: "Follow the users system theme",
-  },
-] as const
 
 export function AppearanceSettings({
   content,
@@ -251,7 +242,7 @@ function VariableTemplateField({
   )
 }
 
-function ModePreview({ mode }: { mode: (typeof modeOptions)[number]["value"] }) {
+export function ModePreview({ mode }: { mode: (typeof modeOptions)[number]["value"] }) {
   if (mode === "system") {
     return (
       <span className="flex h-full w-[100px] shrink-0 overflow-hidden rounded-lg border bg-card pl-4">

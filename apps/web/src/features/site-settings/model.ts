@@ -6,6 +6,16 @@ import type {
   TiptapNode,
 } from "@handout/site-document"
 
+export const modeOptions = [
+  { value: "light", label: "Light", description: "Always light mode" },
+  { value: "dark", label: "Dark", description: "Always dark mode" },
+  {
+    value: "system",
+    label: "Automatic",
+    description: "Follow the users system theme",
+  },
+] as const
+
 export const SYSTEM_SITE_VARIABLE_IDS = new Set([
   "recipient-name",
   "recipient-company",
@@ -38,6 +48,74 @@ export const systemSiteVariables: SiteVariableDefinition[] = [
     defaultValue: "",
   },
 ]
+
+export type SiteVariableInput = Pick<
+  SiteVariableDefinition,
+  "defaultValue" | "description" | "label"
+>
+
+export function createSiteVariableDefinition(
+  input: SiteVariableInput,
+  variables: SiteVariableDefinition[],
+): SiteVariableDefinition {
+  const label = normalizeSiteVariableLabel(input.label)
+  const suffix = crypto.randomUUID().slice(0, 8)
+
+  return {
+    id: `var-${createSiteVariableKey(label) || "variable"}-${suffix}`,
+    key: getUniqueSiteVariableKey(label, variables),
+    label,
+    type: "text",
+    description: input.description?.trim() || undefined,
+    defaultValue: typeof input.defaultValue === "string" ? input.defaultValue : "",
+  }
+}
+
+export function isDuplicateSiteVariableLabel(
+  label: string,
+  variables: SiteVariableDefinition[],
+  editingVariableId?: string,
+) {
+  const normalizedLabel = normalizeSiteVariableLabel(label).toLocaleLowerCase()
+  if (!normalizedLabel) return false
+
+  return [...systemSiteVariables, ...variables].some(
+    (variable) =>
+      variable.id !== editingVariableId &&
+      normalizeSiteVariableLabel(variable.label).toLocaleLowerCase() === normalizedLabel,
+  )
+}
+
+export function getUniqueSiteVariableKey(
+  label: string,
+  variables: SiteVariableDefinition[],
+) {
+  const baseKey = createSiteVariableKey(label) || "variable"
+  const existingKeys = new Set(
+    [...systemSiteVariables, ...variables].map((variable) => variable.key),
+  )
+  let key = baseKey
+  let suffix = 2
+
+  while (existingKeys.has(key)) {
+    key = `${baseKey}-${suffix}`
+    suffix += 1
+  }
+
+  return key
+}
+
+export function createSiteVariableKey(label: string) {
+  return normalizeSiteVariableLabel(label)
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+export function normalizeSiteVariableLabel(label: string) {
+  return label.trim().replace(/\s+/g, " ")
+}
 
 export const primaryColorOptions: Array<{
   className: string

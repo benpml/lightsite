@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const TRACKING_V2_SCRIPT_VERSION = "2026-07-13.v9" as const;
+export const TRACKING_V2_SCRIPT_VERSION = "2026-07-21.v10" as const;
 export const TRACKING_V2_SCRIPT_ENDPOINT = `/track/${TRACKING_V2_SCRIPT_VERSION}/script.js` as const;
 export const TRACKING_V2_RECORDER_SCRIPT_ENDPOINT = `/track/${TRACKING_V2_SCRIPT_VERSION}/recorder.js` as const;
 export const TRACKING_V2_RRWEB_RECORD_SCRIPT_ENDPOINT = `/track/${TRACKING_V2_SCRIPT_VERSION}/rrweb-record.js` as const;
@@ -33,6 +33,7 @@ export const TRACKING_V2_RECORDING_FLUSH_INTERVAL_MS = 5_000;
 export const TRACKING_V2_RECORDING_TARGET_CHUNK_BYTES = 96 * 1024;
 export const TRACKING_V2_RECORDING_MAX_CHUNK_BYTES = 512 * 1024;
 export const TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES = 60 * 1024;
+export const TRACKING_V2_RECORDING_TERMINAL_RESERVE_BYTES = 1024;
 export const TRACKING_V2_RECORDING_MAX_BYTES = 5 * 1024 * 1024;
 export const TRACKING_V2_RECORDING_MAX_EVENTS = 20_000;
 export const TRACKING_V2_RECORDING_MAX_EVENTS_PER_CHUNK = 500;
@@ -108,36 +109,42 @@ export const trackingV2SettingScopes = ["workspace", "site", "recipient"] as con
 
 export const trackingV2EventRegistry = {
   site_visit: {
+    automationTriggerable: true,
     source: "browser",
     sessionScoped: true,
     userVisible: true,
     requiresElement: false,
   },
   button_click: {
+    automationTriggerable: true,
     source: "browser",
     sessionScoped: true,
     userVisible: true,
     requiresElement: true,
   },
   link_click: {
+    automationTriggerable: true,
     source: "browser",
     sessionScoped: true,
     userVisible: true,
     requiresElement: true,
   },
   tab_switch: {
+    automationTriggerable: true,
     source: "browser",
     sessionScoped: true,
     userVisible: true,
     requiresElement: true,
   },
   slack_share: {
+    automationTriggerable: false,
     source: "slack_og_image",
     sessionScoped: false,
     userVisible: true,
     requiresElement: false,
   },
   webhook_send: {
+    automationTriggerable: false,
     source: "webhook",
     sessionScoped: false,
     userVisible: true,
@@ -146,6 +153,7 @@ export const trackingV2EventRegistry = {
 } as const satisfies Record<
   TrackingV2EventType,
   {
+    automationTriggerable: boolean;
     source: TrackingV2EventSource;
     sessionScoped: boolean;
     userVisible: boolean;
@@ -784,6 +792,24 @@ export const trackingV2RecordingCompleteSchema = z
   })
   .strict();
 
+export const trackingV2RecordingTerminalSchema = trackingV2RecordingCompleteSchema
+  .omit({ schemaVersion: true, sessionId: true });
+
+export const trackingV2RecordingUploadSchema = trackingV2RecordingChunkSchema
+  .extend({
+    completion: trackingV2RecordingTerminalSchema.optional(),
+  })
+  .strict()
+  .superRefine((upload, context) => {
+    if (upload.completion && upload.completion.finalSequence !== upload.sequence) {
+      context.addIssue({
+        code: "custom",
+        path: ["completion", "finalSequence"],
+        message: "Terminal recording metadata must reference the uploaded chunk sequence",
+      });
+    }
+  });
+
 export const trackingV2SlackShareDataSchema = z
   .object({
     platform: z.literal("slack"),
@@ -853,6 +879,7 @@ export type TrackingV2SessionHeartbeat = z.infer<typeof trackingV2SessionHeartbe
 export type TrackingV2SessionEnd = z.infer<typeof trackingV2SessionEndSchema>;
 export type TrackingV2RecordingChunk = z.infer<typeof trackingV2RecordingChunkSchema>;
 export type TrackingV2RecordingComplete = z.infer<typeof trackingV2RecordingCompleteSchema>;
+export type TrackingV2RecordingUpload = z.infer<typeof trackingV2RecordingUploadSchema>;
 export type TrackingV2ServerEventData = z.infer<typeof trackingV2ServerEventDataSchema>;
 export type TrackingV2PublicBootstrap = z.infer<typeof trackingV2PublicBootstrapSchema>;
 export type TrackingV2ContextTokenPayload = z.infer<typeof trackingV2ContextTokenPayloadSchema>;

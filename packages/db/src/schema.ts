@@ -4,6 +4,7 @@ import {
   normalizeSiteContent,
   type SiteContent,
   type SiteContentPage,
+  type SiteDefaults,
   type SiteSidebar,
   type SiteSidebarButton,
   type SiteSidebarLink,
@@ -36,6 +37,7 @@ export {
   normalizeSiteContent,
   type SiteContent,
   type SiteContentPage,
+  type SiteDefaults,
   type SiteSidebar,
   type SiteSidebarButton,
   type SiteSidebarLink,
@@ -131,6 +133,26 @@ export const trackingDestinationKindEnum = pgEnum("tracking_destination_kind", [
   "internal_tab",
   "other",
 ]);
+export const webhookAutomationStateEnum = pgEnum("webhook_automation_state", ["draft", "enabled", "paused", "needs_attention"]);
+export const webhookAutomationStateReasonEnum = pgEnum("webhook_automation_state_reason", ["user", "plan_changed", "delivery_failures", "usage_limit", "queue_limit"]);
+export const webhookAutomationSiteScopeEnum = pgEnum("webhook_automation_site_scope", ["all", "selected"]);
+export const webhookAutomationRecipientScopeEnum = pgEnum("webhook_automation_recipient_scope", ["anyone", "named", "unnamed", "selected"]);
+export const webhookMessageKindEnum = pgEnum("webhook_message_kind", ["live", "test"]);
+export const webhookFanoutStatusEnum = pgEnum("webhook_fanout_status", ["pending", "complete", "cancelled"]);
+export const webhookDeliveryStatusEnum = pgEnum("webhook_delivery_status", ["pending", "succeeded", "failed", "cancelled"]);
+export const workspaceAssetPurposeEnum = pgEnum("workspace_asset_purpose", ["image", "logo", "og_image", "avatar"]);
+
+const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+  fromDriver(value) {
+    return new Uint8Array(value);
+  },
+  toDriver(value) {
+    return Buffer.from(value);
+  },
+});
 
 export const user = pgTable(
   "user",
@@ -145,6 +167,7 @@ export const user = pgTable(
   },
   (table) => ({
     emailIdx: uniqueIndex("user_email_idx").on(table.email),
+    emailLowerIdx: uniqueIndex("user_email_lower_idx").on(sql`lower(${table.email})`),
   }),
 );
 
@@ -242,11 +265,76 @@ export const userProfiles = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     accountSetupCompletedAt: timestamp("account_setup_completed_at", { withTimezone: true }),
     lastActiveWorkspaceId: uuid("last_active_workspace_id").references(() => workspaces.id, { onDelete: "set null" }),
+    siteDefaults: jsonb("site_defaults").$type<SiteDefaults>(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
     lastActiveWorkspaceIdx: index("user_profiles_last_active_workspace_idx").on(table.lastActiveWorkspaceId),
+  }),
+);
+
+export const workspaceLogoAssets = pgTable(
+  "workspace_logo_assets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    contentType: varchar("content_type", { length: 64 }).notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    content: bytea("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceIdx: index("workspace_logo_assets_workspace_idx").on(table.workspaceId),
+    sizeCheck: check("workspace_logo_assets_size_check", sql`${table.byteSize} between 1 and 1048576`),
+    squareCheck: check("workspace_logo_assets_square_check", sql`${table.width} = ${table.height}`),
+  }),
+);
+
+export const workspaceAssets = pgTable(
+  "workspace_assets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    uploadedByUserId: varchar("uploaded_by_user_id", { length: 191 }).notNull().references(() => user.id, { onDelete: "restrict" }),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    purpose: workspaceAssetPurposeEnum("purpose").notNull().default("image"),
+    contentType: varchar("content_type", { length: 64 }).notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    content: bytea("content").notNull(),
+    sourceHost: varchar("source_host", { length: 253 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceIdx: index("workspace_assets_workspace_idx").on(table.workspaceId),
+    createdAtIdx: index("workspace_assets_created_at_idx").on(table.workspaceId, table.createdAt),
+    sizeCheck: check("workspace_assets_size_check", sql`${table.byteSize} between 1 and 5242880`),
+    dimensionsCheck: check("workspace_assets_dimensions_check", sql`${table.width} between 1 and 12000 and ${table.height} between 1 and 12000`),
+  }),
+);
+
+export const userProfileImageAssets = pgTable(
+  "user_profile_image_assets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: varchar("user_id", { length: 191 }).notNull().references(() => user.id, { onDelete: "cascade" }),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    contentType: varchar("content_type", { length: 64 }).notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    content: bytea("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index("user_profile_image_assets_user_idx").on(table.userId),
+    sizeCheck: check("user_profile_image_assets_size_check", sql`${table.byteSize} between 1 and 1048576`),
+    squareCheck: check("user_profile_image_assets_square_check", sql`${table.width} = ${table.height}`),
   }),
 );
 
@@ -350,6 +438,7 @@ export const sites = pgTable(
   "sites",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    publicId: varchar("public_id", { length: 16 }).notNull(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
     createdByUserId: varchar("created_by_user_id", { length: 191 }).notNull(),
     updatedByUserId: varchar("updated_by_user_id", { length: 191 }),
@@ -369,6 +458,7 @@ export const sites = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
+    publicIdIdx: uniqueIndex("sites_public_id_idx").on(table.publicId),
     workspaceSlugIdx: uniqueIndex("sites_workspace_slug_idx").on(table.workspaceId, table.slug),
     workspaceStatusUpdatedAtIdx: index("sites_workspace_status_updated_at_idx").on(
       table.workspaceId,
@@ -378,18 +468,6 @@ export const sites = pgTable(
     publishedVersionIdx: index("sites_published_version_idx").on(table.publishedVersionId),
   }),
 );
-
-const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
-  dataType() {
-    return "bytea";
-  },
-  fromDriver(value) {
-    return new Uint8Array(value);
-  },
-  toDriver(value) {
-    return Buffer.from(value);
-  },
-});
 
 export const siteCollaborationDocuments = pgTable(
   "site_collaboration_documents",
@@ -440,6 +518,7 @@ export const siteVariants = pgTable(
   "site_variants",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    shortCode: varchar("short_code", { length: 16 }).notNull(),
     workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
     siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 120 }).notNull(),
@@ -447,6 +526,7 @@ export const siteVariants = pgTable(
     recipientName: varchar("recipient_name", { length: 160 }),
     recipientCompany: varchar("recipient_company", { length: 160 }),
     variableValues: jsonb("variable_values").$type<Record<string, unknown>>().notNull().default({}),
+    publicLinkKey: varchar("public_link_key", { length: 64 }),
     revisionNumber: integer("revision_number").notNull().default(1),
     status: siteVariantStatusEnum("status").notNull().default("active"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -454,6 +534,11 @@ export const siteVariants = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
+    shortCodeIdx: uniqueIndex("site_variants_short_code_idx").on(table.shortCode),
+    sitePublicLinkIdx: uniqueIndex("site_variants_site_public_link_idx").on(
+      table.siteId,
+      table.publicLinkKey,
+    ),
     siteSlugIdx: uniqueIndex("site_variants_site_slug_idx").on(table.siteId, table.slug),
     workspaceUpdatedAtIdx: index("site_variants_workspace_updated_at_idx").on(table.workspaceId, table.updatedAt),
   }),
@@ -626,6 +711,9 @@ export const trackingRecipientSessions = pgTable(
     activeLastSeenIdx: index("tracking_recipient_sessions_active_seen_idx")
       .on(table.lastSeenAt)
       .where(sql`${table.state} = 'active'`),
+    recordingSettlementIdx: index("tracking_recipient_sessions_recording_settle_idx")
+      .on(table.updatedAt, table.id)
+      .where(sql`${table.state} in ('ended', 'expired') and ${table.recordingStatus} in ('pending', 'recording')`),
     manifestIdx: index("tracking_recipient_sessions_manifest_idx").on(table.manifestId),
     publishedVersionFk: foreignKey({
       name: "trk_rec_sessions_version_fk",
@@ -879,6 +967,155 @@ export const trackingRecipientEvents = pgTable(
         or (${table.type} <> 'webhook_send')
       )`,
     ),
+  }),
+);
+
+export type WebhookAutomationTrigger = {
+  eventTypes: Array<"site_visit" | "button_click" | "link_click" | "tab_switch">;
+  siteScope: "all" | "selected";
+  siteIds: string[];
+  recipientScope: "anyone" | "named" | "unnamed" | "selected";
+  recipientIds: string[];
+};
+
+export type WebhookPayloadSnapshot = Record<string, unknown>;
+
+export const webhookAutomations = pgTable(
+  "webhook_automations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    state: webhookAutomationStateEnum("state").notNull().default("draft"),
+    stateReason: webhookAutomationStateReasonEnum("state_reason"),
+    endpointHost: varchar("endpoint_host", { length: 253 }).notNull(),
+    currentRevisionId: uuid("current_revision_id"),
+    consecutiveFailureCount: integer("consecutive_failure_count").notNull().default(0),
+    lastDeliveryAt: timestamp("last_delivery_at", { withTimezone: true }),
+    lastDeliveryStatus: webhookDeliveryStatusEnum("last_delivery_status"),
+    createdByUserId: varchar("created_by_user_id", { length: 191 }).references(() => user.id, { onDelete: "set null" }),
+    updatedByUserId: varchar("updated_by_user_id", { length: 191 }).references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceStateIdx: index("webhook_automations_workspace_state_idx").on(table.workspaceId, table.state),
+    currentRevisionIdx: index("webhook_automations_current_revision_idx").on(table.currentRevisionId),
+    failureCountCheck: check("webhook_automations_failure_count_check", sql`${table.consecutiveFailureCount} >= 0`),
+    currentRevisionCheck: check("webhook_automations_current_revision_check", sql`${table.currentRevisionId} is not null`),
+  }),
+);
+
+export const webhookAutomationRevisions = pgTable(
+  "webhook_automation_revisions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    automationId: uuid("automation_id").notNull().references(() => webhookAutomations.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    revisionNumber: integer("revision_number").notNull(),
+    trigger: jsonb("trigger").$type<WebhookAutomationTrigger>().notNull(),
+    endpointCiphertext: text("endpoint_ciphertext").notNull(),
+    endpointNonce: varchar("endpoint_nonce", { length: 64 }).notNull(),
+    signingSecretCiphertext: text("signing_secret_ciphertext").notNull(),
+    signingSecretNonce: varchar("signing_secret_nonce", { length: 64 }).notNull(),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    createdByUserId: varchar("created_by_user_id", { length: 191 }).references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    automationRevisionIdx: uniqueIndex("webhook_automation_revisions_number_idx").on(table.automationId, table.revisionNumber),
+    automationIdentityIdx: uniqueIndex("webhook_automation_revisions_identity_idx").on(table.automationId, table.id),
+    workspaceCreatedIdx: index("webhook_automation_revisions_workspace_created_idx").on(table.workspaceId, table.createdAt),
+    revisionNumberCheck: check("webhook_automation_revisions_number_check", sql`${table.revisionNumber} > 0`),
+  }),
+);
+
+export const webhookMessages = pgTable(
+  "webhook_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceEventRowId: uuid("source_event_row_id"),
+    eventId: varchar("event_id", { length: 160 }).notNull(),
+    eventType: trackingRecipientEventTypeEnum("event_type").notNull(),
+    kind: webhookMessageKindEnum("kind").notNull().default("live"),
+    payload: jsonb("payload").$type<WebhookPayloadSnapshot>(),
+    payloadText: text("payload_text"),
+    payloadRedactedAt: timestamp("payload_redacted_at", { withTimezone: true }),
+    fanoutStatus: webhookFanoutStatusEnum("fanout_status").notNull().default("pending"),
+    availableAt: timestamp("available_at", { withTimezone: true }).defaultNow().notNull(),
+    leasedUntil: timestamp("leased_until", { withTimezone: true }),
+    leaseToken: uuid("lease_token"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => ({
+    eventKindIdx: uniqueIndex("webhook_messages_event_kind_idx").on(table.workspaceId, table.eventId, table.kind),
+    fanoutIdx: index("webhook_messages_fanout_idx").on(table.fanoutStatus, table.availableAt, table.createdAt),
+    workspaceCreatedIdx: index("webhook_messages_workspace_created_idx").on(table.workspaceId, table.createdAt),
+    payloadPairCheck: check("webhook_messages_payload_pair_check", sql`(${table.payload} is null) = (${table.payloadText} is null)`),
+    payloadSizeCheck: check("webhook_messages_payload_size_check", sql`${table.payloadText} is null or octet_length(${table.payloadText}) <= 16384`),
+    eventTypeCheck: check("webhook_messages_event_type_check", sql`${table.eventType} in ('site_visit', 'button_click', 'link_click', 'tab_switch')`),
+  }),
+);
+
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    automationId: uuid("automation_id").notNull().references(() => webhookAutomations.id, { onDelete: "cascade" }),
+    revisionId: uuid("revision_id").notNull().references(() => webhookAutomationRevisions.id, { onDelete: "restrict" }),
+    messageId: uuid("message_id").notNull().references(() => webhookMessages.id, { onDelete: "cascade" }),
+    status: webhookDeliveryStatusEnum("status").notNull().default("pending"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    manualRetryCount: integer("manual_retry_count").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).defaultNow().notNull(),
+    leasedUntil: timestamp("leased_until", { withTimezone: true }),
+    leaseToken: uuid("lease_token"),
+    responseStatus: integer("response_status"),
+    errorCode: varchar("error_code", { length: 80 }),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    messageAutomationIdx: uniqueIndex("webhook_deliveries_message_automation_idx").on(table.messageId, table.automationId),
+    dispatchIdx: index("webhook_deliveries_dispatch_idx").on(table.status, table.nextAttemptAt, table.createdAt),
+    automationCreatedIdx: index("webhook_deliveries_automation_created_idx").on(table.automationId, table.createdAt),
+    workspaceCreatedIdx: index("webhook_deliveries_workspace_created_idx").on(table.workspaceId, table.createdAt),
+    attemptsCheck: check("webhook_deliveries_attempts_check", sql`${table.attemptCount} >= 0 and ${table.attemptCount} <= 10 and ${table.manualRetryCount} >= 0 and ${table.manualRetryCount} <= 3`),
+    responseStatusCheck: check("webhook_deliveries_response_status_check", sql`${table.responseStatus} is null or ${table.responseStatus} between 100 and 599`),
+  }),
+);
+
+export const webhookWorkspaceQueueState = pgTable(
+  "webhook_workspace_queue_state",
+  {
+    workspaceId: uuid("workspace_id").primaryKey().references(() => workspaces.id, { onDelete: "cascade" }),
+    pendingMessages: integer("pending_messages").notNull().default(0),
+    pendingDeliveries: integer("pending_deliveries").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    countsCheck: check("webhook_workspace_queue_state_counts_check", sql`${table.pendingMessages} >= 0 and ${table.pendingDeliveries} >= 0`),
+  }),
+);
+
+export const webhookUsageMonthly = pgTable(
+  "webhook_usage_monthly",
+  {
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+    month: date("month").notNull(),
+    deliveryAttempts: integer("delivery_attempts").notNull().default(0),
+    succeededDeliveries: integer("succeeded_deliveries").notNull().default(0),
+    failedDeliveries: integer("failed_deliveries").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceMonthIdx: uniqueIndex("webhook_usage_monthly_workspace_month_idx").on(table.workspaceId, table.month),
+    countsCheck: check("webhook_usage_monthly_counts_check", sql`${table.deliveryAttempts} >= 0 and ${table.succeededDeliveries} >= 0 and ${table.failedDeliveries} >= 0`),
   }),
 );
 

@@ -36,6 +36,7 @@ import {
   IconPencil,
   IconPlus,
   IconTrash,
+  IconWorldLongitude,
   IconX,
 } from "@tabler/icons-react"
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain"
@@ -160,9 +161,12 @@ export function EditorSiteSidebar(props: EditorSiteSidebarProps) {
       />
       <aside
         aria-label={isEditing ? "Site sidebar editor" : "Site navigation"}
-        className="handout-editor-sidebar-desktop w-[289px] shrink-0 border-r border-transparent bg-background px-6 pt-[26px] text-foreground"
+        className="handout-editor-sidebar-desktop flex h-full w-[289px] shrink-0 flex-col gap-6 bg-background px-6 pt-[26px] pb-5 text-foreground"
       >
-        <SidebarContent {...props} isEditing={isEditing} />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <SidebarContent {...props} isEditing={isEditing} />
+        </div>
+        <BuiltWithHandoutFooter />
       </aside>
     </TooltipProvider>
   )
@@ -215,14 +219,43 @@ function MobileSiteSidebar({
               <IconX data-icon />
             </Button>
           </SheetClose>
-          <div className="px-4 pt-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5">
             <SidebarContent {...sidebarProps} isEditing={isEditing} />
+          </div>
+          <div className="px-4 pb-5">
+            <BuiltWithHandoutFooter />
           </div>
         </SheetContent>
       </Sheet>
       <div className="min-w-0 truncate text-base leading-6 font-medium text-foreground">
         {activePageName}
       </div>
+    </div>
+  )
+}
+
+function BuiltWithHandoutFooter() {
+  return (
+    <div className="flex w-full shrink-0 items-center justify-center gap-1.5 text-sm leading-6 font-normal tracking-[-0.02em] text-tertiary-foreground">
+      <span
+        aria-hidden="true"
+        className="h-[13px] w-3 shrink-0 bg-tertiary-foreground"
+        style={{
+          WebkitMask: 'url("/handout-logo-icon.svg") center / contain no-repeat',
+          mask: 'url("/handout-logo-icon.svg") center / contain no-repeat',
+        }}
+      />
+      <span>
+        Built with{" "}
+        <a
+          className="text-inherit underline decoration-current [text-decoration-skip-ink:none] [text-underline-position:from-font]"
+          href="https://www.handout.link"
+          rel="noreferrer"
+          target="_blank"
+        >
+          Handout
+        </a>
+      </span>
     </div>
   )
 }
@@ -324,7 +357,7 @@ function SidebarContent({
                   target="_blank"
                   className="flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-base leading-6 text-tertiary-foreground outline-none transition hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
                 >
-                  <IconLink className="size-4 shrink-0 text-[var(--handout-sidebar-link-icon)]" />
+                  <IconWorldLongitude className="size-4 shrink-0 text-[var(--handout-sidebar-link-icon)]" />
                   <span className="min-w-0 flex-1 truncate">{link.label}</span>
                 </a>
               ))}
@@ -693,10 +726,10 @@ function SortableSidebarLink({
             onDelete={onDelete}
             onSave={onSave}
             onTriggerPointerDown={onSurfacePointerDown}
-            triggerClassName="flex h-full min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 pr-[62px] text-left text-base leading-6 outline-none focus-visible:bg-muted focus-visible:text-foreground"
+            triggerClassName="flex h-full min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 text-left text-base leading-6 outline-none transition-[padding] group-hover/sidebar-item:pr-[62px] group-focus-within/sidebar-item:pr-[62px] focus-visible:bg-muted focus-visible:text-foreground"
             trigger={
               <>
-                <IconLink
+                <IconWorldLongitude
                   className={cn(
                     "size-4 shrink-0 text-[var(--handout-sidebar-link-icon)] transition-opacity",
                     canReorder && "group-hover/sidebar-sortable:opacity-0 group-focus-within/sidebar-sortable:opacity-0"
@@ -759,7 +792,7 @@ function SortableSidebarButton({
             onSave={onSave}
             primaryColorStyle={primaryColorStyle}
             onTriggerPointerDown={onSurfacePointerDown}
-            triggerClassName="flex h-full min-w-0 flex-1 items-center justify-center rounded-[10px] px-[62px] text-[15px] leading-5 font-medium outline-none"
+            triggerClassName="flex h-full min-w-0 flex-1 items-center justify-center rounded-[10px] px-3 text-[15px] leading-5 font-medium outline-none transition-[padding] group-hover/sidebar-item:px-[62px] group-focus-within/sidebar-item:px-[62px]"
             trigger={
               <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1.5">
                 {button.icon ? <SiteIconGlyph name={button.icon} size={15} /> : null}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Personalize Handout"
+  short_description: "Create recipient variants with safe, relevant personalization"
+  default_prompt: "Personalize this Handout site for my recipient list."

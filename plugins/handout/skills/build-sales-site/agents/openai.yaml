@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build a Sales Site"
+  short_description: "Plan, build, validate, and publish excellent sales sites"
+  default_prompt: "Build a polished Handout site for this sales opportunity."

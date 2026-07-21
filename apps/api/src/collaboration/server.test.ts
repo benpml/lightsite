@@ -214,6 +214,7 @@ function createSiteRecord(draftContent: SiteRecord["draftContent"]): SiteRecord 
   const now = new Date()
   return {
     id: "00000000-0000-4000-8000-000000000201",
+    publicId: "Ab3dE5fG7hJ9",
     workspaceId: "00000000-0000-4000-8000-000000000101",
     createdByUserId: "user-1",
     updatedByUserId: null,

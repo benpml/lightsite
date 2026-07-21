@@ -158,6 +158,7 @@ const createSiteResponseSchema = {
     return {
       site: {
         id: site.id,
+        publicId: site.publicId,
         name: site.name,
         slug: site.slug,
         status: site.status,
@@ -298,6 +299,7 @@ function parseSiteListItem(value: unknown): SiteListItem {
 
   return {
     id: object.id,
+    publicId: typeof object.publicId === "string" ? object.publicId : "",
     name: object.name,
     slug: object.slug,
     status: object.status as SiteStatus,

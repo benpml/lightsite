@@ -25,6 +25,7 @@ import {
   IconX,
 } from "@tabler/icons-react"
 
+import { RecipientAvatar } from "@/components/common/recipient-avatar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -229,6 +230,7 @@ export function GmailExtensionPanel() {
           recipients={recipients}
           site={selectedSite}
           variables={variables}
+          workspaceSlug={workspace?.slug ?? ""}
           onRefreshRecipients={() => refreshRecipients(selectedSite.id)}
           onCreated={(recipient) => {
             setRecipients((current) => [recipient, ...current.filter((item) => item.id !== recipient.id)])
@@ -372,13 +374,14 @@ function SitePicker({ sites, workspaceName, onSelect }: {
   )
 }
 
-function RecipientPicker({ context, error, loading, recipients, site, variables, onCreated, onRefreshRecipients, onSelect }: {
+function RecipientPicker({ context, error, loading, recipients, site, variables, workspaceSlug, onCreated, onRefreshRecipients, onSelect }: {
   context: ComposeContext | null
   error: string | null
   loading: boolean
   recipients: SiteVariant[]
   site: SiteListItem
   variables: SiteVariableDefinition[]
+  workspaceSlug: string
   onCreated: (recipient: SiteVariant) => void
   onRefreshRecipients: () => Promise<void>
   onSelect: (recipient: SiteVariant) => void
@@ -407,7 +410,12 @@ function RecipientPicker({ context, error, loading, recipients, site, variables,
           <NewRecipientForm context={context} recipients={recipients} site={site} variables={variables} onCreated={onCreated} />
         </TabsContent>
         <TabsContent className="min-h-0" value="past">
-          <PastRecipients recipients={recipients} onSelect={onSelect} />
+          <PastRecipients
+            onSelect={onSelect}
+            recipients={recipients}
+            siteSlug={site.slug}
+            workspaceSlug={workspaceSlug}
+          />
         </TabsContent>
       </Tabs>
     </section>
@@ -485,7 +493,12 @@ function NewRecipientForm({ context, recipients, site, variables, onCreated }: {
   )
 }
 
-function PastRecipients({ recipients, onSelect }: { recipients: SiteVariant[]; onSelect: (recipient: SiteVariant) => void }) {
+function PastRecipients({ onSelect, recipients, siteSlug, workspaceSlug }: {
+  onSelect: (recipient: SiteVariant) => void
+  recipients: SiteVariant[]
+  siteSlug: string
+  workspaceSlug: string
+}) {
   const [query, setQuery] = useState("")
   const results = useMemo(() => filterRecipients(recipients, query), [query, recipients])
   return (
@@ -495,7 +508,10 @@ function PastRecipients({ recipients, onSelect }: { recipients: SiteVariant[]; o
         <div className="px-3 pb-3">
           {results.length ? results.map((recipient) => (
             <button key={recipient.id} className="flex w-full items-center gap-2 rounded-lg p-2 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" type="button" onClick={() => onSelect(recipient)}>
-              <Avatar shape="square" size="xs"><AvatarFallback>{(recipient.recipientName || "R").charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+              <RecipientAvatar
+                recipient={getVariantRecipientIdentity(recipient, siteSlug, workspaceSlug)}
+                size="xs"
+              />
               <span className="min-w-0 flex-1 truncate text-sm font-medium">{recipient.recipientName || "Recipient"} <span className="text-muted-foreground">@</span> {recipient.recipientCompany || "Company"}</span>
             </button>
           )) : (
@@ -569,7 +585,10 @@ function ShareComplete({ composeId, recipient, site, workspaceSlug }: {
       <div className="min-h-0 w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="box-border w-full min-w-0 max-w-full px-4 py-4">
           <div className="mb-4 flex min-w-0 items-center gap-3">
-            <Avatar shape="square" size="md"><AvatarFallback>{recipientName.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+            <RecipientAvatar
+              recipient={getVariantRecipientIdentity(recipient, site.slug, workspaceSlug)}
+              size="md"
+            />
             <div className="min-w-0 flex-1"><h1 className="truncate text-base font-semibold">{recipientName} <span className="text-muted-foreground">@</span> {company}</h1><p className="truncate text-xs text-muted-foreground">{site.name}</p></div>
           </div>
           <EmailCardPreview
@@ -595,6 +614,43 @@ function ShareComplete({ composeId, recipient, site, workspaceSlug }: {
       </div>
     </section>
   )
+}
+
+function getVariantRecipientIdentity(
+  recipient: SiteVariant,
+  siteSlug: string,
+  workspaceSlug: string,
+) {
+  return {
+    company: recipient.recipientCompany,
+    imageUrl: buildPublicRecipientLogoUrl({ recipient, siteSlug, workspaceSlug }),
+    name: recipient.recipientName ?? recipient.name,
+    website: firstStringValue(
+      recipient.variableValues.recipient_website,
+      recipient.variableValues.website,
+    ),
+  }
+}
+
+function buildPublicRecipientLogoUrl({ recipient, siteSlug, workspaceSlug }: {
+  recipient: SiteVariant
+  siteSlug: string
+  workspaceSlug: string
+}) {
+  const path = [workspaceSlug, siteSlug]
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
+  const query = new URLSearchParams({
+    theme: "light",
+    variant: recipient.slug,
+  })
+  return `${PUBLIC_ORIGIN}/api/public/site-logo/${path}/recipient?${query.toString()}`
+}
+
+function firstStringValue(...values: unknown[]) {
+  return values.find((value): value is string => (
+    typeof value === "string" && value.trim().length > 0
+  )) ?? null
 }
 
 function EmailCardPreview({ company, recipientName, screenshotUrl }: {

@@ -13,6 +13,7 @@ import {
   TRACKING_V2_RECORDER_SCRIPT_ENDPOINT,
   TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES,
   TRACKING_V2_RECORDING_SCHEMA_VERSION,
+  TRACKING_V2_RECORDING_TERMINAL_RESERVE_BYTES,
   TRACKING_V2_RRWEB_RECORD_SCRIPT_ENDPOINT,
   TRACKING_V2_SCRIPT_ENDPOINT,
   TRACKING_V2_SCRIPT_VERSION,
@@ -508,7 +509,9 @@ export function startHandoutRecording(config) {
   function flush(forUnload) {
     if (state.pendingEvents.length === 0) return true;
     const configuredMax = positiveInteger(config.maxChunkBytes, 524288);
-    const chunkLimit = forUnload ? Math.min(configuredMax, ${TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES}) : configuredMax;
+    const chunkLimit = forUnload
+      ? Math.min(configuredMax, ${TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES - TRACKING_V2_RECORDING_TERMINAL_RESERVE_BYTES})
+      : configuredMax;
     const eventLimit = positiveInteger(config.maxEventsPerChunk, 500);
     const recordingLimit = positiveInteger(config.maxBytes, 5242880);
 
@@ -533,7 +536,7 @@ export function startHandoutRecording(config) {
       state.sequence += 1;
       if (!forUnload) break;
     }
-    void drainUploads();
+    if (!forUnload) void drainUploads();
     return true;
   }
 
@@ -589,17 +592,26 @@ export function startHandoutRecording(config) {
     const unloading = reason === "pagehide" || reason === "hidden_timeout";
     if (!flush(unloading) && reason !== "event_cap") reason = "size_cap";
     if (unloading) {
-      for (const upload of state.uploads) {
-        if (upload.byteLength > ${TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES}) continue;
-        void fetch(config.chunkEndpoint, {
-          method: "POST",
-          headers: { authorization: "Bearer " + config.uploadToken, "content-type": "application/json" },
-          body: upload.text,
-          credentials: "omit",
-          keepalive: true
-        }).catch(() => {});
+      const finalSequence = state.sequence === 0 ? null : state.sequence - 1;
+      const terminalUpload = finalSequence === null
+        ? null
+        : state.uploads.find((upload) => upload.sequence === finalSequence) || null;
+      if (terminalUpload) {
+        const payload = JSON.parse(terminalUpload.text);
+        terminalUpload.text = JSON.stringify({
+          ...payload,
+          completion: terminalMetadata(reason, finalSequence)
+        });
+        terminalUpload.byteLength = textBytes(terminalUpload.text);
+        if (!sendUnloadUpload(terminalUpload)) sendCompletion(reason, state.lastUploadedSequence);
+      } else {
+        sendCompletion(reason, state.lastUploadedSequence);
       }
-      sendCompletion(reason, state.sequence === 0 ? null : state.sequence - 1);
+      for (const upload of state.uploads) {
+        if (upload === terminalUpload) continue;
+        if (upload.byteLength > ${TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES}) continue;
+        sendUnloadUpload(upload);
+      }
       return;
     }
     void finalize(reason);
@@ -621,13 +633,31 @@ export function startHandoutRecording(config) {
       body: JSON.stringify({
         schemaVersion: ${TRACKING_V2_RECORDING_SCHEMA_VERSION},
         sessionId: config.sessionId,
-        finalSequence,
-        endedAt: new Date().toISOString(),
-        stopReason: validStopReason(reason) ? reason : "error"
+        ...terminalMetadata(reason, finalSequence)
       }),
       credentials: "omit",
       keepalive: true
     }).catch(() => {});
+  }
+
+  function sendUnloadUpload(upload) {
+    if (upload.byteLength > ${TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES}) return false;
+    void fetch(config.chunkEndpoint, {
+      method: "POST",
+      headers: { authorization: "Bearer " + config.uploadToken, "content-type": "application/json" },
+      body: upload.text,
+      credentials: "omit",
+      keepalive: true
+    }).catch(() => {});
+    return true;
+  }
+
+  function terminalMetadata(reason, finalSequence) {
+    return {
+      finalSequence,
+      endedAt: new Date().toISOString(),
+      stopReason: validStopReason(reason) ? reason : "error"
+    };
   }
 
   function onPageHide() { stop("pagehide"); }

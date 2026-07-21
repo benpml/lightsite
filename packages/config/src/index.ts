@@ -22,11 +22,17 @@ export const apiEnvSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(3011),
   API_JSON_BODY_LIMIT: z.string().min(1).default("256kb"),
   API_SITE_CONTENT_JSON_BODY_LIMIT: z.string().min(1).default("12mb"),
+  AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS: envBooleanSchema,
+  AUTOMATIONS_ENABLED: envBooleanSchema,
+  AUTOMATIONS_ENCRYPTION_KEY: z.string().min(32).optional(),
+  AUTOMATIONS_WORKER_MODE: z.enum(["in-process", "external"]).default("in-process"),
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:5173"),
   DATABASE_POOL_MAX: z.coerce.number().int().positive().max(50).default(10),
   DATABASE_URL: z.string().url(),
   LOGO_DEV_TOKEN: z.string().min(1).optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(3).default("Handout <noreply@handout.link>"),
   ...trackingReplayStorageShape,
   PUBLIC_SITE_ORIGIN: z.string().url().optional(),
   STRIPE_CORE_ANNUAL_PRICE_ID: z.string().min(1).optional(),
@@ -44,7 +50,15 @@ export const apiEnvSchema = z.object({
     .default("false"),
   WEB_ORIGIN: z.string().url().default("http://localhost:5173"),
   WEB_ORIGINS: z.string().min(1).optional(),
-}).superRefine(validateTrackingReplayStorage);
+}).superRefine((config, context) => {
+  validateTrackingReplayStorage(config, context);
+  if (config.AUTOMATIONS_ENABLED && !config.AUTOMATIONS_ENCRYPTION_KEY) {
+    context.addIssue({ code: "custom", path: ["AUTOMATIONS_ENCRYPTION_KEY"], message: "Required when webhook automations are enabled" });
+  }
+  if (config.NODE_ENV === "production" && config.AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS) {
+    context.addIssue({ code: "custom", path: ["AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS"], message: "Local webhook destinations cannot be enabled in production" });
+  }
+});
 
 export const trackingReplayStorageEnvSchema = z.object(trackingReplayStorageShape)
   .superRefine(validateTrackingReplayStorage);

@@ -7,9 +7,11 @@ import {
 import {
   PUBLIC_SITE_SCREENSHOT_CACHE_CONTROL,
   PUBLIC_SITE_SCREENSHOT_CONTENT_TYPE,
+  getPublicSiteScreenshotCacheKey,
   type PublicSiteScreenshotService,
 } from "./screenshot";
 import type { PublicSiteResolution, PublicSiteService } from "./service";
+import { MAX_PUBLIC_RECIPIENT_QUERY_LENGTH } from "./recipient-link";
 import {
   PUBLIC_SITE_RUNTIME,
   PUBLIC_SITE_RUNTIME_PATH,
@@ -72,6 +74,14 @@ export function createPublicSiteDocumentRouter(options: PublicSiteDocumentRouter
     response.type("application/javascript").send(PUBLIC_SITE_RUNTIME);
   });
 
+  router.get("/:sitePublicId/:recipientName/:recipientCompany/:recipientWebsite/embed.jpg", (request, response) => {
+    void resolveAndRedirectPublicRecipientScreenshot({ options, request, response });
+  });
+
+  router.get("/:shortCode/embed.jpg", (request, response) => {
+    void resolveAndSendShortLinkScreenshot({ options, request, response });
+  });
+
   router.get("/:workspaceSlug/:siteSlug/embed.png", redirectLegacyScreenshot);
   router.get("/:workspaceSlug/:siteSlug/:variantSlug/embed.png", redirectLegacyScreenshot);
 
@@ -98,6 +108,14 @@ export function createPublicSiteDocumentRouter(options: PublicSiteDocumentRouter
       request,
       response,
     });
+  });
+
+  router.get("/:sitePublicId/:recipientName/:recipientCompany/:recipientWebsite", (request, response) => {
+    void resolveAndRedirectPublicRecipientLink({ options, request, response });
+  });
+
+  router.get("/:shortCode", (request, response) => {
+    void resolveAndSendShortLinkDocument({ options, request, response });
   });
 
   router.get("/:workspaceSlug/:siteSlug", (request, response) => {
@@ -130,6 +148,167 @@ export function createPublicSiteDocumentRouter(options: PublicSiteDocumentRouter
   return router;
 }
 
+async function resolveAndRedirectPublicRecipientLink(input: {
+  options: PublicSiteDocumentRouterOptions;
+  request: Request;
+  response: Response;
+}) {
+  try {
+    const result = await resolvePublicRecipientRequest(input);
+    if (!result) return;
+
+    void input.options.screenshotService.render({
+      origin: input.options.publicSiteOrigin,
+      payload: result.payload,
+    }).catch(() => {
+      // Warming is best-effort; the canonical image request will retry rendering.
+    });
+
+    input.response
+      .setHeader("cache-control", "no-store")
+      .redirect(302, `/${result.shortCode}?v=${encodeURIComponent(result.version)}`);
+  } catch {
+    input.response.status(503).setHeader("cache-control", "no-store").end();
+  }
+}
+
+async function resolveAndRedirectPublicRecipientScreenshot(input: {
+  options: PublicSiteDocumentRouterOptions;
+  request: Request;
+  response: Response;
+}) {
+  try {
+    const result = await resolvePublicRecipientRequest(input);
+    if (!result) return;
+
+    input.response
+      .setHeader("cache-control", "no-store")
+      .redirect(302, `/${result.shortCode}/embed.jpg?v=${encodeURIComponent(result.version)}`);
+  } catch {
+    input.response.status(503).setHeader("cache-control", "no-store").end();
+  }
+}
+
+async function resolvePublicRecipientRequest(input: {
+  options: PublicSiteDocumentRouterOptions;
+  request: Request;
+  response: Response;
+}) {
+  const query = input.request.originalUrl.split("?", 2)[1] ?? "";
+  if (query.length > MAX_PUBLIC_RECIPIENT_QUERY_LENGTH) {
+    input.response.status(414).setHeader("cache-control", "no-store").end();
+    return null;
+  }
+
+  const rateLimit = await input.options.trackingRateLimiter?.check({
+    key: `public-recipient:${input.request.params.sitePublicId ?? "unknown"}:${input.request.ip}`,
+    eventCount: 1,
+  });
+  if (rateLimit && !rateLimit.allowed) {
+    input.response
+      .status(429)
+      .setHeader("cache-control", "no-store")
+      .setHeader("retry-after", String(rateLimit.retryAfterSeconds))
+      .end();
+    return null;
+  }
+
+  const result = await input.options.publicSiteService.resolveRecipientLink({
+    sitePublicId: input.request.params.sitePublicId ?? "",
+    recipientName: input.request.params.recipientName ?? "",
+    recipientCompany: input.request.params.recipientCompany ?? "",
+    recipientWebsite: input.request.params.recipientWebsite ?? "",
+    searchParams: new URL(input.request.originalUrl, input.options.publicSiteOrigin).searchParams,
+  });
+  if (result.status !== "available") {
+    input.response.status(404).setHeader("cache-control", result.cacheControl).end();
+    return null;
+  }
+
+  return result;
+}
+
+async function resolveAndSendShortLinkDocument(input: {
+  options: PublicSiteDocumentRouterOptions;
+  request: Request;
+  response: Response;
+}) {
+  try {
+    const result = await input.options.publicSiteService.resolveShortLink(
+      input.request.params.shortCode ?? "",
+    );
+    if (result.status !== "available") {
+      input.response
+        .status(404)
+        .setHeader("cache-control", result.cacheControl)
+        .type("html")
+        .send(renderUnavailablePublicSiteHtmlDocument(
+          input.options.publicSiteOrigin,
+          input.request.path,
+        ));
+      return;
+    }
+
+    if (input.request.query.v !== result.version) {
+      input.response
+        .setHeader("cache-control", "no-store")
+        .redirect(302, `/${result.shortCode}?v=${encodeURIComponent(result.version)}`);
+      return;
+    }
+
+    const html = renderPublicSiteHtmlDocument({
+      origin: input.options.publicSiteOrigin,
+      payload: result.payload,
+      publicPath: `/${result.shortCode}`,
+    });
+    if (!html) {
+      input.response.status(404).setHeader("cache-control", "no-store").end();
+      return;
+    }
+
+    input.response
+      .status(200)
+      .setHeader("cache-control", result.cacheControl)
+      .type("html")
+      .send(html);
+  } catch {
+    input.response
+      .status(503)
+      .setHeader("cache-control", "no-store")
+      .type("html")
+      .send(renderUnavailablePublicSiteHtmlDocument(
+        input.options.publicSiteOrigin,
+        input.request.path,
+      ));
+  }
+}
+
+async function resolveAndSendShortLinkScreenshot(input: {
+  options: PublicSiteDocumentRouterOptions;
+  request: Request;
+  response: Response;
+}) {
+  try {
+    const result = await input.options.publicSiteService.resolveShortLink(
+      input.request.params.shortCode ?? "",
+    );
+    if (result.status === "available" && input.request.query.v !== result.version) {
+      input.response
+        .setHeader("cache-control", "no-store")
+        .redirect(302, `/${result.shortCode}/embed.jpg?v=${encodeURIComponent(result.version)}`);
+      return;
+    }
+    await sendResolvedPublicSiteScreenshot({
+      options: input.options,
+      request: input.request,
+      response: input.response,
+      result,
+    });
+  } catch {
+    input.response.status(503).setHeader("cache-control", "no-store").end();
+  }
+}
+
 function redirectLegacyScreenshot(request: Request, response: Response) {
   response
     .setHeader("cache-control", "no-store")
@@ -148,38 +327,63 @@ async function resolveAndSendPublicSiteScreenshot(input: {
 }) {
   try {
     const result = await input.options.publicSiteService.resolve(input.input);
-    if (result.status !== "available") {
-      input.response.status(404).end();
-      return;
-    }
-
-    const screenshot = await input.options.screenshotService.render({
-      origin: input.options.publicSiteOrigin,
-      payload: result.payload,
-    });
-    if (!screenshot) {
-      input.response.status(404).end();
-      return;
-    }
-
-    await recordSlackScreenshotLoad({
-      cacheKey: screenshot.cacheKey,
-      options: input.options,
-      payload: result.payload,
-      request: input.request,
-    });
-    input.response
-      .status(200)
-      .setHeader("cache-control", PUBLIC_SITE_SCREENSHOT_CACHE_CONTROL)
-      .setHeader("content-type", PUBLIC_SITE_SCREENSHOT_CONTENT_TYPE)
-      .setHeader("content-length", String(screenshot.bytes.byteLength))
-      .send(screenshot.bytes);
+    await sendResolvedPublicSiteScreenshot({ ...input, result });
   } catch {
     input.response
       .status(503)
       .setHeader("cache-control", "no-store")
       .end();
   }
+}
+
+async function sendResolvedPublicSiteScreenshot(input: {
+  options: PublicSiteDocumentRouterOptions;
+  request: Request;
+  response: Response;
+  result: PublicSiteResolution | Awaited<ReturnType<PublicSiteService["resolveShortLink"]>>;
+}) {
+  if (input.result.status !== "available") {
+    input.response.status(404).end();
+    return;
+  }
+
+  if (input.request.method === "HEAD") {
+    const cacheKey = getPublicSiteScreenshotCacheKey(input.result.payload);
+    if (!cacheKey) {
+      input.response.status(404).end();
+      return;
+    }
+    await recordSlackScreenshotLoad({
+      cacheKey,
+      options: input.options,
+      payload: input.result.payload,
+      request: input.request,
+    });
+    input.response.status(204).setHeader("cache-control", "no-store").end();
+    return;
+  }
+
+  const screenshot = await input.options.screenshotService.render({
+    origin: input.options.publicSiteOrigin,
+    payload: input.result.payload,
+  });
+  if (!screenshot) {
+    input.response.status(404).end();
+    return;
+  }
+
+  await recordSlackScreenshotLoad({
+    cacheKey: screenshot.cacheKey,
+    options: input.options,
+    payload: input.result.payload,
+    request: input.request,
+  });
+  input.response
+    .status(200)
+    .setHeader("cache-control", PUBLIC_SITE_SCREENSHOT_CACHE_CONTROL)
+    .setHeader("content-type", PUBLIC_SITE_SCREENSHOT_CONTENT_TYPE)
+    .setHeader("content-length", String(screenshot.bytes.byteLength))
+    .send(screenshot.bytes);
 }
 
 async function recordSlackScreenshotLoad(input: {

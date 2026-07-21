@@ -18,9 +18,15 @@ type TrackingFilters = {
 
 export const queryKeys = {
   me: () => ["me"] as const,
+  siteDefaults: () => ["siteDefaults"] as const,
   workspaces: () => ["workspaces"] as const,
   workspace: (workspaceId: string) => ["workspace", workspaceId] as const,
   billing: (workspaceId: string) => ["billing", workspaceId] as const,
+  automations: (workspaceId: string) => ["automations", workspaceId] as const,
+  automation: (workspaceId: string, automationId: string) => ["automation", workspaceId, automationId] as const,
+  automationOptions: (workspaceId: string) => ["automationOptions", workspaceId] as const,
+  automationActivity: (workspaceId: string, automationId: string) => ["automationActivity", workspaceId, automationId] as const,
+  automationDelivery: (workspaceId: string, automationId: string, deliveryId: string) => ["automationDelivery", workspaceId, automationId, deliveryId] as const,
   workspaceSlugAvailability: (slug: string) => ["workspaceSlugAvailability", slug] as const,
   workspaceLogoPreview: (website: string) => ["workspaceLogoPreview", website] as const,
   members: (workspaceId: string) => ["members", workspaceId] as const,

@@ -3,8 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEV_AUTH_BYPASS_HEADER,
   devActor,
+  devWorkspace,
   getDevAppBootstrap,
   isDevAuthBypassRequest,
+  resolveDevWorkspaceLogoUrl,
+  setDevProfileImageUrl,
 } from "./dev-auth";
 
 function buildRequest(headers: Record<string, string | undefined>) {
@@ -18,6 +21,7 @@ function buildRequest(headers: Record<string, string | undefined>) {
 describe("dev auth bypass", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    setDevProfileImageUrl(undefined);
   });
 
   it("enables the dev actor when the local dev bypass header is present", () => {
@@ -50,5 +54,16 @@ describe("dev auth bypass", () => {
     expect(bootstrap.workspaces[0]?.logoUrl).toBe(
       "/editor-assets/dev-workspace-logo.jpg",
     );
+  });
+
+  it("uses the same uploaded workspace logo in published dev sites", () => {
+    expect(resolveDevWorkspaceLogoUrl(devWorkspace.id)).toBe(
+      "/editor-assets/dev-workspace-logo.jpg",
+    );
+    expect(resolveDevWorkspaceLogoUrl("00000000-0000-4000-8000-000000000999")).toBeNull();
+
+    vi.stubEnv("NODE_ENV", "production");
+
+    expect(resolveDevWorkspaceLogoUrl(devWorkspace.id)).toBeNull();
   });
 });

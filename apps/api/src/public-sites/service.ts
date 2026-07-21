@@ -1,6 +1,12 @@
 import { validateSiteSlug, validateWorkspaceSlug } from "@handout/domain";
 import { normalizePublishedSitePayload } from "@handout/site-document";
 import type { PublicSiteRepository } from "./repository";
+import type { PublicRecipientLinkInput } from "./recipient-link";
+import {
+  SITE_PUBLIC_ID_LENGTH,
+  isRecipientShortCode,
+  isPublicCode,
+} from "../sites/public-identifiers";
 import type {
   TrackingV2ContextTokenService,
 } from "../tracking/v2/context-token";
@@ -33,7 +39,24 @@ export type PublicSiteResolution =
 
 export interface PublicSiteService {
   resolve(input: PublicSiteRouteInput): Promise<PublicSiteResolution>;
+  resolveShortLink(shortCode: string): Promise<PublicShortLinkResolution>;
+  resolveRecipientLink(input: PublicRecipientLinkInput & {
+    sitePublicId: string;
+  }): Promise<PublicShortLinkResolution>;
 }
+
+export type PublicShortLinkResolution =
+  | {
+      status: "available";
+      payload: Record<string, unknown>;
+      shortCode: string;
+      version: string;
+      cacheControl: string;
+    }
+  | {
+      status: "unavailable" | "invalid_slug";
+      cacheControl: string;
+    };
 
 export type PublicSiteServiceOptions = {
   trackingV2ContextTokens?: TrackingV2ContextTokenService;
@@ -79,6 +102,63 @@ export function createPublicSiteService(
         cacheControl: PUBLIC_SITE_AVAILABLE_CACHE_CONTROL,
       };
     },
+
+    async resolveShortLink(shortCode) {
+      if (!isRecipientShortCode(shortCode)) {
+        return {
+          status: "invalid_slug",
+          cacheControl: PUBLIC_SITE_UNAVAILABLE_CACHE_CONTROL,
+        };
+      }
+
+      return resolveShortLinkRecord(
+        await repository.findPublishedSiteByShortCode(shortCode),
+        options,
+      );
+    },
+
+    async resolveRecipientLink(input) {
+      if (!isPublicCode(input.sitePublicId, SITE_PUBLIC_ID_LENGTH)) {
+        return {
+          status: "invalid_slug",
+          cacheControl: PUBLIC_SITE_UNAVAILABLE_CACHE_CONTROL,
+        };
+      }
+
+      return resolveShortLinkRecord(
+        await repository.resolveOrCreateRecipientLink(input),
+        options,
+      );
+    },
+  };
+}
+
+async function resolveShortLinkRecord(
+  record: Awaited<ReturnType<PublicSiteRepository["findPublishedSiteByShortCode"]>>,
+  options: PublicSiteServiceOptions,
+): Promise<PublicShortLinkResolution> {
+  if (!record || !isPublicPayload(record.payload)) {
+    return {
+      status: "unavailable",
+      cacheControl: PUBLIC_SITE_UNAVAILABLE_CACHE_CONTROL,
+    };
+  }
+
+  const payload = await addTrackingV2Bootstrap(record.payload, options);
+  const normalized = normalizePublishedSitePayload(payload);
+  if (!normalized?.selectedVariant) {
+    return {
+      status: "unavailable",
+      cacheControl: PUBLIC_SITE_UNAVAILABLE_CACHE_CONTROL,
+    };
+  }
+
+  return {
+    status: "available",
+    payload,
+    shortCode: record.shortCode,
+    version: `${normalized.site.publishedVersionId}.${normalized.selectedVariant.revisionNumber}`,
+    cacheControl: PUBLIC_SITE_AVAILABLE_CACHE_CONTROL,
   };
 }
 

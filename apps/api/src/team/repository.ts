@@ -6,6 +6,7 @@ import {
   user,
   workspaceInvitations,
   workspaceMembers,
+  workspaces,
   type Database,
 } from "@handout/db";
 
@@ -48,6 +49,7 @@ export type TeamUserRecord = {
 };
 
 export interface TeamRepository {
+  findWorkspaceName(workspaceId: string): Promise<string | null>;
   findMembership(workspaceId: string, userId: string): Promise<TeamMembershipRecord | null>;
   findMember(workspaceId: string, memberId: string): Promise<TeamMemberRecord | null>;
   findMemberByEmail(workspaceId: string, email: string): Promise<TeamMemberRecord | null>;
@@ -95,6 +97,16 @@ export interface TeamRepository {
 
 export function createDbTeamRepository(database: Database = defaultDb): TeamRepository {
   return {
+    async findWorkspaceName(workspaceId) {
+      const [record] = await database
+        .select({ name: workspaces.name })
+        .from(workspaces)
+        .where(eq(workspaces.id, workspaceId))
+        .limit(1);
+
+      return record?.name ?? null;
+    },
+
     async findMembership(workspaceId, userId) {
       const [membership] = await database
         .select({
@@ -352,12 +364,17 @@ export function createMemoryTeamRepository(input: {
   members?: TeamMemberRecord[];
   invitations?: TeamInvitationRecord[];
   users?: TeamUserRecord[];
+  workspaceNames?: Record<string, string>;
 } = {}): TeamRepository {
   const members = [...(input.members ?? [])];
   const invitations = [...(input.invitations ?? [])];
   const users = [...(input.users ?? [])];
 
   return {
+    async findWorkspaceName(workspaceId) {
+      return input.workspaceNames?.[workspaceId] ?? "Handout workspace";
+    },
+
     async findMembership(workspaceId, userId) {
       const member = members.find((candidate) =>
         candidate.workspaceId === workspaceId && candidate.userId === userId

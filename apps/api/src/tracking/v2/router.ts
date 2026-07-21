@@ -10,7 +10,7 @@ import {
   trackingV2EventBatchResponseSchema,
   trackingV2EventBatchSchema,
   trackingV2EntityIdSchema,
-  trackingV2RecordingChunkSchema,
+  trackingV2RecordingUploadSchema,
   trackingV2RecordingCompleteSchema,
   trackingV2SessionEndSchema,
   trackingV2SessionHeartbeatSchema,
@@ -47,10 +47,10 @@ export function createTrackingV2Router(options: CreateTrackingV2RouterOptions) {
   router.post(`${TRACKING_V2_RECORDING_ENDPOINT_PREFIX}/:recordingId/chunks`, asyncHandler(async (request, response) => {
     enforceSameOrigin(request);
     const recordingId = trackingV2EntityIdSchema.safeParse(request.params.recordingId ?? "");
-    const chunk = trackingV2RecordingChunkSchema.safeParse(request.body);
+    const upload = trackingV2RecordingUploadSchema.safeParse(request.body);
     const uploadToken = bearerToken(request);
-    if (!recordingId.success || !chunk.success || !uploadToken) {
-      throw invalidPayload(!chunk.success ? chunk.error : recordingId.success ? undefined : recordingId.error);
+    if (!recordingId.success || !upload.success || !uploadToken) {
+      throw invalidPayload(!upload.success ? upload.error : recordingId.success ? undefined : recordingId.error);
     }
     await checkRateLimit(options.rateLimiter, {
       key: `tracking-v2:recording:${recordingId.data}`,
@@ -60,7 +60,7 @@ export function createTrackingV2Router(options: CreateTrackingV2RouterOptions) {
     const result = await mapRecordingError(() => options.trackingService.recordRecordingChunk({
       recordingId: recordingId.data,
       uploadToken,
-      chunk: chunk.data,
+      upload: upload.data,
     }));
     response.status(result.duplicate ? 200 : 201).setHeader("cache-control", "no-store").json(result);
   }));

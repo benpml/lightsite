@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
   Item,
@@ -40,7 +40,12 @@ import {
 } from "@/components/ui/item"
 import { Textarea } from "@/components/ui/textarea"
 
-import { SYSTEM_SITE_VARIABLE_IDS, systemSiteVariables } from "../model"
+import {
+  isDuplicateSiteVariableLabel,
+  normalizeSiteVariableLabel,
+  SYSTEM_SITE_VARIABLE_IDS,
+  systemSiteVariables,
+} from "../model"
 
 type VariableInput = Pick<SiteVariableDefinition, "defaultValue" | "description" | "label">
 
@@ -48,6 +53,7 @@ type VariablesSettingsProps = {
   onCreate: (input: VariableInput) => void
   onDelete: (variableId: string) => void
   onEdit: (variableId: string, input: VariableInput) => void
+  scope?: "site" | "site-defaults"
   usageCounts: Readonly<Record<string, number>>
   variables: SiteVariableDefinition[]
 }
@@ -56,6 +62,7 @@ export function VariablesSettings({
   onCreate,
   onDelete,
   onEdit,
+  scope = "site",
   usageCounts,
   variables,
 }: VariablesSettingsProps) {
@@ -73,11 +80,11 @@ export function VariablesSettings({
   }
 
   return (
-    <div className="flex flex-col gap-3 pb-4">
+    <div className="flex flex-col gap-3">
       <div>
         <h2 className="text-sm leading-5 font-medium text-foreground">Variables</h2>
         <p className="text-sm leading-5 text-muted-foreground">
-          Create and manage variables to personalize your site.
+          Variables to change site content per recipient.
         </p>
       </div>
 
@@ -106,7 +113,9 @@ export function VariablesSettings({
       <VariableEditorDialog
         key={editorOpen ? editingVariable?.id ?? "create-open" : "editor-closed"}
         open={editorOpen}
+        scope={scope}
         variable={editingVariable}
+        variables={customVariables}
         onOpenChange={setEditorOpen}
         onSubmit={(input) => {
           if (editingVariable) onEdit(editingVariable.id, input)
@@ -117,6 +126,7 @@ export function VariablesSettings({
 
       <VariableDeleteDialog
         open={Boolean(deletingVariable)}
+        scope={scope}
         usageCount={deletingVariable ? usageCounts[deletingVariable.id] ?? 0 : 0}
         variable={deletingVariable}
         onOpenChange={(open) => {
@@ -143,19 +153,19 @@ function VariableRow({
   variable: SiteVariableDefinition
 }) {
   return (
-    <Item variant="outline" className="min-h-[64px] rounded-xl px-3 py-3">
-      <ItemMedia variant="icon" className="text-variable-foreground [&_svg]:size-3.5">
+    <Item variant="outline" className="h-[60px] gap-3 rounded-[12px] px-3 py-3">
+      <ItemMedia variant="icon" className="self-center! translate-y-0! text-variable-foreground [&_svg]:size-3.5!">
         <IconBraces />
       </ItemMedia>
       <ItemContent className="gap-0">
-        <ItemTitle className="text-variable-foreground">{variable.label}</ItemTitle>
-        <ItemDescription className="text-xs">
+        <ItemTitle className="text-variable-foreground text-sm leading-5">{variable.label}</ItemTitle>
+        <ItemDescription className="text-xs leading-4">
           {variable.description?.trim() || "No description"}
         </ItemDescription>
       </ItemContent>
       <ItemActions className="gap-1">
         {system ? (
-          <Badge variant="secondary">System</Badge>
+          <Badge variant="secondary" className="text-tertiary-foreground">System</Badge>
         ) : (
           <>
             <Button variant="ghost" size="icon-field" aria-label={`Edit ${variable.label}`} onClick={onEdit}>
@@ -175,12 +185,16 @@ function VariableEditorDialog({
   onOpenChange,
   onSubmit,
   open,
+  scope,
   variable,
+  variables,
 }: {
   onOpenChange: (open: boolean) => void
   onSubmit: (input: VariableInput) => void
   open: boolean
+  scope: "site" | "site-defaults"
   variable: SiteVariableDefinition | null
+  variables: SiteVariableDefinition[]
 }) {
   const nameId = useId()
   const descriptionId = useId()
@@ -190,7 +204,15 @@ function VariableEditorDialog({
   const [defaultValue, setDefaultValue] = useState(
     typeof variable?.defaultValue === "string" ? variable.defaultValue : "",
   )
-  const normalizedName = name.trim().replace(/\s+/g, " ")
+  const normalizedName = normalizeSiteVariableLabel(name)
+  const duplicateName = isDuplicateSiteVariableLabel(
+    normalizedName,
+    variables,
+    variable?.id,
+  )
+  const nameError = duplicateName
+    ? `A variable named ${normalizedName} already exists.`
+    : ""
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -198,16 +220,20 @@ function VariableEditorDialog({
         <DialogHeader>
           <DialogTitle>{variable ? "Edit variable" : "Create variable"}</DialogTitle>
           <DialogDescription>
-            {variable
-              ? "Update this variable everywhere it is used on the site."
-              : "Create reusable recipient content for this site."}
+            {scope === "site-defaults"
+              ? variable
+                ? "Update this variable for sites you create in the future."
+                : "Create a variable for sites you create in the future."
+              : variable
+                ? "Update this variable everywhere it is used on the site."
+                : "Create reusable recipient content for this site."}
           </DialogDescription>
         </DialogHeader>
         <form
           className="contents"
           onSubmit={(event) => {
             event.preventDefault()
-            if (!normalizedName) return
+            if (!normalizedName || duplicateName) return
             onSubmit({
               label: normalizedName,
               description: description.trim() || undefined,
@@ -216,9 +242,17 @@ function VariableEditorDialog({
           }}
         >
           <FieldGroup>
-            <Field>
+            <Field data-invalid={duplicateName || undefined}>
               <FieldLabel htmlFor={nameId}>Name</FieldLabel>
-              <Input id={nameId} maxLength={120} autoFocus value={name} onChange={(event) => setName(event.target.value)} />
+              <Input
+                id={nameId}
+                aria-invalid={duplicateName || undefined}
+                maxLength={120}
+                autoFocus
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+              {nameError ? <FieldError>{nameError}</FieldError> : null}
             </Field>
             <Field>
               <FieldLabel htmlFor={descriptionId}>Description</FieldLabel>
@@ -231,7 +265,7 @@ function VariableEditorDialog({
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={!normalizedName}>{variable ? "Save changes" : "Create variable"}</Button>
+            <Button type="submit" disabled={!normalizedName || duplicateName}>{variable ? "Save changes" : "Create variable"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -243,12 +277,14 @@ function VariableDeleteDialog({
   onDelete,
   onOpenChange,
   open,
+  scope,
   usageCount,
   variable,
 }: {
   onDelete: () => void
   onOpenChange: (open: boolean) => void
   open: boolean
+  scope: "site" | "site-defaults"
   usageCount: number
   variable: SiteVariableDefinition | null
 }) {
@@ -260,7 +296,9 @@ function VariableDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {variable?.label ?? "variable"}?</AlertDialogTitle>
           <AlertDialogDescription>
-            {usageCount > 0
+            {scope === "site-defaults"
+              ? "This removes the variable from sites you create in the future. Existing sites are not affected."
+              : usageCount > 0
               ? `This variable is used in ${usageCount} ${places} across the site. Those references will show as missing until they are replaced.`
               : "This variable is not currently used on the site."}
           </AlertDialogDescription>

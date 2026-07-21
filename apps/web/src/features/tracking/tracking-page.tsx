@@ -58,6 +58,7 @@ import {
 } from "./tracking-details-model"
 
 type TrackingTab = "events" | "sessions"
+const REPLAY_STATUS_POLL_INTERVAL_MS = 5_000
 
 export function TrackingPage() {
   const activeWorkspace = useActiveWorkspace()
@@ -71,6 +72,8 @@ export function TrackingPage() {
     queryFn: ({ signal }) =>
       getTrackingDashboardActivity(activeWorkspace.id, {}, signal),
   })
+  const selectedSessionRecordingStatus = dashboardQuery.data?.sessions
+    .find((session) => session.id === selectedSessionId)?.recording.status
   const eventsQuery = useInfiniteQuery({
     queryKey: queryKeys.trackingEvents(activeWorkspace.id, { limit: 50 }),
     initialPageParam: undefined as string | undefined,
@@ -90,6 +93,13 @@ export function TrackingPage() {
     enabled: selectedSessionId !== null,
     queryFn: ({ signal }) =>
       getTrackingV2Session(activeWorkspace.id, selectedSessionId ?? "", signal),
+    refetchInterval: (query) => {
+      const status = query.state.data?.session.recording.status ?? selectedSessionRecordingStatus
+      return status === "pending" || status === "recording"
+        ? REPLAY_STATUS_POLL_INTERVAL_MS
+        : false
+    },
+    refetchIntervalInBackground: false,
   })
   const sessionEventsQuery = useQuery({
     queryKey: queryKeys.trackingSessionEvents(activeWorkspace.id, selectedSessionId ?? ""),

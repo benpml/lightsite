@@ -2,7 +2,10 @@ import {
   billingCheckoutResponseSchema,
   billingPortalResponseSchema,
   billingSummarySchema,
+  cancelBillingSubscriptionResponseSchema,
   createBillingCheckoutRequestSchema,
+  updateBillingSubscriptionRequestSchema,
+  updateBillingSubscriptionResponseSchema,
 } from "@handout/contracts";
 import { Router, type Request } from "express";
 import type { CurrentActor, CurrentActorProvider } from "../auth/current-actor";
@@ -80,11 +83,40 @@ export function createBillingRouter(options: BillingRouterOptions) {
 
     try {
       const session = await options.billingService.createPortalSession({
+        actor: context.actor,
         workspace: context.workspace,
       });
 
       response.json(billingPortalResponseSchema.parse({
         ...session,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      throw mapBillingServiceError(error);
+    }
+  }));
+
+  router.patch("/subscription", asyncHandler(async (request, response) => {
+    const context = await resolveBillingRequestContext(request, options);
+    const result = updateBillingSubscriptionRequestSchema.safeParse(request.body ?? {});
+    if (!result.success) {
+      throw new AppError({ code: "billing.invalid_payload", message: "Invalid subscription payload.", status: 400, issues: issuesFromZodError(result.error) });
+    }
+    try {
+      await options.billingService.updateSubscription({ workspace: context.workspace, ...result.data });
+      response.json(updateBillingSubscriptionResponseSchema.parse({ success: true, requestId: request.context.requestId }));
+    } catch (error) {
+      throw mapBillingServiceError(error);
+    }
+  }));
+
+  router.delete("/subscription", asyncHandler(async (request, response) => {
+    const context = await resolveBillingRequestContext(request, options);
+    try {
+      const result = await options.billingService.cancelSubscription({ workspace: context.workspace });
+      response.json(cancelBillingSubscriptionResponseSchema.parse({
+        cancelAtPeriodEnd: true,
+        currentPeriodEnd: result.currentPeriodEnd,
         requestId: request.context.requestId,
       }));
     } catch (error) {

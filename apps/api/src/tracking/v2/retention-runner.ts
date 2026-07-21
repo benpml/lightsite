@@ -5,6 +5,7 @@ import type {
 
 const additiveResultKeys = [
   "sessionsExpired",
+  "endedRecordingsSettled",
   "staleRecordingsSettled",
   "recordingsExpired",
   "recordingObjectsQueued",
@@ -71,6 +72,7 @@ function emptyAggregate(startedAt: Date): TrackingRetentionAggregate {
     batches: 0,
     startedAt: startedAt.toISOString(),
     sessionsExpired: 0,
+    endedRecordingsSettled: 0,
     staleRecordingsSettled: 0,
     recordingsExpired: 0,
     recordingObjectsQueued: 0,

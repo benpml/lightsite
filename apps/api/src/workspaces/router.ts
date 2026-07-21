@@ -1,6 +1,10 @@
 import {
   createWorkspaceRequestSchema,
   createWorkspaceResponseSchema,
+  updateWorkspaceSettingsRequestSchema,
+  updateWorkspaceSettingsResponseSchema,
+  uploadWorkspaceLogoRequestSchema,
+  uploadWorkspaceLogoResponseSchema,
   workspaceLogoPreviewImageQuerySchema,
   workspaceLogoPreviewQuerySchema,
   workspaceLogoPreviewResponseSchema,
@@ -19,6 +23,8 @@ import {
 } from "./logo-preview";
 import {
   WorkspaceConflictError,
+  WorkspaceAdminRequiredError,
+  WorkspaceLogoUploadError,
   WorkspaceValidationError,
   type WorkspaceService,
 } from "./service";
@@ -63,6 +69,19 @@ export function createWorkspaceRouter(options: WorkspaceRouterOptions) {
       available: availability.available,
       requestId: request.context.requestId,
     }));
+  }));
+
+  router.get("/logo-assets/:assetId", asyncHandler(async (request, response) => {
+    const assetId = z.uuid().safeParse(request.params.assetId);
+    if (!assetId.success) {
+      throw new AppError({ code: "route.not_found", message: "Logo was not found.", status: 404 });
+    }
+    const asset = await options.workspaceService.getWorkspaceLogo(assetId.data);
+    if (!asset) {
+      throw new AppError({ code: "route.not_found", message: "Logo was not found.", status: 404 });
+    }
+    response.setHeader("cache-control", "public, max-age=31536000, immutable");
+    response.type(asset.contentType).send(asset.content);
   }));
 
   router.get("/logo-preview", asyncHandler(async (request, response) => {
@@ -174,6 +193,8 @@ export function createWorkspaceRouter(options: WorkspaceRouterOptions) {
         website: result.data.website,
         ...(result.data.logoAssetId ? { logoAssetId: result.data.logoAssetId } : {}),
         creatorUserId: actor.userId,
+        creatorEmail: actor.email,
+        ...(actor.name ? { creatorName: actor.name } : {}),
       });
 
       response.status(201).json(createWorkspaceResponseSchema.parse({
@@ -197,6 +218,77 @@ export function createWorkspaceRouter(options: WorkspaceRouterOptions) {
         });
       }
 
+      throw error;
+    }
+  }));
+
+  router.patch("/:workspaceId", asyncHandler(async (request, response) => {
+    const actor = await requireAuthenticatedActor(request, options.getCurrentActor);
+    const workspaceId = z.uuid().safeParse(request.params.workspaceId);
+    const payload = updateWorkspaceSettingsRequestSchema.safeParse(request.body ?? {});
+    if (!workspaceId.success || !payload.success) {
+      throw new AppError({
+        code: "workspace.invalid_payload",
+        message: "Invalid workspace settings payload.",
+        status: 400,
+        ...(!payload.success ? { issues: issuesFromZodError(payload.error) } : {}),
+      });
+    }
+    try {
+      const workspace = await options.workspaceService.updateWorkspaceSettings({
+        actorUserId: actor.userId,
+        workspaceId: workspaceId.data,
+        name: payload.data.name,
+        website: payload.data.website,
+      });
+      response.json(updateWorkspaceSettingsResponseSchema.parse({
+        workspace,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      if (error instanceof WorkspaceAdminRequiredError) {
+        throw new AppError({ code: "workspace.access_denied", message: error.message, status: 403 });
+      }
+      if (error instanceof WorkspaceValidationError) {
+        throw new AppError({
+          code: error.code === "workspace.slug_invalid" ? "slug.invalid" : error.code,
+          message: error.message,
+          status: 400,
+        });
+      }
+      throw error;
+    }
+  }));
+
+  router.put("/:workspaceId/logo", asyncHandler(async (request, response) => {
+    const actor = await requireAuthenticatedActor(request, options.getCurrentActor);
+    const workspaceId = z.uuid().safeParse(request.params.workspaceId);
+    const payload = uploadWorkspaceLogoRequestSchema.safeParse(request.body ?? {});
+    if (!workspaceId.success || !payload.success) {
+      throw new AppError({
+        code: "workspace.invalid_payload",
+        message: "Invalid workspace logo payload.",
+        status: 400,
+        ...(!payload.success ? { issues: issuesFromZodError(payload.error) } : {}),
+      });
+    }
+    try {
+      const logo = await options.workspaceService.uploadWorkspaceLogo({
+        actorUserId: actor.userId,
+        workspaceId: workspaceId.data,
+        ...payload.data,
+      });
+      response.json(uploadWorkspaceLogoResponseSchema.parse({
+        ...logo,
+        requestId: request.context.requestId,
+      }));
+    } catch (error) {
+      if (error instanceof WorkspaceAdminRequiredError) {
+        throw new AppError({ code: "workspace.access_denied", message: error.message, status: 403 });
+      }
+      if (error instanceof WorkspaceLogoUploadError) {
+        throw new AppError({ code: "workspace.invalid_payload", message: error.message, status: 400 });
+      }
       throw error;
     }
   }));

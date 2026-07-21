@@ -261,6 +261,11 @@ export type TrackingV2ListSessionsInput = {
 
 export type TrackingV2RetentionBatchInput = { now: Date; limit: number };
 export type TrackingV2StaleSessionExpirationInput = TrackingV2RetentionBatchInput & { staleBefore: Date };
+export type TrackingV2EndedSessionForRecording = {
+  id: string;
+  endedAt: Date;
+  endReason: TrackingV2SessionEndReason;
+};
 
 export type TrackingV2ServerEventInput = {
   eventId: string;
@@ -277,6 +282,32 @@ export type TrackingV2ServerEventInput = {
   receivedAt: Date;
   webhookId?: string | null;
   webhookEndpointHost?: string | null;
+};
+
+export type TrackingAutomationOutboxEvent = {
+  sourceEventRowId: string;
+  eventId: string;
+  eventType: "site_visit" | "button_click" | "link_click" | "tab_switch";
+  workspaceId: string;
+  siteId: string;
+  recipientId: string | null;
+  sessionId: string;
+  occurredAt: Date;
+  receivedAt: Date;
+  pageId?: string | null;
+  pageLabel?: string | null;
+  fromPageId?: string | null;
+  fromPageLabel?: string | null;
+  elementKind?: string | null;
+  elementId?: string | null;
+  elementLabel?: string | null;
+  destinationKind?: string | null;
+  destinationHost?: string | null;
+};
+
+export type TrackingAutomationOutbox = {
+  enqueue(event: TrackingAutomationOutboxEvent): Promise<void>;
+  enqueueMany?(events: TrackingAutomationOutboxEvent[]): Promise<void>;
 };
 
 export interface TrackingV2Repository {
@@ -304,6 +335,7 @@ export interface TrackingV2Repository {
   updateSessionHeartbeat(input: { sessionId: string; activeAfter: Date; occurredAt: Date; activeMs: number }): Promise<boolean>;
   endSession(input: { sessionId: string; activeAfter: Date; occurredAt: Date; reason: TrackingV2SessionEndReason; activeMs: number | null }): Promise<boolean>;
   expireStaleSessions(input: TrackingV2StaleSessionExpirationInput): Promise<number>;
+  listEndedSessionsForRecording(input: { endedBefore: Date; limit: number }): Promise<TrackingV2EndedSessionForRecording[]>;
   pruneExpiredEvents(input: TrackingV2RetentionBatchInput): Promise<number>;
   pruneExpiredSessions(input: TrackingV2RetentionBatchInput): Promise<number>;
   pruneUnreferencedManifests(input: TrackingV2RetentionBatchInput): Promise<number>;
@@ -337,7 +369,7 @@ const sessionRecordSelection = {
   activeMs: trackingRecipientSessions.activeMs,
 };
 
-export function createDbTrackingV2Repository(database: Database): TrackingV2Repository {
+export function createDbTrackingV2Repository(database: Database, options: { automationOutbox?: TrackingAutomationOutbox } = {}): TrackingV2Repository {
   return {
     async findOrCreateManifest(input) {
       await database.insert(trackingEventManifests).values(input).onConflictDoNothing();
@@ -558,7 +590,7 @@ export function createDbTrackingV2Repository(database: Database): TrackingV2Repo
     },
 
     async createSession(input) {
-      return database.transaction(async (transaction) => {
+      const result = await database.transaction(async (transaction) => {
         const [inserted] = await transaction
           .insert(trackingRecipientSessions)
           .values({
@@ -595,8 +627,9 @@ export function createDbTrackingV2Repository(database: Database): TrackingV2Repo
           throw new Error("Tracking session idempotency conflict.");
         }
 
+        let visit: TrackingAutomationOutboxEvent | null = null;
         if (inserted) {
-          await transaction.insert(trackingRecipientEvents).values({
+          const [insertedEvent] = await transaction.insert(trackingRecipientEvents).values({
             eventId: `visit:${input.publicSessionId}`,
             batchId: null,
             sessionId: session.id,
@@ -614,10 +647,27 @@ export function createDbTrackingV2Repository(database: Database): TrackingV2Repo
             eventData: {},
             occurredAt: input.startedAt,
             receivedAt: input.receivedAt,
-          });
+          }).returning({ id: trackingRecipientEvents.id });
+          if (insertedEvent) {
+            visit = {
+              sourceEventRowId: insertedEvent.id,
+              eventId: `visit:${input.publicSessionId}`,
+              eventType: "site_visit",
+              workspaceId: input.workspaceId,
+              siteId: input.siteId,
+              recipientId: input.recipientId,
+              sessionId: session.id,
+              occurredAt: input.startedAt,
+              receivedAt: input.receivedAt,
+              pageId: input.initialPageId,
+              pageLabel: input.initialPageLabel,
+            };
+          }
         }
-        return session;
+        return { session, visit };
       });
+      await safelyEnqueueAutomationEvents(options.automationOutbox, result.visit ? [result.visit] : []);
+      return result.session;
     },
 
     async findSessionForEventToken(input) {
@@ -635,7 +685,7 @@ export function createDbTrackingV2Repository(database: Database): TrackingV2Repo
     },
 
     async recordBrowserEvents(input) {
-      return database.transaction(async (transaction) => {
+      const result = await database.transaction(async (transaction) => {
         const [active] = await transaction
           .select({ id: trackingRecipientSessions.id })
           .from(trackingRecipientSessions)
@@ -645,23 +695,49 @@ export function createDbTrackingV2Repository(database: Database): TrackingV2Repo
             gte(trackingRecipientSessions.lastSeenAt, input.activeAfter),
           ))
           .limit(1);
-        if (!active) return 0;
+        if (!active) return { insertedCount: 0, outboxEvents: [] as TrackingAutomationOutboxEvent[] };
 
         let insertedCount = 0;
+        const outboxEvents: TrackingAutomationOutboxEvent[] = [];
         for (const event of input.events) {
+          const values = toBrowserEventInsert(input, event);
           const inserted = await transaction
             .insert(trackingRecipientEvents)
-            .values(toBrowserEventInsert(input, event))
+            .values(values)
             .onConflictDoNothing({ target: trackingRecipientEvents.eventId })
             .returning({ id: trackingRecipientEvents.id });
           insertedCount += inserted.length;
+          if (inserted[0]) {
+            outboxEvents.push({
+              sourceEventRowId: inserted[0].id,
+              eventId: values.eventId,
+              eventType: values.type,
+              workspaceId: values.workspaceId,
+              siteId: values.siteId,
+              recipientId: values.recipientId,
+              sessionId: values.sessionId,
+              occurredAt: values.occurredAt,
+              receivedAt: values.receivedAt,
+              pageId: values.pageId,
+              pageLabel: values.pageLabel,
+              fromPageId: values.fromPageId,
+              fromPageLabel: values.fromPageLabel,
+              elementKind: values.elementKind,
+              elementId: values.elementId,
+              elementLabel: values.elementLabel,
+              destinationKind: values.destinationKind,
+              destinationHost: values.destinationHost,
+            });
+          }
         }
         await transaction.update(trackingRecipientSessions).set({
           lastSeenAt: input.receivedAt,
           updatedAt: input.receivedAt,
         }).where(eq(trackingRecipientSessions.id, input.session.id));
-        return insertedCount;
+        return { insertedCount, outboxEvents };
       });
+      await safelyEnqueueAutomationEvents(options.automationOutbox, result.outboxEvents);
+      return result.insertedCount;
     },
 
     async recordServerEvent(input) {
@@ -737,6 +813,21 @@ export function createDbTrackingV2Repository(database: Database): TrackingV2Repo
       return rows.length;
     },
 
+    async listEndedSessionsForRecording(input) {
+      const rows = await database.select({
+        id: trackingRecipientSessions.id,
+        endedAt: trackingRecipientSessions.endedAt,
+        endReason: trackingRecipientSessions.endReason,
+      }).from(trackingRecipientSessions).where(and(
+        sql`${trackingRecipientSessions.state} in ('ended', 'expired')`,
+        sql`${trackingRecipientSessions.recordingStatus} in ('pending', 'recording')`,
+        lte(trackingRecipientSessions.updatedAt, input.endedBefore),
+      )).orderBy(asc(trackingRecipientSessions.updatedAt), asc(trackingRecipientSessions.id)).limit(input.limit);
+      return rows.flatMap((row) => row.endedAt && row.endReason
+        ? [{ id: row.id, endedAt: row.endedAt, endReason: row.endReason }]
+        : []);
+    },
+
     async pruneExpiredEvents(input) {
       const ids = (await database.select({ id: trackingRecipientEvents.id })
         .from(trackingRecipientEvents)
@@ -779,6 +870,29 @@ export function createDbTrackingV2Repository(database: Database): TrackingV2Repo
       return (await database.delete(trackingEventManifests).where(inArray(trackingEventManifests.id, ids)).returning({ id: trackingEventManifests.id })).length;
     },
   };
+}
+
+async function safelyEnqueueAutomationEvents(
+  outbox: TrackingAutomationOutbox | undefined,
+  events: TrackingAutomationOutboxEvent[],
+) {
+  if (!outbox || events.length === 0) return;
+  if (outbox.enqueueMany) {
+    try {
+      await outbox.enqueueMany(events);
+    } catch {
+      // The reconciliation pass repairs the whole accepted batch.
+    }
+    return;
+  }
+  for (const event of events) {
+    try {
+      await outbox.enqueue(event);
+    } catch {
+      // Tracking is the source of truth and must never fail because automation
+      // fanout is unavailable. The worker's reconciliation pass repairs gaps.
+    }
+  }
 }
 
 function toSettingRecord(input: {
@@ -1032,14 +1146,17 @@ function toSessionReadRecord(row: SessionReadRow): TrackingV2SessionReadRecord {
 
 function toRecipientSummary(row: RecipientJoinRow): TrackingV2RecipientSummaryRecord | null {
   if (!row.recipientId || !row.recipientVariantName || !row.recipientSlug) return null;
-  const website = row.recipientVariableValues?.recipient_website;
+  const website = [
+    row.recipientVariableValues?.recipient_website,
+    row.recipientVariableValues?.website,
+  ].find((value): value is string => typeof value === "string" && value.trim().length > 0);
   return {
     id: row.recipientId,
     name: row.recipientVariantName,
     slug: row.recipientSlug,
     recipientName: row.recipientName,
     recipientCompany: row.recipientCompany,
-    website: typeof website === "string" && website.trim() ? website.trim() : null,
+    website: website?.trim() ?? null,
   };
 }
 
@@ -1129,6 +1246,7 @@ type MemorySession = TrackingV2SessionRecord & {
   durationMs: number | null;
   recordingStatus: TrackingV2ReadRecordingStatus;
   recordingDurationMs: number | null;
+  updatedAt: Date;
 };
 
 export function createMemoryTrackingV2Repository(input: MemoryTrackingV2RepositoryInput = {}): TrackingV2Repository & {
@@ -1281,6 +1399,7 @@ export function createMemoryTrackingV2Repository(input: MemoryTrackingV2Reposito
         durationMs: null,
         recordingStatus: "disabled",
         recordingDurationMs: null,
+        updatedAt: sessionInput.receivedAt,
       };
       sessions.set(session.publicSessionId, session);
       events.push({
@@ -1307,7 +1426,10 @@ export function createMemoryTrackingV2Repository(input: MemoryTrackingV2Reposito
         count += 1;
       }
       const memorySession = sessions.get(session.publicSessionId);
-      if (memorySession) memorySession.lastSeenAt = receivedAt;
+      if (memorySession) {
+        memorySession.lastSeenAt = receivedAt;
+        memorySession.updatedAt = receivedAt;
+      }
       return count;
     },
     async recordServerEvent(serverEvent) {
@@ -1330,6 +1452,7 @@ export function createMemoryTrackingV2Repository(input: MemoryTrackingV2Reposito
       if (!session) return false;
       session.lastSeenAt = new Date(Math.max(session.lastSeenAt.getTime(), occurredAt.getTime()));
       session.activeMs = Math.max(session.activeMs, activeMs);
+      session.updatedAt = occurredAt;
       return true;
     },
     async endSession({ sessionId, activeAfter, occurredAt, reason, activeMs }) {
@@ -1344,9 +1467,10 @@ export function createMemoryTrackingV2Repository(input: MemoryTrackingV2Reposito
       session.endReason = reason;
       session.activeMs = Math.max(session.activeMs, activeMs ?? 0);
       session.durationMs = Math.max(0, endedAt.getTime() - session.startedAt.getTime());
+      session.updatedAt = occurredAt;
       return true;
     },
-    async expireStaleSessions({ staleBefore, limit }) {
+    async expireStaleSessions({ staleBefore, now, limit }) {
       let count = 0;
       const staleSessions = [...sessions.values()]
         .filter((session) => session.state === "active" && session.lastSeenAt <= staleBefore)
@@ -1354,9 +1478,22 @@ export function createMemoryTrackingV2Repository(input: MemoryTrackingV2Reposito
         .slice(0, limit);
       for (const session of staleSessions) {
         session.state = "expired"; session.endedAt = session.lastSeenAt; session.endReason = "server_expired";
-        session.durationMs = Math.max(0, session.lastSeenAt.getTime() - session.startedAt.getTime()); count += 1;
+        session.durationMs = Math.max(0, session.lastSeenAt.getTime() - session.startedAt.getTime()); session.updatedAt = now; count += 1;
       }
       return count;
+    },
+    async listEndedSessionsForRecording({ endedBefore, limit }) {
+      return [...sessions.values()]
+        .filter((session) => (
+          (session.state === "ended" || session.state === "expired") &&
+          (session.recordingStatus === "pending" || session.recordingStatus === "recording") &&
+          session.endedAt !== null &&
+          session.endReason !== null &&
+          session.updatedAt <= endedBefore
+        ))
+        .sort((left, right) => left.endedAt!.getTime() - right.endedAt!.getTime())
+        .slice(0, limit)
+        .map((session) => ({ id: session.id, endedAt: session.endedAt!, endReason: session.endReason! }));
     },
     async pruneExpiredEvents({ now, limit }) {
       const before = events.length;

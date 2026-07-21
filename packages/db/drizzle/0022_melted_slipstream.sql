@@ -1,0 +1,1 @@
+CREATE INDEX "tracking_recipient_sessions_recording_settle_idx" ON "tracking_recipient_sessions" USING btree ("updated_at","id") WHERE "tracking_recipient_sessions"."state" in ('ended', 'expired') and "tracking_recipient_sessions"."recording_status" in ('pending', 'recording');

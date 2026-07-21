@@ -1,6 +1,8 @@
 import { NoiseOverlay } from "@/components/common/noise-overlay"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { PersonalizeGraphic } from "@/features/home/components/personalize-graphic"
+import { TrackVisitorsGraphic } from "@/features/home/components/track-visitors-graphic"
 
 type GraphicVariant =
   | "easy"
@@ -51,6 +53,14 @@ function GraphicPlaceholder({
   variant,
   className,
 }: GraphicPlaceholderProps) {
+  if (variant === "personalize") {
+    return <PersonalizeGraphic />
+  }
+
+  if (variant === "track") {
+    return <TrackVisitorsGraphic />
+  }
+
   return (
     <div
       aria-hidden="true"

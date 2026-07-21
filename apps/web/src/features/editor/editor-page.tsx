@@ -344,12 +344,18 @@ function ReadyEditorPage({
       collaborationEditorConfig,
     ],
   )
+  const editorInitialContent = collaborationEditorConfig
+    ? siteDraft.pages.find((page) => page.id === activePageId)?.document ?? initialEditorContent
+    : initialEditorContent
 
   const editor = useEditor({
     extensions,
-    content: collaborationEditorConfig ? undefined : initialEditorContent,
+    // Seed ProseMirror with the same document Yjs will bind. This gives the
+    // collaboration plugin a valid initial selection even when the first block
+    // is a non-text block such as pageTitleSection.
+    content: editorInitialContent,
     immediatelyRender: false,
-    autofocus: "start",
+    autofocus: false,
     onUpdate: ({ editor: updatedEditor }) => {
       const persistedPage = siteDraftRef.current.pages.find((page) => page.id === activePageId)
 
@@ -383,6 +389,13 @@ function ReadyEditorPage({
   const sidebarModel = useMemo(() => getEditorSidebarModel(siteDraft), [siteDraft])
   const activePageIndex = siteDraft.pages.findIndex((page) => page.id === activePageId)
   const emptyStateFallbackKind = activePageIndex > 0 ? "added-page" : "first-page"
+  const activeSidebarPageIndex = sidebarModel.pages.findIndex((page) => page.id === activePageId)
+  const previousPage = activeSidebarPageIndex > 0
+    ? sidebarModel.pages[activeSidebarPageIndex - 1] ?? null
+    : null
+  const nextPage = activeSidebarPageIndex >= 0
+    ? sidebarModel.pages[activeSidebarPageIndex + 1] ?? null
+    : null
   const publishStatus: EditorPublishStatus = siteIsPublished
     ? hasUnpublishedChanges
       ? "unpublished-changes"
@@ -1022,9 +1035,13 @@ function ReadyEditorPage({
           <section className="h-full min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
             {activeEditor && collaboration.isReady ? (
               <EditorCanvas
+                activePageId={activePageId}
                 editor={activeEditor}
                 emptyStateFallbackKind={emptyStateFallbackKind}
                 mode={editorMode}
+                nextPage={nextPage}
+                previousPage={previousPage}
+                onSelectPage={switchToPage}
               />
             ) : (
               <div className="p-8 text-sm text-muted-foreground">

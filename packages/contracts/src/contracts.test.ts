@@ -89,6 +89,7 @@ describe("API contracts", () => {
       siteDetailResponseSchema.parse({
         site: {
           id: "site_123",
+          publicId: "site-public-123",
           name: "Acme launch",
           slug: "acme-launch",
           status: "draft",
@@ -113,6 +114,7 @@ describe("API contracts", () => {
     ).toEqual({
       site: {
         id: "site_123",
+        publicId: "site-public-123",
         name: "Acme launch",
         slug: "acme-launch",
         status: "draft",

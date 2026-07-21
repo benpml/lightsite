@@ -28,6 +28,7 @@ import {
   getSiteVariableValues,
   getSiteSidebarModel,
   getVisibleSitePages,
+  HANDOUT_PRIVACY_POLICY_URL,
   PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
   type PublishedSitePayload,
   type SiteContent,
@@ -41,7 +42,6 @@ import {
   resolvePublicSiteTracking,
   resolveSiteTemplate,
   sanitizePublicActionUrl,
-  sanitizeTrackingPrivacyPolicyUrl,
   type ResolvedTrackingElement,
 } from "./tracking-manifest";
 
@@ -51,11 +51,12 @@ export type RenderPublicSiteOptions = {
   includeTracking?: boolean;
   logoDelivery?: "preview" | "public";
   origin?: string;
+  publicPath?: string;
   runtimeMode?: "external" | "inline";
 };
 
 export const PUBLIC_SITE_LOGO_ENDPOINT = "/api/public/site-logo" as const;
-export const PUBLIC_SITE_RUNTIME_PATH = "/site-runtime.v5.js" as const;
+export const PUBLIC_SITE_RUNTIME_PATH = "/site-runtime.v6.js" as const;
 /**
  * Shared iframe capability contract for generated site documents.
  *
@@ -105,14 +106,15 @@ export function renderPublicSiteHtml(
     values,
   };
   const renderDocument = createDocumentRenderer(context);
-  const pagePanels = pages.map((page) => {
+  const pagePanels = pages.map((page, pageIndex) => {
     const active = page.id === activePage?.id;
-    return `<article class="handout-page-panel" data-handout-page-panel="${attr(page.slug)}" data-handout-page-id="${attr(page.id)}"${active ? "" : " hidden"}>${renderDocument({ content: page.document })}</article>`;
+    return `<article class="handout-page-panel" aria-label="${attr(page.name)}" data-handout-page-panel="${attr(page.slug)}" data-handout-page-id="${attr(page.id)}" tabindex="-1"${active ? "" : " hidden"}>${renderDocument({ content: page.document })}${renderPageNavigation(pages, pageIndex)}</article>`;
   }).join("");
   const sidebar = renderSidebar(payload.content, activePage?.slug ?? null, context);
+  const publicPath = options.publicPath ?? buildPublicPath(payload);
   const canonicalUrl = origin
-    ? new URL(buildPublicPath(payload), origin).toString()
-    : buildPublicPath(payload);
+    ? new URL(publicPath, origin).toString()
+    : publicPath;
   const ogImageUrl = payload.metadata.ogImageUrl
     ? resolveAbsoluteUrl(payload.metadata.ogImageUrl, origin)
     : resolveAbsoluteUrl("/handout-logo.svg", origin);
@@ -127,7 +129,7 @@ export function renderPublicSiteHtml(
   const primaryStyle = getPrimaryColorStyle(payload.content.settings.primaryColor);
 
   return `<!doctype html>
-<html lang="en" class="${theme}" data-handout-public-site="">
+<html lang="en" class="${theme}" data-handout-public-site="" style="${attr(primaryStyle)}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -152,7 +154,7 @@ export function renderPublicSiteHtml(
   <style>${HANDOUT_THEME_CSS}${SITE_DOCUMENT_CSS}</style>
 </head>
 <body data-handout-public-site="">
-  <div class="handout-site" data-handout-site-id="${attr(payload.site.id)}" style="${attr(primaryStyle)}">
+  <div class="handout-site" data-handout-site-id="${attr(payload.site.id)}">
     ${sidebar}
     <main class="handout-main">
       <div class="handout-mobile-bar">
@@ -160,7 +162,6 @@ export function renderPublicSiteHtml(
         <span data-handout-active-page-label="">${text(activePage?.name ?? payload.site.name)}</span>
       </div>
       <div class="handout-document">${pagePanels || renderEmptyPage()}</div>
-      <footer class="handout-footer"><span>Powered by</span><span class="handout-footer-logo" role="img" aria-label="Handout"></span></footer>
     </main>
   </div>
   ${consentPopup}
@@ -333,7 +334,7 @@ function createNodeMapping(context: RenderContext): Record<string, (props: NodeR
     calendarEmbed: ({ node }) => renderEmbed(node, "calendar"),
     videoEmbed: ({ node }) => renderEmbed(node, "video"),
     gridBlock: ({ children, node }) => {
-      const columns = numberAttr(node.attrs?.columns, 2, 1, 4);
+      const columns = numberAttr(node.attrs?.columns, 2, 1, 3);
       return `<section class="handout-grid" style="--handout-grid-columns:${columns}"${nodeId(node)}>${childrenText(children)}</section>`;
     },
     gridRow: ({ children }) => `<div class="handout-grid-row">${childrenText(children)}</div>`,
@@ -487,7 +488,7 @@ function renderSidebar(content: SiteContent, activePageSlug: string | null, cont
   const linksHtml = links.map((link) => {
     const href = sanitizePublicActionUrl(resolveSiteTemplate(link.href, context.values));
     const label = resolveSiteTemplate(link.label, context.values).trim();
-    return href && label ? `<a class="handout-sidebar-row handout-sidebar-link" href="${attr(href)}" target="_blank" rel="noopener noreferrer"${trackingAttrs(trackingElement(context, link.id))}>${icon("link")}<span>${text(label)}</span></a>` : "";
+    return href && label ? `<a class="handout-sidebar-row handout-sidebar-link" href="${attr(href)}" target="_blank" rel="noopener noreferrer"${trackingAttrs(trackingElement(context, link.id))}>${icon("world-longitude")}<span>${text(label)}</span></a>` : "";
   }).join("");
   const buttonsHtml = buttons.map((button) => {
     const href = sanitizePublicActionUrl(resolveSiteTemplate(button.href, context.values));
@@ -496,11 +497,33 @@ function renderSidebar(content: SiteContent, activePageSlug: string | null, cont
     return href && label ? `<a class="handout-sidebar-button handout-sidebar-button-${button.style}" href="${attr(href)}" target="_blank" rel="noopener noreferrer"${trackingAttrs(trackingElement(context, button.id))}>${buttonIcon}${text(label)}</a>` : "";
   }).join("");
 
-  return `<aside id="handout-site-sidebar" class="handout-sidebar" aria-label="Site navigation"><div class="handout-sidebar-mobile-header"><span class="handout-sidebar-mobile-title" data-handout-active-page-label="">${text(activePageName)}</span><button class="handout-sidebar-close" type="button" aria-label="Close site navigation">${icon("x")}</button></div><div class="handout-sidebar-inner">${renderSidebarSection(content.sidebar.sections.tabs.label, tabsHtml)}${renderSidebarSection(content.sidebar.sections.links.label, linksHtml)}${renderSidebarSection(content.sidebar.sections.nextSteps.label, buttonsHtml, "handout-sidebar-section-buttons")}</div></aside><div class="handout-sidebar-backdrop" aria-hidden="true"></div>`;
+  return `<aside id="handout-site-sidebar" class="handout-sidebar" aria-label="Site navigation"><div class="handout-sidebar-mobile-header"><span class="handout-sidebar-mobile-title" data-handout-active-page-label="">${text(activePageName)}</span><button class="handout-sidebar-close" type="button" aria-label="Close site navigation">${icon("x")}</button></div><div class="handout-sidebar-inner">${renderSidebarSection(content.sidebar.sections.tabs.label, tabsHtml)}${renderSidebarSection(content.sidebar.sections.links.label, linksHtml)}${renderSidebarSection(content.sidebar.sections.nextSteps.label, buttonsHtml, "handout-sidebar-section-buttons")}</div>${renderBuiltWithHandoutFooter()}</aside><div class="handout-sidebar-backdrop" aria-hidden="true"></div>`;
+}
+
+function renderBuiltWithHandoutFooter() {
+  return `<div class="handout-sidebar-built-with"><span class="handout-sidebar-built-with-logo" aria-hidden="true"></span><span>Built with <a href="https://www.handout.link" target="_blank" rel="noopener noreferrer">Handout</a></span></div>`;
 }
 
 function renderSidebarSection(label: string, content: string, className = "") {
   return content ? `<section class="handout-sidebar-section${className ? ` ${className}` : ""}"><h2>${text(label)}</h2><div>${content}</div></section>` : "";
+}
+
+function renderPageNavigation(
+  pages: ReadonlyArray<{ id: string; name: string; slug: string }>,
+  activePageIndex: number,
+) {
+  const previousPage = activePageIndex > 0 ? pages[activePageIndex - 1] : null;
+  const nextPage = pages[activePageIndex + 1] ?? null;
+  if (!previousPage && !nextPage) return "";
+
+  const previous = previousPage
+    ? `<button type="button" class="handout-page-navigation-link handout-page-navigation-previous" aria-label="Go to previous tab, ${attr(previousPage.name)}" data-handout-page-target="${attr(previousPage.slug)}" data-handout-page-id="${attr(previousPage.id)}" data-handout-track="tab">${icon("arrow-left")}<span class="handout-page-navigation-copy"><span class="handout-page-navigation-label">Previous</span><span class="handout-page-navigation-name">${text(previousPage.name)}</span></span></button>`
+    : "";
+  const next = nextPage
+    ? `<button type="button" class="handout-page-navigation-link handout-page-navigation-next" aria-label="Go to next tab, ${attr(nextPage.name)}" data-handout-page-target="${attr(nextPage.slug)}" data-handout-page-id="${attr(nextPage.id)}" data-handout-track="tab"><span class="handout-page-navigation-copy"><span class="handout-page-navigation-label">Next</span><span class="handout-page-navigation-name">${text(nextPage.name)}</span></span>${icon("arrow-right")}</button>`
+    : "";
+
+  return `<nav class="handout-page-navigation" aria-label="Page navigation">${previous}${next}</nav>`;
 }
 
 function renderEmptyPage() {
@@ -509,21 +532,20 @@ function renderEmptyPage() {
 
 export function getPrimaryColorStyle(color: SiteContent["settings"]["primaryColor"]) {
   if (color === "neutral") {
-    return "--handout-primary:var(--foreground);--handout-primary-foreground:var(--background);--handout-primary-soft:var(--accent);--handout-sidebar-link-icon:var(--blue-foreground)";
+    return "--handout-primary:var(--foreground,var(--primary));--handout-primary-foreground:var(--background,var(--primary-foreground));--handout-primary-soft:var(--accent,var(--muted));--handout-sidebar-link-icon:var(--blue-foreground,var(--link))";
   }
 
-  return `--handout-primary:var(--${color}-foreground);--handout-primary-foreground:var(--background);--handout-primary-soft:var(--${color}-background-subtle);--handout-sidebar-link-icon:var(--${color}-foreground)`;
+  return `--handout-primary:var(--${color}-foreground,var(--primary));--handout-primary-foreground:var(--background,var(--primary-foreground));--handout-primary-soft:var(--${color}-background-subtle,var(--accent));--handout-sidebar-link-icon:var(--${color}-foreground,var(--link))`;
 }
 
 function renderTrackingConsent(payload: PublishedSitePayload, hasTracking: boolean) {
   const popup = payload.content.settings.trackingConsentPopup;
-  const privacyPolicyUrl = sanitizeTrackingPrivacyPolicyUrl(payload.content.settings.trackingPrivacyPolicyUrl);
-  if (!hasTracking || !payload.trackingV2 || popup === "none" || !privacyPolicyUrl) return "";
+  if (!hasTracking || !payload.trackingV2 || popup === "none") return "";
 
   const isPopupA = popup === "popup-a";
   const body = isPopupA
-    ? `This site uses cookies and other technology upon consent to help the owner understand how you use it, including session behavior and where you click and scroll. By selecting Allow and proceed, you consent to this as described in the <a href="${attr(privacyPolicyUrl)}" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. You may decline and enter <button type="button" data-handout-consent="deny">here</button>.`
-    : `This site uses cookies and other technology upon consent to help the owner understand how you use it, including session behavior and where you click and scroll. By selecting Allow and proceed, you consent to this as described in the <a href="${attr(privacyPolicyUrl)}" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.`;
+    ? `This site uses cookies and other technology upon consent to help the owner understand how you use it, including session behavior and where you click and scroll. By selecting Allow and proceed, you consent to this as described in the <a href="${attr(HANDOUT_PRIVACY_POLICY_URL)}" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. You may decline and enter <button type="button" data-handout-consent="deny">here</button>.`
+    : `This site uses cookies and other technology upon consent to help the owner understand how you use it, including session behavior and where you click and scroll. By selecting Allow and proceed, you consent to this as described in the <a href="${attr(HANDOUT_PRIVACY_POLICY_URL)}" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.`;
   const actions = isPopupA
     ? `<button class="handout-consent-button handout-consent-button-primary" type="button" data-handout-consent="allow">Allow and proceed</button>`
     : `<button class="handout-consent-button" type="button" data-handout-consent="deny">Deny and proceed</button><button class="handout-consent-button handout-consent-button-primary" type="button" data-handout-consent="allow">Allow and proceed</button>`;
@@ -693,17 +715,19 @@ root.querySelectorAll('.handout-page-title-logo img').forEach(function(image){
   image.addEventListener('error',function(){handleLogoError(image);});
   if(image.complete&&image.naturalWidth===0)handleLogoError(image);
 });
-function selectPage(slug){
-  root.querySelectorAll('[data-handout-page-panel]').forEach(function(panel){panel.hidden=panel.getAttribute('data-handout-page-panel')!==slug;});
+function selectPage(slug,restoreMenuFocus){
+  var selectedPanel=null;
+  root.querySelectorAll('[data-handout-page-panel]').forEach(function(panel){var selected=panel.getAttribute('data-handout-page-panel')===slug;panel.hidden=!selected;if(selected)selectedPanel=panel;});
   root.querySelectorAll('[data-handout-page-target]').forEach(function(tab){tab.classList.toggle('is-active',tab.getAttribute('data-handout-page-target')===slug);});
   var active=Array.prototype.find.call(root.querySelectorAll('[data-handout-page-target]'),function(tab){return tab.getAttribute('data-handout-page-target')===slug;});
   active=active?active.querySelector('span'):null;
   if(active)root.querySelectorAll('[data-handout-active-page-label]').forEach(function(label){label.textContent=active.textContent||'';});
-  setSidebarOpen(false,true);
+  setSidebarOpen(false,restoreMenuFocus);
+  if(selectedPanel){selectedPanel.focus({preventScroll:true});requestAnimationFrame(function(){window.scrollTo({top:0,left:0,behavior:'auto'});});}
 }
 root.addEventListener('click',function(event){
   var target=event.target instanceof Element?event.target.closest('[data-handout-page-target],.handout-mobile-menu,.handout-sidebar-close,.handout-sidebar-backdrop'):null;if(!target)return;
-  if(target.matches('[data-handout-page-target]')){event.preventDefault();selectPage(target.getAttribute('data-handout-page-target')||'');return;}
+  if(target.matches('[data-handout-page-target]')){event.preventDefault();selectPage(target.getAttribute('data-handout-page-target')||'',Boolean(target.closest('.handout-sidebar')));return;}
   if(target.matches('.handout-mobile-menu')){setSidebarOpen(!sidebar.classList.contains('is-open'),false);return;}
   setSidebarOpen(false,true);
 });

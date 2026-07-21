@@ -3,13 +3,16 @@ import {
   HANDOUT_COLLECTION_LIMITS,
   HANDOUT_TEXT_LIMITS,
   isEmbeddedImageDataUrl,
-  normalizeWebsiteDomain,
   slugifyName,
   validateSiteSlug,
   validateTextLimit,
 } from "@handout/domain";
 import { normalizeSiteContent } from "@handout/db";
-import { SITE_DOCUMENT_SCHEMA_VERSION } from "@handout/site-document";
+import {
+  createSiteContentFromDefaults,
+  normalizeSiteDefaults,
+  SITE_DOCUMENT_SCHEMA_VERSION,
+} from "@handout/site-document";
 import {
   SiteSlugConflictError,
   type SiteRecord,
@@ -19,9 +22,11 @@ import {
   type SiteVersionRecord,
 } from "./repository";
 import type { SiteContentCoordinator } from "../collaboration/server";
+import { withRecipientLogo } from "./recipient-values";
 
 export type SiteListItem = {
   id: string;
+  publicId: string;
   name: string;
   slug: string;
   status: "draft" | "published" | "archived";
@@ -77,6 +82,9 @@ export type SiteWorkspaceContext = {
 export type ListSitesInput = {
   workspace: SiteWorkspaceContext;
   userId: string;
+  status?: "active" | "archived" | "all";
+  limit?: number;
+  cursor?: number;
 };
 
 export type CreateSiteInput = {
@@ -104,11 +112,12 @@ export type UpdateSiteInput = SiteMutationInput & {
 };
 
 export type CreateSiteResult = {
-  site: Pick<SiteListItem, "id" | "name" | "slug" | "status">;
+  site: Pick<SiteListItem, "id" | "publicId" | "name" | "slug" | "status">;
 };
 
 export type SiteVariant = {
   id: string;
+  shortCode: string;
   siteId: string;
   name: string;
   slug: string;
@@ -299,22 +308,27 @@ export function createSiteService(
 ): SiteService {
   return {
     async listSites(input) {
+      const limit = Math.min(Math.max(input.limit ?? LIST_SITES_LIMIT, 1), 100);
+      const offset = Math.max(input.cursor ?? 0, 0);
       const records = await repository.listAccessibleSites({
         workspaceId: input.workspace.id,
         userId: input.userId,
         role: input.workspace.role,
-        limit: LIST_SITES_LIMIT,
+        limit: limit + 1,
+        offset,
+        status: input.status ?? "active",
       });
+      const page = records.slice(0, limit);
       const recipientCounts = await repository.countActiveVariantsBySiteIds({
         workspaceId: input.workspace.id,
-        siteIds: records.map((record) => record.id),
+        siteIds: page.map((record) => record.id),
       });
 
       return {
-        sites: records.map((record) =>
+        sites: page.map((record) =>
           serializeSite(record, recipientCounts.get(record.id) ?? 0)
         ),
-        nextCursor: null,
+        nextCursor: records.length > limit ? String(offset + limit) : null,
       };
     },
 
@@ -351,16 +365,26 @@ export function createSiteService(
       }
 
       try {
+        const defaults = normalizeSiteDefaults(await repository.findUserSiteDefaults(input.userId));
+        const recordingEnabled =
+          input.workspace.plan === "pro" &&
+          defaults.recordingEnabled &&
+          defaults.recordingDisclosureAccepted;
         const site = await repository.createSite({
           workspaceId: input.workspace.id,
           createdByUserId: input.userId,
           name: nameResult.value,
           slug: slugResult.slug,
+          draftContent: createSiteContentFromDefaults(defaults),
+          trackingEnabled: defaults.trackingEnabled,
+          recordingEnabled,
+          recordingDisclosureAccepted: recordingEnabled,
         });
 
         return {
           site: {
             id: site.id,
+            publicId: site.publicId,
             name: site.name,
             slug: site.slug,
             status: site.status,
@@ -549,6 +573,7 @@ export function createSiteService(
         return {
           site: {
             id: duplicatedSite.id,
+            publicId: duplicatedSite.publicId,
             name: duplicatedSite.name,
             slug: duplicatedSite.slug,
             status: duplicatedSite.status,
@@ -928,31 +953,10 @@ export function createSiteService(
   };
 }
 
-function withRecipientLogo(values: Record<string, unknown>) {
-  const nextValues = { ...values };
-  const website = nextValues.recipient_website;
-  const normalized = typeof website === "string"
-    ? normalizeWebsiteDomain(website)
-    : null;
-
-  if (!normalized?.ok) {
-    delete nextValues["var-company-logo"];
-    return nextValues;
-  }
-
-  const params = new URLSearchParams({
-    domain: normalized.domain,
-    theme: "light",
-    size: "64",
-  });
-  nextValues["var-company-logo"] = `/api/workspaces/logo-preview/image?${params.toString()}`;
-
-  return nextValues;
-}
-
 function serializeSite(site: SiteRecord, recipientCount?: number): SiteListItem {
   const serializedSite: SiteListItem = {
     id: site.id,
+    publicId: site.publicId,
     name: site.name,
     slug: site.slug,
     status: site.status,
@@ -996,6 +1000,7 @@ function serializeVersion(version: SiteVersionRecord): SiteVersionSummary {
 function serializeVariant(variant: SiteVariantRecord): SiteVariant {
   return {
     id: variant.id,
+    shortCode: variant.shortCode,
     siteId: variant.siteId,
     name: variant.name,
     slug: variant.slug,

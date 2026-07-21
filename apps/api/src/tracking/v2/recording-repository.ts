@@ -134,6 +134,7 @@ export interface TrackingV2RecordingRepository {
   insertChunk(input: TrackingV2InsertRecordingChunkInput): Promise<{ duplicate: boolean; chunk: TrackingV2RecordingChunkRecord }>;
   requestCompletion(input: TrackingV2RecordingCompletion): Promise<void>;
   complete(input: TrackingV2RecordingCompletion & { status: "available" | "truncated" | "failed" }): Promise<void>;
+  settleEndedSessions(input: { sessions: TrackingV2EndedRecordingSession[]; now: Date }): Promise<number>;
   expireStalePending(input: { staleBefore: Date; now: Date; limit: number }): Promise<number>;
   expireRecordings(input: { now: Date; limit: number }): Promise<number>;
   listExpiredChunks(input: { now: Date; limit: number }): Promise<TrackingV2ExpiredRecordingChunkRecord[]>;
@@ -155,6 +156,12 @@ export type TrackingV2RecordingCompletion = {
   finalSequence: number | null;
   errorCode?: string | null;
   updatedAt: Date;
+};
+
+export type TrackingV2EndedRecordingSession = {
+  id: string;
+  endedAt: Date;
+  endReason: "pagehide" | "visibility_timeout" | "idle_timeout" | "max_duration" | "heartbeat_timeout" | "server_expired" | "unknown";
 };
 
 const recordingSelection = {
@@ -362,14 +369,16 @@ export function createDbTrackingV2RecordingRepository(database: Database): Track
         finalSequence: input.finalSequence,
         errorCode: input.errorCode ?? null,
         updatedAt: input.updatedAt,
-      }).where(and(eq(trackingRecordings.id, input.recordingId), sql`${trackingRecordings.status} in ('pending', 'recording')`));
+      }).where(and(
+        eq(trackingRecordings.id, input.recordingId),
+        sql`${trackingRecordings.status} in ('pending', 'recording')`,
+        sql`${trackingRecordings.stopReason} is null`,
+      ));
     },
 
     async complete(input) {
       await database.transaction(async (transaction) => {
-        const sessions = await transaction.select({ sessionId: trackingRecordings.sessionId }).from(trackingRecordings)
-          .where(eq(trackingRecordings.id, input.recordingId)).limit(1);
-        await transaction.update(trackingRecordings).set({
+        const recordings = await transaction.update(trackingRecordings).set({
           status: input.status,
           endedAt: input.endedAt,
           durationMs: input.durationMs,
@@ -377,8 +386,11 @@ export function createDbTrackingV2RecordingRepository(database: Database): Track
           finalSequence: input.finalSequence,
           errorCode: input.errorCode ?? null,
           updatedAt: input.updatedAt,
-        }).where(eq(trackingRecordings.id, input.recordingId));
-        const sessionId = sessions[0]?.sessionId;
+        }).where(and(
+          eq(trackingRecordings.id, input.recordingId),
+          sql`${trackingRecordings.status} in ('pending', 'recording')`,
+        )).returning({ sessionId: trackingRecordings.sessionId });
+        const sessionId = recordings[0]?.sessionId;
         if (sessionId) {
           await transaction.update(trackingRecipientSessions).set({
             recordingStatus: input.status,
@@ -387,6 +399,56 @@ export function createDbTrackingV2RecordingRepository(database: Database): Track
           }).where(eq(trackingRecipientSessions.id, sessionId));
         }
       });
+    },
+
+    async settleEndedSessions(input) {
+      if (input.sessions.length === 0) return 0;
+      const sessionsById = new Map(input.sessions.map((session) => [session.id, session]));
+      const candidates = (await database.select(recordingSelection).from(trackingRecordings).where(and(
+        inArray(trackingRecordings.sessionId, input.sessions.map((session) => session.id)),
+        sql`${trackingRecordings.status} in ('pending', 'recording')`,
+      ))).map(toRecordingRecord);
+      if (candidates.length === 0) return 0;
+
+      const allChunks = await database.select(chunkSelection).from(trackingRecordingChunks)
+        .where(inArray(trackingRecordingChunks.recordingId, candidates.map((recording) => recording.id)))
+        .orderBy(asc(trackingRecordingChunks.recordingId), asc(trackingRecordingChunks.sequence));
+      const chunksByRecording = new Map<string, TrackingV2RecordingChunkRecord[]>();
+      for (const row of allChunks) {
+        const values = chunksByRecording.get(row.recordingId) ?? [];
+        values.push(toChunkRecord(row));
+        chunksByRecording.set(row.recordingId, values);
+      }
+
+      let settled = 0;
+      for (const recording of candidates) {
+        const session = sessionsById.get(recording.sessionId);
+        if (!session) continue;
+        const settlement = endedSessionSettlement(recording, session, chunksByRecording.get(recording.id) ?? [], input.now);
+        settled += await database.transaction(async (transaction) => {
+          const rows = await transaction.update(trackingRecordings).set({
+            status: settlement.status,
+            endedAt: settlement.endedAt,
+            durationMs: settlement.durationMs,
+            stopReason: settlement.stopReason,
+            finalSequence: settlement.finalSequence,
+            errorCode: settlement.errorCode,
+            updatedAt: settlement.updatedAt,
+          }).where(and(
+            eq(trackingRecordings.id, settlement.recordingId),
+            sql`${trackingRecordings.status} in ('pending', 'recording')`,
+          )).returning({ sessionId: trackingRecordings.sessionId });
+          const sessionId = rows[0]?.sessionId;
+          if (!sessionId) return 0;
+          await transaction.update(trackingRecipientSessions).set({
+            recordingStatus: settlement.status,
+            recordingDurationMs: settlement.durationMs,
+            updatedAt: settlement.updatedAt,
+          }).where(eq(trackingRecipientSessions.id, sessionId));
+          return 1;
+        });
+      }
+      return settled;
     },
 
     async expireStalePending(input) {
@@ -621,12 +683,32 @@ export function createMemoryTrackingV2RecordingRepository() {
     },
     async requestCompletion(input) {
       const recording = recordings.get(input.recordingId);
-      if (!recording || !mutableMemoryRecording(recording)) return;
+      if (!recording || !mutableMemoryRecording(recording) || recording.stopReason !== null) return;
       recordings.set(recording.id, { ...recording, status: "recording", ...completionFields(input) });
     },
     async complete(input) {
       const recording = recordings.get(input.recordingId);
-      if (recording) recordings.set(recording.id, { ...recording, status: input.status, ...completionFields(input) });
+      if (recording && mutableMemoryRecording(recording)) {
+        recordings.set(recording.id, { ...recording, status: input.status, ...completionFields(input) });
+      }
+    },
+    async settleEndedSessions(input) {
+      const sessionsById = new Map(input.sessions.map((session) => [session.id, session]));
+      let count = 0;
+      for (const recording of recordings.values()) {
+        if (!mutableMemoryRecording(recording)) continue;
+        const session = sessionsById.get(recording.sessionId);
+        if (!session) continue;
+        const settlement = endedSessionSettlement(
+          recording,
+          session,
+          await repository.listChunks(recording.id),
+          input.now,
+        );
+        recordings.set(recording.id, { ...recording, ...settlement });
+        count += 1;
+      }
+      return count;
     },
     async expireStalePending(input) {
       let count = 0;
@@ -745,6 +827,60 @@ function contiguousChunkPrefix(chunks: TrackingV2RecordingChunkRecord[]) {
     prefix.push(chunk);
   }
   return prefix;
+}
+
+function endedSessionSettlement(
+  recording: TrackingV2RecordingRecord,
+  session: TrackingV2EndedRecordingSession,
+  chunks: TrackingV2RecordingChunkRecord[],
+  now: Date,
+): TrackingV2RecordingCompletion & { status: "available" | "truncated" | "failed"; errorCode: string | null } {
+  const prefix = contiguousChunkPrefix(chunks);
+  const requestedCompletion = recording.endedAt !== null && recording.stopReason !== null;
+  const requestedChunksPresent = recording.finalSequence === null
+    ? prefix.length === 0
+    : prefix.at(-1)?.sequence === recording.finalSequence;
+
+  if (requestedCompletion && requestedChunksPresent) {
+    const stopReason = recording.stopReason;
+    if (stopReason === null) throw new Error("Completion settlement requires a stop reason.");
+    return {
+      recordingId: recording.id,
+      status: completionStatus(stopReason, prefix.length),
+      endedAt: recording.endedAt!,
+      durationMs: recording.durationMs,
+      stopReason,
+      finalSequence: recording.finalSequence,
+      errorCode: recording.errorCode,
+      updatedAt: now,
+    };
+  }
+
+  const last = prefix.at(-1);
+  const endedAt = last?.lastEventAt ?? session.endedAt;
+  return {
+    recordingId: recording.id,
+    status: last ? "truncated" : "failed",
+    endedAt,
+    durationMs: Math.max(0, Math.min(recording.maxDurationMs, endedAt.getTime() - recording.startedAt.getTime())),
+    stopReason: recording.stopReason ?? recordingStopReasonForSession(session.endReason),
+    finalSequence: last?.sequence ?? null,
+    errorCode: requestedCompletion ? "incomplete_upload" : "missing_completion",
+    updatedAt: now,
+  };
+}
+
+function completionStatus(stopReason: string, chunkCount: number) {
+  if (chunkCount === 0 || stopReason === "error") return "failed" as const;
+  if (["duration_cap", "size_cap", "event_cap", "daily_cap"].includes(stopReason)) return "truncated" as const;
+  return "available" as const;
+}
+
+function recordingStopReasonForSession(endReason: TrackingV2EndedRecordingSession["endReason"]) {
+  if (endReason === "pagehide") return "pagehide";
+  if (endReason === "visibility_timeout") return "hidden_timeout";
+  if (endReason === "max_duration") return "duration_cap";
+  return "error";
 }
 
 function cloneRecording(recording: TrackingV2RecordingRecord) {

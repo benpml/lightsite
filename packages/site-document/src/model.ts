@@ -10,11 +10,20 @@ import {
 } from "@handout/tracking-schema";
 import { z } from "zod";
 
+import {
+  SITE_DOCUMENT_SCHEMA_VERSION,
+  SITE_PRIMARY_COLOR_OPTIONS,
+} from "./document-constants";
+import {
+  validateSiteDocumentMarkAttribute,
+  validateSiteDocumentNodeAttribute,
+} from "./document-catalog";
 import { SITE_ICON_OPTIONS, type SiteIconName } from "./site-icons";
 import { SITE_DOCUMENT_PROSEMIRROR_SCHEMA } from "./tiptap/site-extensions";
 
-export const SITE_DOCUMENT_SCHEMA_VERSION = 3 as const;
+export { SITE_DOCUMENT_SCHEMA_VERSION, SITE_PRIMARY_COLOR_OPTIONS } from "./document-constants";
 export const PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION = 2 as const;
+export const HANDOUT_PRIVACY_POLICY_URL = "https://www.handout.link/privacy" as const;
 
 export const SUPPORTED_SITE_DOCUMENT_NODE_TYPES = new Set([
   "doc",
@@ -77,6 +86,9 @@ export const SUPPORTED_SITE_DOCUMENT_MARK_TYPES = new Set([
 
 const limitedString = (limit: number) => z.string().max(limit);
 const limitedTrimmedString = (limit: number) => z.string().trim().max(limit);
+const handoutPrivacyPolicyUrlSchema = limitedString(HANDOUT_TEXT_LIMITS.url)
+  .default(HANDOUT_PRIVACY_POLICY_URL)
+  .transform((): string => HANDOUT_PRIVACY_POLICY_URL);
 
 const boundedUnknownSchema: z.ZodType<unknown> = z.unknown().superRefine((value, context) => {
   validateUnknown(value, context, 0);
@@ -115,13 +127,14 @@ export const tiptapDocumentSchema = tiptapNodeSchema
   .superRefine((value, context) => {
     let nodeCount = 0;
 
-    visitDocument(value, (node) => {
+    visitDocument(value, (node, nodePath) => {
       nodeCount += 1;
 
       if (!SUPPORTED_SITE_DOCUMENT_NODE_TYPES.has(node.type)) {
         context.addIssue({
           code: "custom",
           message: `Unsupported Tiptap node: ${node.type}`,
+          path: [...nodePath, "type"],
         });
       }
 
@@ -133,16 +146,28 @@ export const tiptapDocumentSchema = tiptapNodeSchema
             context.addIssue({
               code: "custom",
               message: `Unsupported attribute ${attributeName} on Tiptap node ${node.type}`,
+              path: [...nodePath, "attrs", attributeName],
+            });
+          }
+
+          const attributeIssue = validateSiteDocumentNodeAttribute(node.type, attributeName, node.attrs?.[attributeName]);
+          if (attributeIssue) {
+            context.addIssue({
+              code: "custom",
+              message: attributeIssue,
+              path: [...nodePath, "attrs", attributeName],
             });
           }
         }
       }
 
-      for (const mark of node.marks ?? []) {
+      for (const [markIndex, mark] of (node.marks ?? []).entries()) {
+        const markPath = [...nodePath, "marks", markIndex];
         if (!SUPPORTED_SITE_DOCUMENT_MARK_TYPES.has(mark.type)) {
           context.addIssue({
             code: "custom",
             message: `Unsupported Tiptap mark: ${mark.type}`,
+            path: [...markPath, "type"],
           });
         }
 
@@ -154,6 +179,16 @@ export const tiptapDocumentSchema = tiptapNodeSchema
               context.addIssue({
                 code: "custom",
                 message: `Unsupported attribute ${attributeName} on Tiptap mark ${mark.type}`,
+                path: [...markPath, "attrs", attributeName],
+              });
+            }
+
+            const attributeIssue = validateSiteDocumentMarkAttribute(mark.type, attributeName, mark.attrs?.[attributeName]);
+            if (attributeIssue) {
+              context.addIssue({
+                code: "custom",
+                message: attributeIssue,
+                path: [...markPath, "attrs", attributeName],
               });
             }
           }
@@ -184,18 +219,7 @@ export const siteVariableDefinitionSchema = z.object({
   defaultValue: boundedUnknownSchema,
 });
 
-export const sitePrimaryColorSchema = z.enum([
-  "neutral",
-  "purple",
-  "blue",
-  "cyan",
-  "teal",
-  "green",
-  "yellow",
-  "orange",
-  "red",
-  "pink",
-]);
+export const sitePrimaryColorSchema = z.enum(SITE_PRIMARY_COLOR_OPTIONS);
 
 export const siteTrackingConsentPopupSchema = z.enum(["popup-a", "popup-b", "none"]);
 
@@ -264,7 +288,7 @@ export const siteContentSchema = z.object({
     siteDescription: limitedString(HANDOUT_TEXT_LIMITS.variableDescription).default(""),
     primaryColor: sitePrimaryColorSchema.default("neutral"),
     trackingConsentPopup: siteTrackingConsentPopupSchema.default("popup-a"),
-    trackingPrivacyPolicyUrl: limitedString(HANDOUT_TEXT_LIMITS.url).default(""),
+    trackingPrivacyPolicyUrl: handoutPrivacyPolicyUrlSchema,
   }),
   variables: z.array(siteVariableDefinitionSchema).max(200),
   pages: z.array(siteContentPageSchema).min(1).max(HANDOUT_COLLECTION_LIMITS.tabs),
@@ -317,6 +341,89 @@ export type SiteSidebar = z.infer<typeof siteSidebarSchema>;
 export type SiteContent = z.infer<typeof siteContentSchema>;
 export type PublishedSitePayload = z.infer<typeof publicSitePayloadSchema>;
 
+export const RESERVED_SITE_VARIABLE_IDS = new Set([
+  "recipient-name",
+  "recipient-company",
+  "recipient_website",
+]);
+
+export const RESERVED_SITE_VARIABLE_KEYS = new Set(["name", "company", "website"]);
+
+export const RESERVED_SITE_VARIABLE_LABELS = new Set(["name", "company", "website"]);
+
+export const siteDefaultsSchema = z.object({
+  themeMode: z.enum(["light", "dark", "system"]),
+  primaryColor: sitePrimaryColorSchema,
+  trackingEnabled: z.boolean(),
+  recordingEnabled: z.boolean(),
+  recordingDisclosureAccepted: z.boolean(),
+  trackingConsentPopup: siteTrackingConsentPopupSchema,
+  trackingPrivacyPolicyUrl: handoutPrivacyPolicyUrlSchema,
+  variables: z.array(siteVariableDefinitionSchema).max(200),
+}).superRefine((defaults, context) => {
+  if (defaults.recordingEnabled && !defaults.trackingEnabled) {
+    context.addIssue({
+      code: "custom",
+      path: ["recordingEnabled"],
+      message: "Session replay requires activity tracking.",
+    });
+  }
+
+  if (defaults.recordingEnabled && !defaults.recordingDisclosureAccepted) {
+    context.addIssue({
+      code: "custom",
+      path: ["recordingDisclosureAccepted"],
+      message: "Session replay terms must be accepted before replay is enabled.",
+    });
+  }
+
+  if (defaults.recordingEnabled && defaults.trackingConsentPopup === "none") {
+    context.addIssue({
+      code: "custom",
+      path: ["trackingConsentPopup"],
+      message: "Session replay requires a tracking consent popup.",
+    });
+  }
+
+  const variableIds = new Set(RESERVED_SITE_VARIABLE_IDS);
+  const variableKeys = new Set(RESERVED_SITE_VARIABLE_KEYS);
+  const variableLabels = new Set(RESERVED_SITE_VARIABLE_LABELS);
+
+  defaults.variables.forEach((variable, index) => {
+    const label = variable.label.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+    const id = variable.id.toLocaleLowerCase();
+    const key = variable.key.toLocaleLowerCase();
+
+    if (variableIds.has(id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["variables", index, "id"],
+        message: `Variable id is reserved or duplicated: ${variable.id}`,
+      });
+    }
+    if (variableKeys.has(key)) {
+      context.addIssue({
+        code: "custom",
+        path: ["variables", index, "key"],
+        message: `Variable key is reserved or duplicated: ${variable.key}`,
+      });
+    }
+    if (variableLabels.has(label)) {
+      context.addIssue({
+        code: "custom",
+        path: ["variables", index, "label"],
+        message: `Variable name is reserved or duplicated: ${variable.label}`,
+      });
+    }
+
+    variableIds.add(id);
+    variableKeys.add(key);
+    variableLabels.add(label);
+  });
+});
+
+export type SiteDefaults = z.infer<typeof siteDefaultsSchema>;
+
 const recipientWebsiteVariable: SiteVariableDefinition = {
   id: "recipient_website",
   key: "website",
@@ -338,7 +445,7 @@ export function createDefaultSiteContent(siteName = "Overview"): SiteContent {
       siteDescription: "",
       primaryColor: "neutral",
       trackingConsentPopup: "popup-a",
-      trackingPrivacyPolicyUrl: "",
+      trackingPrivacyPolicyUrl: HANDOUT_PRIVACY_POLICY_URL,
     },
     variables: [recipientWebsiteVariable],
     pages: [{
@@ -357,6 +464,49 @@ export function createDefaultSiteContent(siteName = "Overview"): SiteContent {
 }
 
 export const defaultSiteContent = createDefaultSiteContent();
+
+export const defaultSiteDefaults: SiteDefaults = {
+  themeMode: "dark",
+  primaryColor: "neutral",
+  trackingEnabled: true,
+  recordingEnabled: false,
+  recordingDisclosureAccepted: false,
+  trackingConsentPopup: "popup-a",
+  trackingPrivacyPolicyUrl: HANDOUT_PRIVACY_POLICY_URL,
+  variables: [],
+};
+
+export function normalizeSiteDefaults(value: unknown): SiteDefaults {
+  const parsed = siteDefaultsSchema.safeParse(value);
+  return parsed.success ? parsed.data : structuredClone(defaultSiteDefaults);
+}
+
+export function createSiteContentFromDefaults(
+  value: unknown,
+  siteName = "Overview",
+): SiteContent {
+  const defaults = normalizeSiteDefaults(value);
+  const content = createDefaultSiteContent(siteName);
+
+  return {
+    ...content,
+    themeMode: defaults.themeMode,
+    settings: {
+      ...content.settings,
+      primaryColor: defaults.primaryColor,
+      trackingConsentPopup: defaults.trackingConsentPopup,
+      trackingPrivacyPolicyUrl: defaults.trackingPrivacyPolicyUrl,
+    },
+    variables: [
+      ...content.variables,
+      ...defaults.variables.filter(
+        (variable) => !content.variables.some(
+          (existing) => existing.id === variable.id || existing.key === variable.key,
+        ),
+      ),
+    ],
+  };
+}
 
 export function normalizeSiteContent(value: unknown, siteName?: string): SiteContent {
   const parsed = siteContentSchema.safeParse(value);
@@ -417,9 +567,6 @@ export function getSiteMetadata(
   fallbackTitle: string,
   values: Readonly<Record<string, string>> = {},
 ) {
-  const page = getVisibleSitePages(content)[0];
-  const pageTitle = page ? findNode(page.document, "pageTitleTitle") : null;
-  const pageSubtitle = page ? findNode(page.document, "pageTitleSubtitle") : null;
   const configuredTitle = resolveSiteSettingTemplate(content.settings.siteTitle, values).trim();
   const configuredDescription = resolveSiteSettingTemplate(
     content.settings.siteDescription,
@@ -427,8 +574,8 @@ export function getSiteMetadata(
   ).trim();
 
   return {
-    title: configuredTitle || getNodeText(pageTitle).trim() || fallbackTitle.trim() || "Untitled Handout",
-    description: configuredDescription || getNodeText(pageSubtitle).trim(),
+    title: configuredTitle || fallbackTitle.trim() || "Untitled Handout",
+    description: configuredDescription,
   };
 }
 
@@ -486,27 +633,30 @@ export function resolveSiteSettingTemplate(
   return value.replace(/\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g, (_match, key: string) => values[key] ?? "");
 }
 
-export function getNodeText(node: TiptapNode | null | undefined): string {
+export function getNodeText(
+  node: TiptapNode | null | undefined,
+  values: Readonly<Record<string, string>> = {},
+): string {
   if (!node) return "";
-  if (node.type === "text") return node.text ?? "";
+  if (node.type === "text") return resolveSiteSettingTemplate(node.text ?? "", values);
   if (node.type === "hardBreak") return "\n";
-  return (node.content ?? []).map(getNodeText).join("");
-}
-
-function findNode(node: TiptapNode, type: string): TiptapNode | null {
-  if (node.type === type) return node;
-
-  for (const child of node.content ?? []) {
-    const match = findNode(child, type);
-    if (match) return match;
+  if (node.type === "variableToken") {
+    const id = typeof node.attrs?.variableId === "string" ? node.attrs.variableId : "";
+    const fallback = typeof node.attrs?.fallbackName === "string" ? node.attrs.fallbackName : id;
+    return values[id] ?? fallback;
   }
-
-  return null;
+  return (node.content ?? []).map((child) => getNodeText(child, values)).join("");
 }
 
-function visitDocument(node: TiptapNode, visitor: (node: TiptapNode) => void) {
-  visitor(node);
-  (node.content ?? []).forEach((child) => visitDocument(child, visitor));
+function visitDocument(
+  node: TiptapNode,
+  visitor: (node: TiptapNode, path: Array<string | number>) => void,
+  path: Array<string | number> = [],
+) {
+  visitor(node, path);
+  (node.content ?? []).forEach((child, index) => {
+    visitDocument(child, visitor, [...path, "content", index]);
+  });
 }
 
 function createSlug(value: string) {

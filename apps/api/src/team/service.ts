@@ -1,5 +1,6 @@
 import { validateEmail } from "@handout/domain";
 import type { CurrentActor } from "../auth/current-actor";
+import type { TransactionalEmailSender } from "../email/transactional-email";
 import type {
   TeamInvitationRecord,
   TeamMemberRecord,
@@ -107,7 +108,11 @@ export class TeamInvitationValidationError extends Error {
 
 export function createTeamService(
   repository: TeamRepository,
-  options: { now?: () => Date } = {},
+  options: {
+    now?: () => Date;
+    email?: Pick<TransactionalEmailSender, "sendWorkspaceInvitation">;
+    webOrigin?: string;
+  } = {},
 ): TeamService {
   const now = options.now ?? (() => new Date());
 
@@ -172,6 +177,18 @@ export function createTeamService(
         expiresAt: new Date(currentTime.getTime() + INVITATION_LIFETIME_MS),
         now: currentTime,
       });
+
+      if (options.email) {
+        const workspaceName = await repository.findWorkspaceName(input.workspaceId);
+        await options.email.sendWorkspaceInvitation({
+          email: emailResult.email,
+          inviterName: input.actor.name?.trim() || input.actor.email,
+          workspaceName: workspaceName ?? "Handout workspace",
+          role: input.role,
+          acceptUrl: `${options.webOrigin ?? "http://localhost:5173"}/auth?mode=sign-up`,
+        });
+      }
+
       return "invitation_created";
     },
 

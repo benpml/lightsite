@@ -9,6 +9,7 @@ import {
 
 import {
   getSiteSidebarModel,
+  getNodeText,
   getSiteVariableValues,
   getVisibleSitePages,
   type PublishedSitePayload,
@@ -137,13 +138,7 @@ export function resolveSiteTemplate(value: string, values: Readonly<Record<strin
 }
 
 export function getResolvedNodeText(node: TiptapNode, values: Readonly<Record<string, string>>): string {
-  if (node.type === "text") return resolveSiteTemplate(node.text ?? "", values);
-  if (node.type === "hardBreak") return "\n";
-  if (node.type === "variableToken") {
-    const id = stringValue(node.attrs?.variableId);
-    return values[id] ?? stringValue(node.attrs?.fallbackName, id);
-  }
-  return (node.content ?? []).map((child) => getResolvedNodeText(child, values)).join("");
+  return getNodeText(node, values);
 }
 
 export function normalizeTrackingLabel(value: string, fallback = "") {
@@ -162,15 +157,6 @@ export function sanitizePublicActionUrl(value: string) {
   try {
     const url = new URL(trimmed);
     return ["http:", "https:", "mailto:", "tel:"].includes(url.protocol) ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-export function sanitizeTrackingPrivacyPolicyUrl(value: string) {
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === "https:" ? url.toString() : null;
   } catch {
     return null;
   }

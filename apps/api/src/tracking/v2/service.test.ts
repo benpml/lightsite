@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultSiteContent, PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION, type PublishedSitePayload } from "@handout/site-document";
-import type { TrackingV2ContextTokenPayload, TrackingV2EventBatch } from "@handout/tracking-schema";
+import {
+  TRACKING_V2_SCRIPT_VERSION,
+  type TrackingV2ContextTokenPayload,
+  type TrackingV2EventBatch,
+} from "@handout/tracking-schema";
 import {
   createMemoryTrackingV2Repository,
   type TrackingV2ManifestRecord,
@@ -147,7 +151,7 @@ async function start(service: ReturnType<typeof harness>["service"], ipAddress =
 }
 
 describe("tracking v2 service", () => {
-  it("issues replay context for either consent popup and a valid customer privacy policy", async () => {
+  it("issues replay context for either consent popup without customer policy configuration", async () => {
     const { service } = harness({ replay: true });
     const payload = publicPayload();
 
@@ -157,8 +161,8 @@ describe("tracking v2 service", () => {
     await expect(service.preparePublicContext(payload)).resolves.toMatchObject({ trackingMode: "events_and_replay" });
 
     payload.content.settings.trackingConsentPopup = "popup-b";
-    payload.content.settings.trackingPrivacyPolicyUrl = "http://customer.example/privacy";
-    await expect(service.preparePublicContext(payload)).resolves.toMatchObject({ trackingMode: "events" });
+    payload.content.settings.trackingPrivacyPolicyUrl = "";
+    await expect(service.preparePublicContext(payload)).resolves.toMatchObject({ trackingMode: "events_and_replay" });
   });
 
   it("creates an idempotent event-only session without persisting IP or device identity", async () => {
@@ -296,7 +300,6 @@ describe("tracking v2 service", () => {
 function publicPayload(): PublishedSitePayload {
   const content = createDefaultSiteContent("Taylor proposal");
   content.settings.trackingConsentPopup = "popup-b";
-  content.settings.trackingPrivacyPolicyUrl = "https://customer.example/privacy";
   return {
     schemaVersion: PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
     workspace: { id: workspaceId, slug: "acme", name: "Acme", websiteDomain: "acme.example", logoUrl: null },
@@ -331,7 +334,7 @@ function batch(
     batchId: "batch-session-one",
     sessionId,
     eventToken,
-    scriptVersion: "2026-07-13.v9",
+    scriptVersion: TRACKING_V2_SCRIPT_VERSION,
     sentAt: now.toISOString(),
     events,
   };

@@ -34,12 +34,22 @@ services:
         value: https://app.handout.link
       - key: BETTER_AUTH_SECRET
         generateValue: true
+      - key: EMAIL_FROM
+        value: Handout <noreply@handout.link>
+      - key: RESEND_API_KEY
+        sync: false
       - key: TRACKING_SIGNING_SECRET
         generateValue: true
       - key: TRACKING_V2_ENABLED
         value: true
       - key: TRACKING_RETENTION_MODE
         value: external
+      - key: AUTOMATIONS_ENABLED
+        value: true
+      - key: AUTOMATIONS_WORKER_MODE
+        value: external
+      - key: AUTOMATIONS_ENCRYPTION_KEY
+        sync: false
       - key: TRACKING_REPLAY_STORAGE
         value: s3
       - key: TRACKING_REPLAY_S3_BUCKET
@@ -57,6 +67,26 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: LOGO_DEV_TOKEN
+        sync: false
+  - type: worker
+    name: handout-automations-worker
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @handout/api build
+    startCommand: node apps/api/dist/automation-worker.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_POOL_MAX
+        value: 5
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTOMATIONS_ENABLED
+        value: true
+      - key: AUTOMATIONS_ENCRYPTION_KEY
         sync: false
   - type: cron
     name: handout-tracking-retention

@@ -6,13 +6,23 @@ import {
   siteVariants,
   siteVersions,
   sites,
+  trackingSettings,
+  userProfiles,
   type Database,
+  type SiteDefaults,
   type SiteContent,
   type SiteVariableDefinition,
 } from "@handout/db";
+import { TRACKING_V2_REPLAY_TERMS_VERSION } from "@handout/tracking-schema";
+import { isPostgresUniqueViolation } from "../lib/postgres-errors";
+import {
+  allocateRecipientShortCode,
+  createSitePublicId,
+} from "./public-identifiers";
 
 export type SiteRecord = {
   id: string;
+  publicId: string;
   workspaceId: string;
   createdByUserId: string;
   updatedByUserId: string | null;
@@ -37,6 +47,8 @@ export type ListSitesInput = {
   userId: string;
   role: "admin" | "user";
   limit: number;
+  offset: number;
+  status: "active" | "archived" | "all";
 };
 
 export type CreateSiteInput = {
@@ -44,6 +56,10 @@ export type CreateSiteInput = {
   createdByUserId: string;
   name: string;
   slug: string;
+  draftContent: SiteContent;
+  trackingEnabled: boolean;
+  recordingEnabled: boolean;
+  recordingDisclosureAccepted: boolean;
 };
 
 export type UpdateSiteInput = {
@@ -91,6 +107,7 @@ export type SiteVersionRecord = {
 
 export type SiteVariantRecord = {
   id: string;
+  shortCode: string;
   workspaceId: string;
   siteId: string;
   name: string;
@@ -98,6 +115,7 @@ export type SiteVariantRecord = {
   recipientName: string | null;
   recipientCompany: string | null;
   variableValues: Record<string, unknown>;
+  publicLinkKey: string | null;
   revisionNumber: number;
   status: "active" | "deleted";
   deletedAt: Date | null;
@@ -130,6 +148,7 @@ export interface SiteRepository {
     slug: string;
   }): Promise<SiteRecord | null>;
   createSite(input: CreateSiteInput): Promise<SiteRecord>;
+  findUserSiteDefaults(userId: string): Promise<SiteDefaults | null>;
   updateSite(input: UpdateSiteInput): Promise<SiteRecord>;
   updateSiteContent(input: UpdateSiteContentInput): Promise<SiteRecord | null>;
   duplicateSite(input: DuplicateSiteInput): Promise<SiteRecord>;
@@ -219,7 +238,8 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
           );
       const conditions = [
         eq(sites.workspaceId, input.workspaceId),
-        ne(sites.status, "archived"),
+        ...(input.status === "active" ? [ne(sites.status, "archived")] : []),
+        ...(input.status === "archived" ? [eq(sites.status, "archived")] : []),
         ...(accessCondition ? [accessCondition] : []),
       ];
 
@@ -228,6 +248,7 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
         .from(sites)
         .where(and(...conditions))
         .orderBy(desc(sites.updatedAt))
+        .offset(input.offset)
         .limit(input.limit);
     },
 
@@ -287,18 +308,28 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
       return site ?? null;
     },
 
+    async findUserSiteDefaults(userId) {
+      const [profile] = await database
+        .select({ siteDefaults: userProfiles.siteDefaults })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userId))
+        .limit(1);
+      return profile?.siteDefaults ?? null;
+    },
+
     async createSite(input) {
       try {
         return await database.transaction(async (transaction) => {
           const [site] = await transaction
             .insert(sites)
             .values({
+              publicId: createSitePublicId(),
               workspaceId: input.workspaceId,
               createdByUserId: input.createdByUserId,
               updatedByUserId: input.createdByUserId,
               name: input.name,
               slug: input.slug,
-              draftContent: defaultSiteContent,
+              draftContent: input.draftContent,
             })
             .returning();
 
@@ -320,10 +351,23 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
               metadata: {},
             });
 
+          await transaction.insert(trackingSettings).values({
+            workspaceId: input.workspaceId,
+            siteId: site.id,
+            scope: "site",
+            enabled: input.trackingEnabled,
+            recordingEnabled: input.recordingEnabled && input.recordingDisclosureAccepted,
+            ...(input.recordingEnabled && input.recordingDisclosureAccepted ? {
+              recordingTermsVersion: TRACKING_V2_REPLAY_TERMS_VERSION,
+              recordingTermsAcceptedAt: new Date(),
+              recordingTermsAcceptedByUserId: input.createdByUserId,
+            } : {}),
+          });
+
           return site;
         });
       } catch (error) {
-        if (isUniqueViolation(error)) {
+        if (isPostgresUniqueViolation(error)) {
           throw new SiteSlugConflictError(input.slug);
         }
 
@@ -384,6 +428,7 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
           const [site] = await transaction
             .insert(sites)
             .values({
+              publicId: createSitePublicId(),
               workspaceId: input.workspaceId,
               createdByUserId: input.createdByUserId,
               updatedByUserId: input.createdByUserId,
@@ -417,7 +462,7 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
           return site;
         });
       } catch (error) {
-        if (isUniqueViolation(error)) {
+        if (isPostgresUniqueViolation(error)) {
           throw new SiteSlugConflictError(input.slug);
         }
 
@@ -486,19 +531,24 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
               continue;
             }
 
-            const [createdVariant] = await transaction
-              .insert(siteVariants)
-              .values({
-                workspaceId: input.workspaceId,
-                siteId: input.siteId,
-                name: variant.name,
-                slug: variant.slug,
-                recipientName: variant.recipientName ?? null,
-                recipientCompany: variant.recipientCompany ?? null,
-                variableValues: variant.variableValues,
-                updatedAt: now,
-              })
-              .returning();
+            const createdVariant = await allocateRecipientShortCode(async (shortCode) => {
+              const [created] = await transaction
+                .insert(siteVariants)
+                .values({
+                  shortCode,
+                  workspaceId: input.workspaceId,
+                  siteId: input.siteId,
+                  name: variant.name,
+                  slug: variant.slug,
+                  recipientName: variant.recipientName ?? null,
+                  recipientCompany: variant.recipientCompany ?? null,
+                  variableValues: variant.variableValues,
+                  updatedAt: now,
+                })
+                .onConflictDoNothing({ target: siteVariants.shortCode })
+                .returning();
+              return created ?? null;
+            });
 
             if (!createdVariant) {
               throw new Error("Variant insert did not return a row.");
@@ -510,7 +560,7 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
           return changedVariants;
         });
       } catch (error) {
-        if (isUniqueViolation(error)) {
+        if (isPostgresUniqueViolation(error)) {
           throw new SiteSlugConflictError("variant");
         }
 
@@ -867,14 +917,14 @@ export function createMemorySiteRepository(
     async listAccessibleSites(input) {
       return Array.from(siteById.values())
         .filter((site) => site.workspaceId === input.workspaceId)
-        .filter((site) => site.status !== "archived")
+        .filter((site) => input.status === "all" || (input.status === "archived" ? site.status === "archived" : site.status !== "archived"))
         .filter((site) =>
           input.role === "admin" ||
           site.createdByUserId === input.userId ||
           site.visibility === "team",
         )
         .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
-        .slice(0, input.limit);
+        .slice(input.offset, input.offset + input.limit);
     },
 
     async countWorkspaceSites(workspaceId) {
@@ -908,6 +958,10 @@ export function createMemorySiteRepository(
       return findByWorkspaceAndSlug(input);
     },
 
+    async findUserSiteDefaults() {
+      return null;
+    },
+
     async createSite(input) {
       const existingSite = findByWorkspaceAndSlug({
         workspaceId: input.workspaceId,
@@ -921,6 +975,7 @@ export function createMemorySiteRepository(
       const now = new Date();
       const site: SiteRecord = {
         id: randomUUID(),
+        publicId: createSitePublicId(),
         workspaceId: input.workspaceId,
         createdByUserId: input.createdByUserId,
         updatedByUserId: input.createdByUserId,
@@ -930,7 +985,7 @@ export function createMemorySiteRepository(
         slug: input.slug,
         status: "draft",
         visibility: "private",
-        draftContent: defaultSiteContent,
+        draftContent: input.draftContent,
         draftRevision: 1,
         publishedVersionId: null,
         publishedAt: null,
@@ -1010,6 +1065,7 @@ export function createMemorySiteRepository(
       const now = new Date();
       const site: SiteRecord = {
         id: randomUUID(),
+        publicId: createSitePublicId(),
         workspaceId: input.workspaceId,
         createdByUserId: input.createdByUserId,
         updatedByUserId: input.createdByUserId,
@@ -1096,21 +1152,28 @@ export function createMemorySiteRepository(
           continue;
         }
 
-        const createdVariant: SiteVariantRecord = {
-          id: randomUUID(),
-          workspaceId: input.workspaceId,
-          siteId: input.siteId,
-          name: variant.name,
-          slug: variant.slug,
-          recipientName: variant.recipientName ?? null,
-          recipientCompany: variant.recipientCompany ?? null,
-          variableValues: variant.variableValues,
-          revisionNumber: 1,
-          status: "active",
-          deletedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        };
+        const createdVariant = await allocateRecipientShortCode(async (shortCode) => {
+          if (Array.from(variantById.values()).some((entry) => entry.shortCode === shortCode)) {
+            return null;
+          }
+          return {
+            id: randomUUID(),
+            shortCode,
+            workspaceId: input.workspaceId,
+            siteId: input.siteId,
+            name: variant.name,
+            slug: variant.slug,
+            recipientName: variant.recipientName ?? null,
+            recipientCompany: variant.recipientCompany ?? null,
+            variableValues: variant.variableValues,
+            publicLinkKey: null,
+            revisionNumber: 1,
+            status: "active" as const,
+            deletedAt: null,
+            createdAt: now,
+            updatedAt: now,
+          };
+        });
 
         variantById.set(createdVariant.id, createdVariant);
         changedVariants.push(createdVariant);
@@ -1364,6 +1427,7 @@ export function buildMemorySite(overrides: Partial<SiteRecord> = {}): SiteRecord
 
   return {
     id: randomUUID(),
+    publicId: createSitePublicId(),
     workspaceId: "workspace_test_123",
     createdByUserId: "user_test_123",
     updatedByUserId: null,
@@ -1406,13 +1470,4 @@ export function buildMemorySiteVersion(
     createdAt: now,
     ...overrides,
   };
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
 }

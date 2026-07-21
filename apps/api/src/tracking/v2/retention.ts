@@ -15,6 +15,7 @@ export type TrackingV2RetentionServiceOptions = {
 export type TrackingV2RetentionRunResult = {
   now: string;
   sessionsExpired: number;
+  endedRecordingsSettled: number;
   staleRecordingsSettled: number;
   recordingsExpired: number;
   recordingObjectsQueued: number;
@@ -43,8 +44,12 @@ export function createTrackingV2RetentionService(options: TrackingV2RetentionSer
     async runOnce(input = {}) {
       const runAt = input.now ?? now();
       const limit = normalizeBatchSize(input.batchSize);
-      const sessionsExpired = (await createTrackingV2SessionExpirationService({ repository: options.repository })
-        .runOnce({ limit, now: runAt })).expired;
+      const expiration = await createTrackingV2SessionExpirationService({
+        repository: options.repository,
+        recordingRepository: options.recording?.repository,
+      }).runOnce({ limit, now: runAt });
+      const sessionsExpired = expiration.expired;
+      const endedRecordingsSettled = expiration.recordingsSettled;
       let staleRecordingsSettled = 0;
       let recordingsExpired = 0;
       let recordingObjectsQueued = 0;
@@ -86,6 +91,7 @@ export function createTrackingV2RetentionService(options: TrackingV2RetentionSer
       return {
         now: runAt.toISOString(),
         sessionsExpired,
+        endedRecordingsSettled,
         staleRecordingsSettled,
         recordingsExpired,
         recordingObjectsQueued,

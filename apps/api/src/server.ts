@@ -1,4 +1,5 @@
 import { createServer } from "node:http"
+import { AUTOMATION_WORKER_CONCURRENCY } from "@handout/domain"
 import { createApp } from "./app"
 import { getCurrentActorFromHeaders } from "./auth/current-actor"
 import {
@@ -15,6 +16,8 @@ import {
   createSiteCollaborationServer,
 } from "./collaboration/server"
 import { env } from "./env"
+import { parseAutomationEncryptionKey } from "./automations/crypto"
+import { createAutomationWorker } from "./automations/service"
 import { logger } from "./lib/logger"
 import { createDbSiteRepository } from "./sites/repository"
 import { createSiteService } from "./sites/service"
@@ -80,6 +83,7 @@ const destroyCollaboration = attachSiteCollaborationWebSocketServer(
   collaboration.hocuspocus,
 )
 let stopTrackingRetentionJob = () => {}
+let stopAutomationWorker = () => {}
 let shuttingDown = false
 
 await provisionDevAuthBypass()
@@ -92,6 +96,9 @@ server.listen(env.API_PORT, () => {
   if (env.TRACKING_V2_ENABLED && env.TRACKING_RETENTION_MODE === "in-process") {
     void startTrackingRetention()
   }
+  if (env.AUTOMATIONS_ENABLED && env.AUTOMATIONS_WORKER_MODE === "in-process") {
+    void startAutomationWorker()
+  }
 })
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -99,6 +106,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     if (shuttingDown) return
     shuttingDown = true
     stopTrackingRetentionJob()
+    stopAutomationWorker()
     const forceShutdown = setTimeout(() => {
       server.closeAllConnections()
       process.exit(0)
@@ -113,6 +121,39 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
       server.closeIdleConnections()
     })
   })
+}
+
+async function startAutomationWorker() {
+  if (!env.AUTOMATIONS_ENCRYPTION_KEY) return
+  try {
+    const { db } = await import("@handout/db")
+    const worker = createAutomationWorker(db, {
+      encryptionKey: parseAutomationEncryptionKey(env.AUTOMATIONS_ENCRYPTION_KEY),
+      allowLocalDestinations: env.AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS,
+    })
+    let running = false
+    const tick = async () => {
+      if (running || shuttingDown) return
+      running = true
+      try {
+        for (let index = 0; index < 25; index += 1) {
+          const concurrency = index === 0 ? 1 : AUTOMATION_WORKER_CONCURRENCY
+          const results = await Promise.all(Array.from({ length: concurrency }, () => worker.runOnce()))
+          if (!results.some((result) => result.retained || result.reconciled || result.fannedOut || result.delivered)) break
+        }
+      } catch (error) {
+        logger.error("Automation worker tick failed", { error })
+      } finally {
+        running = false
+      }
+    }
+    const timer = setInterval(() => void tick(), 5_000)
+    timer.unref()
+    stopAutomationWorker = () => clearInterval(timer)
+    await tick()
+  } catch (error) {
+    logger.error("Automation worker failed to start", { error })
+  }
 }
 
 async function startTrackingRetention() {

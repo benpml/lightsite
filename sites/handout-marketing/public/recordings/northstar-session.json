@@ -1,0 +1,1510 @@
+[
+  {
+    "type": 4,
+    "timestamp": 1784636092607,
+    "data": {
+      "width": 1422,
+      "height": 800
+    }
+  },
+  {
+    "type": 2,
+    "timestamp": 1784636092615,
+    "data": {
+      "node": {
+        "type": 0,
+        "childNodes": [
+          {
+            "type": 1,
+            "name": "html",
+            "publicId": "",
+            "systemId": "",
+            "id": 2
+          },
+          {
+            "type": 2,
+            "tagName": "html",
+            "attributes": {
+              "lang": "en",
+              "class": "light",
+              "data-handout-public-site": "",
+              "style": "--handout-primary:var(--blue-foreground,var(--primary));--handout-primary-foreground:var(--background,var(--primary-foreground));--handout-primary-soft:var(--blue-background-subtle,var(--accent));--handout-sidebar-link-icon:var(--blue-foreground,var(--link))",
+              "data-handout-recording-started": "true"
+            },
+            "childNodes": [
+              {
+                "type": 2,
+                "tagName": "head",
+                "attributes": {},
+                "childNodes": [
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 5
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "meta",
+                    "attributes": {
+                      "charset": "utf-8"
+                    },
+                    "childNodes": [],
+                    "id": 6
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 7
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "meta",
+                    "attributes": {
+                      "name": "viewport",
+                      "content": "width=device-width,initial-scale=1,viewport-fit=cover"
+                    },
+                    "childNodes": [],
+                    "id": 8
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 9
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "title",
+                    "attributes": {},
+                    "childNodes": [
+                      {
+                        "type": 3,
+                        "textContent": "Acme x Northstar",
+                        "id": 11
+                      }
+                    ],
+                    "id": 10
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 12
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "meta",
+                    "attributes": {
+                      "name": "description",
+                      "content": "Call recap and next steps for Northstar."
+                    },
+                    "childNodes": [],
+                    "id": 13
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 14
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 15
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "link",
+                    "attributes": {
+                      "rel": "canonical"
+                    },
+                    "childNodes": [],
+                    "id": 16
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 17
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 18
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 19
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 20
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 21
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 22
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 23
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 24
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 25
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 26
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 27
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 28
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 29
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 30
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 31
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "style",
+                    "attributes": {
+                      "_cssText": "@font-face { font-family: \"Geist Variable\"; font-style: normal; font-display: swap; font-weight: 100 900; src: url(\"http://127.0.0.1:3011/fonts/geist-latin-wght-normal.woff2\") format(\"woff2\"); }:root, .light { color-scheme: light; --white-white: #ffffff; --white-alpha-a800: rgb(255 255 255 / 80%); --white-alpha-a300: rgb(255 255 255 / 30%); --white-alpha-a200: rgb(255 255 255 / 20%); --neutral-950: #0a0a0a; --neutral-900: #191919; --neutral-800: #252525; --neutral-700: #333333; --neutral-600: #525252; --neutral-500: #737373; --neutral-450: #8d8d8d; --neutral-400: #999999; --neutral-300: #c4c4c4; --neutral-200: #e5e5e5; --neutral-100: #f5f5f5; --neutral-50: #fafafa; --neutral-alpha-a900: rgb(128 128 128 / 40%); --neutral-alpha-a800: rgb(128 128 128 / 30%); --neutral-alpha-a700: rgb(128 128 128 / 24%); --neutral-alpha-a600: rgb(128 128 128 / 20%); --neutral-alpha-a500: rgb(128 128 128 / 16%); --neutral-alpha-a400: rgb(128 128 128 / 14%); --neutral-alpha-a300: rgb(128 128 128 / 12%); --neutral-alpha-a200: rgb(128 128 128 / 7%); --neutral-alpha-a100: rgb(128 128 128 / 5%); --radius: 10px; --radius-none: 0; --radius-xs: 2px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px; --radius-xl: 14px; --radius-2xl: 18px; --radius-3xl: 22px; --radius-4xl: 26px; --radius-full: 9999px; --border-width: 1px; --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05); --background: #ffffff; --foreground: var(--neutral-950); --card: var(--neutral-50); --card-foreground: var(--neutral-950); --popover: #ffffff; --popover-foreground: var(--neutral-950); --primary: var(--neutral-950); --primary-foreground: var(--neutral-50); --secondary: var(--neutral-100); --secondary-foreground: var(--neutral-800); --muted: var(--neutral-100); --muted-foreground: var(--neutral-500); --table-header-background: var(--neutral-alpha-a100); --site-card-background: var(--white-white); --site-card-border: var(--border); --accent: var(--neutral-100); --accent-foreground: var(--neutral-950); --destructive: #dc2626; --warning: #ffc182; --success: #adddc0; --border: var(--neutral-alpha-a600); --border-strong: var(--neutral-alpha-a700); --border-subtle: var(--neutral-alpha-a500); --input: var(--neutral-alpha-a700); --input-background: var(--neutral-alpha-a200); --ring: var(--neutral-500); --chart-1: #8da4ef; --chart-2: #3e63dd; --chart-3: #3358d4; --chart-4: #3a5bc7; --chart-5: #1f2d5c; --link: #3e63dd; --page-background: var(--background); --tertiary-foreground: var(--neutral-600); --muted-faint: var(--neutral-400); --selection-background: #f7f9ff; --selection-border: #4f46e5; --selection-foreground: var(--selection-border); --editing-background: var(--selection-background); --editing-foreground: var(--neutral-300); --editing-foreground-hover: var(--neutral-500); --purple-background: #755bde1f; --purple-background-subtle: #755bde0f; --purple-foreground: #725bcd; --purple-border: #755bde14; --blue-background: #0085ee1f; --blue-background-subtle: #0085ee0f; --blue-foreground: #218ce2; --blue-border: #0085ee14; --cyan-background: #0588f01f; --cyan-background-subtle: #0588f00f; --cyan-foreground: #0797b9; --cyan-border: #0588f014; --teal-background: #0d9b8a1f; --teal-background-subtle: #0d9b8a0f; --teal-foreground: #0d9b8a; --teal-border: #0d9b8a14; --green-background: #2b9a661f; --green-background-subtle: #2b9a660f; --green-foreground: #2b9a66; --green-border: #2b9a6614; --yellow-background: #ffba181f; --yellow-background-subtle: #ffba180f; --yellow-foreground: #ffba18; --yellow-border: #ffba1814; --orange-background: #ef5f001f; --orange-background-subtle: #ef5f000f; --orange-foreground: #ef5f00; --orange-border: #ef5f0014; --red-background: #dc3e421f; --red-background-subtle: #dc3e420f; --red-foreground: #dc3e42; --red-border: #dc3e4214; --pink-background: #cf38971f; --pink-background-subtle: #cf38970f; --pink-foreground: #cf3897; --pink-border: #cf389714; --variable-background-secondary: var(--cyan-background); --variable-background: var(--cyan-background); --variable-background-hover: var(--cyan-background); --variable-foreground: var(--cyan-foreground); --variable-border: var(--cyan-border); --sidebar: var(--background); --sidebar-foreground: var(--foreground); --sidebar-primary: var(--primary); --sidebar-primary-foreground: var(--primary-foreground); --sidebar-accent: var(--accent); --sidebar-accent-foreground: var(--accent-foreground); --sidebar-border: var(--border); --sidebar-ring: var(--ring); }.dark { color-scheme: dark; --background: var(--neutral-900); --foreground: var(--neutral-100); --card: var(--neutral-800); --card-foreground: var(--neutral-100); --popover: var(--neutral-800); --popover-foreground: var(--neutral-100); --primary: var(--neutral-100); --primary-foreground: var(--neutral-900); --secondary: var(--neutral-800); --secondary-foreground: var(--neutral-200); --muted: var(--neutral-800); --muted-foreground: var(--neutral-400); --table-header-background: rgb(0 0 0 / 20%); --site-card-background: var(--neutral-800); --site-card-border: var(--neutral-alpha-a300); --accent: var(--neutral-700); --accent-foreground: var(--neutral-50); --destructive: #fca5a5; --warning: #ffc182; --success: #adddc0; --border: var(--neutral-alpha-a700); --border-strong: var(--neutral-alpha-a900); --border-subtle: var(--neutral-alpha-a300); --input: var(--neutral-alpha-a700); --input-background: var(--neutral-alpha-a300); --ring: var(--neutral-400); --chart-1: #8da4ef; --chart-2: #3e63dd; --chart-3: #3358d4; --chart-4: #3a5bc7; --chart-5: #1f2d5c; --link: #8da4ef; --page-background: var(--background); --tertiary-foreground: var(--neutral-300); --muted-faint: var(--neutral-600); --selection-background: rgb(250 250 250 / 8%); --selection-border: #a5b4fc; --selection-foreground: var(--selection-border); --editing-background: var(--selection-background); --editing-foreground: var(--neutral-700); --editing-foreground-hover: var(--neutral-500); --purple-background: #755bde4d; --purple-background-subtle: #755bde1f; --purple-foreground: #d4cafe; --purple-border: #755bde29; --blue-background: #0085ee4d; --blue-background-subtle: #0085ee1f; --blue-foreground: #97d1ff; --blue-border: #0085ee29; --cyan-background: #0588f04d; --cyan-background-subtle: #0588f01f; --cyan-foreground: #a4e9f4; --cyan-border: #0588f029; --teal-background: #0d9b8a4d; --teal-background-subtle: #0d9b8a1f; --teal-foreground: #99eada; --teal-border: #0d9b8a29; --green-background: #2b9a664d; --green-background-subtle: #2b9a661f; --green-foreground: #abeec6; --green-border: #2b9a6629; --yellow-background: #ffba184d; --yellow-background-subtle: #ffba181f; --yellow-foreground: #f7dd84; --yellow-border: #ffba1829; --orange-background: #ef5f004d; --orange-background-subtle: #ef5f001f; --orange-foreground: #ffc78d; --orange-border: #ef5f0029; --red-background: #dc3e4252; --red-background-subtle: #dc3e421f; --red-foreground: #fdbdbe; --red-border: #dc3e4229; --pink-background: #cf38974d; --pink-background-subtle: #cf38971f; --pink-foreground: #efbfdd; --pink-border: #cf389729; --variable-background-secondary: var(--cyan-background); --variable-background: var(--cyan-background); --variable-background-hover: var(--cyan-background); --variable-foreground: var(--cyan-foreground); --variable-border: var(--cyan-border); --sidebar: var(--background); --sidebar-foreground: var(--foreground); --sidebar-primary: var(--primary); --sidebar-primary-foreground: var(--primary-foreground); --sidebar-accent: var(--neutral-800); --sidebar-accent-foreground: var(--accent-foreground); --sidebar-border: var(--border); --sidebar-ring: var(--ring); }@media (prefers-color-scheme: dark) {\n  .system { color-scheme: dark; --background: var(--neutral-900); --foreground: var(--neutral-100); --card: var(--neutral-800); --card-foreground: var(--neutral-100); --popover: var(--neutral-800); --popover-foreground: var(--neutral-100); --primary: var(--neutral-100); --primary-foreground: var(--neutral-900); --secondary: var(--neutral-800); --secondary-foreground: var(--neutral-200); --muted: var(--neutral-800); --muted-foreground: var(--neutral-400); --table-header-background: rgb(0 0 0 / 20%); --site-card-background: var(--neutral-800); --site-card-border: var(--neutral-alpha-a300); --accent: var(--neutral-700); --accent-foreground: var(--neutral-50); --destructive: #fca5a5; --warning: #ffc182; --success: #adddc0; --border: var(--neutral-alpha-a700); --border-strong: var(--neutral-alpha-a900); --border-subtle: var(--neutral-alpha-a300); --input: var(--neutral-alpha-a700); --input-background: var(--neutral-alpha-a300); --ring: var(--neutral-400); --chart-1: #8da4ef; --chart-2: #3e63dd; --chart-3: #3358d4; --chart-4: #3a5bc7; --chart-5: #1f2d5c; --link: #8da4ef; --page-background: var(--background); --tertiary-foreground: var(--neutral-300); --muted-faint: var(--neutral-600); --selection-background: rgb(250 250 250 / 8%); --selection-border: #a5b4fc; --selection-foreground: var(--selection-border); --editing-background: var(--selection-background); --editing-foreground: var(--neutral-700); --editing-foreground-hover: var(--neutral-500); --purple-background: #755bde4d; --purple-background-subtle: #755bde1f; --purple-foreground: #d4cafe; --purple-border: #755bde29; --blue-background: #0085ee4d; --blue-background-subtle: #0085ee1f; --blue-foreground: #97d1ff; --blue-border: #0085ee29; --cyan-background: #0588f04d; --cyan-background-subtle: #0588f01f; --cyan-foreground: #a4e9f4; --cyan-border: #0588f029; --teal-background: #0d9b8a4d; --teal-background-subtle: #0d9b8a1f; --teal-foreground: #99eada; --teal-border: #0d9b8a29; --green-background: #2b9a664d; --green-background-subtle: #2b9a661f; --green-foreground: #abeec6; --green-border: #2b9a6629; --yellow-background: #ffba184d; --yellow-background-subtle: #ffba181f; --yellow-foreground: #f7dd84; --yellow-border: #ffba1829; --orange-background: #ef5f004d; --orange-background-subtle: #ef5f001f; --orange-foreground: #ffc78d; --orange-border: #ef5f0029; --red-background: #dc3e4252; --red-background-subtle: #dc3e421f; --red-foreground: #fdbdbe; --red-border: #dc3e4229; --pink-background: #cf38974d; --pink-background-subtle: #cf38971f; --pink-foreground: #efbfdd; --pink-border: #cf389729; --variable-background-secondary: var(--cyan-background); --variable-background: var(--cyan-background); --variable-background-hover: var(--cyan-background); --variable-foreground: var(--cyan-foreground); --variable-border: var(--cyan-border); --sidebar: var(--background); --sidebar-foreground: var(--foreground); --sidebar-primary: var(--primary); --sidebar-primary-foreground: var(--primary-foreground); --sidebar-accent: var(--neutral-800); --sidebar-accent-foreground: var(--accent-foreground); --sidebar-border: var(--border); --sidebar-ring: var(--ring); }\n}[data-handout-public-site], [data-handout-public-site] *, .handout-document-editor, .handout-document-editor * { box-sizing: border-box; }.handout-privacy-choices { position: fixed; right: 12px; bottom: 12px; z-index: 69; padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--background); color: var(--muted-foreground); font: 500 12px / 16px \"Geist Variable\", Geist, ui-sans-serif, system-ui, sans-serif; box-shadow: rgba(0, 0, 0, 0.08) 0px 1px 3px; cursor: pointer; }.handout-privacy-choices:hover, .handout-privacy-choices:focus-visible { color: var(--foreground); outline: 0px; }.handout-privacy-choices[hidden], .handout-consent-popup[hidden] { display: none; }html[data-handout-public-site], body[data-handout-public-site] { margin: 0px; min-height: 100%; background: var(--background); color: var(--foreground); font-family: \"Geist Variable\", Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; letter-spacing: -0.02em; }:where(.handout-site) button, :where(.handout-site) a { font: inherit; }:where(.handout-site) a { color: inherit; }.handout-site, .handout-document-editor { --handout-font-weight-body: 400; --handout-font-weight-heading: 550; --handout-font-weight-label: 500; --handout-block-gap: 20px; --handout-body-gap: 12px; --handout-heading-body-gap: 14px; --handout-list-block-gap: 24px; --handout-heading-1-gap: 72px; --handout-heading-2-gap: 50px; --handout-heading-3-gap: 36px; --handout-divider-gap: 36px; --handout-list-item-gap: 4px; background: var(--background); color: var(--foreground); font-family: \"Geist Variable\", Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; letter-spacing: -0.02em; }:where(html[data-handout-public-site], body[data-handout-public-site], .handout-site, .handout-document-editor, .handout-editor-sidebar-content), :where(.handout-site, .handout-document-editor, .handout-editor-sidebar-content) * { font-feature-settings: normal; font-kerning: normal; font-optical-sizing: auto; font-synthesis-weight: none; text-rendering: optimizelegibility; -webkit-font-smoothing: antialiased; }.handout-site { display: flex; min-height: 100svh; }.handout-sidebar { position: sticky; top: 0px; display: flex; width: 289px; height: 100svh; flex: 0 0 auto; flex-direction: column; gap: 24px; padding: 26px 24px 20px; background: var(--background); }.handout-sidebar-inner { display: flex; width: 241px; min-height: 0px; flex: 1 1 0%; flex-direction: column; gap: 24px; overflow-y: auto; }.handout-sidebar-mobile-header, .handout-sidebar-backdrop { display: none; }.handout-editor-sidebar-desktop { display: flex; }.handout-editor-mobile-bar { display: none; }.handout-editor-sidebar-content { width: 241px; }.handout-sidebar, .handout-editor-sidebar-content { font-family: \"Geist Variable\", Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; font-weight: 400; letter-spacing: -0.02em; }.handout-editor-sidebar-content :where(button, a) { font-family: inherit; letter-spacing: -0.02em; }.handout-sidebar-built-with { display: flex; width: 100%; flex: 0 0 auto; align-items: center; justify-content: center; gap: 6px; color: var(--tertiary-foreground); font-size: 14px; font-weight: 400; letter-spacing: -0.02em; line-height: 24px; white-space: nowrap; }.handout-sidebar-built-with-logo { display: block; width: 12px; height: 13px; flex: 0 0 auto; background: var(--tertiary-foreground); mask: url(\"http://127.0.0.1:3011/handout-logo-icon.svg\") center center / contain no-repeat; }.handout-sidebar-built-with a { color: inherit; text-decoration: underline; text-decoration-skip-ink: none; text-underline-position: from-font; }.handout-sidebar-section { display: flex; min-width: 0px; flex-direction: column; gap: 8px; }.handout-sidebar-section > h2, .handout-editor-sidebar-section-title { height: 26px; min-width: 0px; margin: 0px 0px 0px 4px; overflow: hidden; color: var(--foreground); font-size: 14px; font-weight: 500; letter-spacing: -0.02em; line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }.handout-sidebar-section-buttons { gap: 10px; }.handout-sidebar-section > div { display: flex; flex-direction: column; gap: 4px; }.handout-sidebar-row { display: flex; width: 100%; height: 36px; align-items: center; gap: 8px; padding: 0px 10px; border: 0px; border-radius: 8px; background: transparent; color: var(--foreground); font-size: 16px; font-weight: 400; letter-spacing: -0.02em; line-height: 24px; text-align: left; text-decoration: none; cursor: pointer; transition: background 0.15s; }.handout-sidebar-row:hover, .handout-sidebar-row:focus-visible { background: var(--accent); outline: 0px; }.handout-sidebar-row.is-active { background: var(--handout-primary-soft,var(--accent)); outline: 0px; }.handout-tab, .handout-sidebar-link { color: var(--tertiary-foreground); }.handout-sidebar-link:hover, .handout-sidebar-link:focus-visible { color: var(--foreground); }.handout-sidebar-row.is-active { color: var(--handout-primary,var(--foreground)); }.handout-sidebar-row svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--tertiary-foreground); }.handout-sidebar-link svg { color: var(--handout-sidebar-link-icon,var(--blue-foreground)); }.handout-tab svg { color: var(--muted-foreground); }.handout-sidebar-row.is-active svg { color: inherit; }.handout-sidebar-row span { min-width: 0px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.handout-sidebar-button { display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; font-weight: 500; letter-spacing: -0.02em; line-height: 20px; text-align: center; text-decoration: none; transition: background 0.15s; }.handout-sidebar-button > svg { width: 15px; height: 15px; flex: 0 0 auto; }.handout-editor-sidebar-button { letter-spacing: -0.02em; }.handout-sidebar-button-filled { border-color: transparent; background: var(--handout-primary,var(--primary)); color: var(--handout-primary-foreground,var(--primary-foreground)); }.handout-sidebar-button-outline { background: var(--background); }.handout-sidebar-button:hover { filter: brightness(0.94); }.handout-sidebar-section-buttons > div { gap: 8px; }.handout-main { display: flex; min-width: 0px; min-height: 100svh; flex: 1 1 0%; flex-direction: column; }.handout-mobile-bar { display: none; }.handout-document { width: 100%; flex: 1 1 0%; padding: 54px 52px 128px; }.handout-document, .handout-document-editor { font-weight: var(--handout-font-weight-body); }.handout-page-panel { width: 612px; max-width: 100%; margin: 0px auto; container-type: inline-size; }.handout-page-panel:focus { outline: 0px; }.handout-page-panel[hidden] { display: none; }.handout-prosemirror { min-height: 100%; outline: none; }.handout-prosemirror > * { width: 100%; margin: 0px; }.handout-prosemirror strong { font-weight: 700; }.handout-paragraph, .handout-prosemirror > p, .handout-grid-cell > p, .handout-document-editor .handout-grid-cell > p { margin: 0px; padding: 0px; color: var(--tertiary-foreground); font-size: 16px; font-weight: var(--handout-font-weight-body); line-height: 26px; white-space: pre-wrap; }.handout-heading-1, .handout-prosemirror > h1, .handout-grid-cell > h1, .handout-document-editor .handout-grid-cell > h1 { margin: 0px; padding: 0px; color: var(--foreground); font-size: 24px; font-weight: var(--handout-font-weight-heading); letter-spacing: -0.03em; line-height: 36px; white-space: pre-wrap; }.handout-heading-2, .handout-prosemirror > h2, .handout-grid-cell > h2, .handout-document-editor .handout-grid-cell > h2 { margin: 0px; padding: 0px; color: var(--foreground); font-size: 20px; font-weight: var(--handout-font-weight-heading); letter-spacing: -0.03em; line-height: 32px; white-space: pre-wrap; }.handout-heading-3, .handout-prosemirror > h3, .handout-grid-cell > h3, .handout-document-editor .handout-grid-cell > h3 { margin: 0px; padding: 0px; color: var(--foreground); font-size: 16px; font-weight: var(--handout-font-weight-heading); letter-spacing: -0.03em; line-height: 26px; white-space: pre-wrap; }.handout-list, .handout-prosemirror > ul, .handout-prosemirror > ol, .handout-grid-cell > ul, .handout-grid-cell > ol, .handout-document-editor .handout-grid-cell > ul, .handout-document-editor .handout-grid-cell > ol { margin: 0px; padding: 0px 0px 0px 24px; color: var(--tertiary-foreground); font-size: 16px; font-weight: var(--handout-font-weight-body); line-height: 26px; }.handout-prosemirror > ul, .handout-grid-cell > ul { list-style: disc; }.handout-prosemirror > ol, .handout-grid-cell > ol { list-style: decimal; }.handout-list-item, .handout-document-editor .handout-prosemirror > :where(ul, ol) > li { padding-left: 0px; }.handout-list:is(ol) > .handout-list-item, .handout-document-editor .handout-prosemirror > ol > li { padding-left: 2px; }.handout-list > .handout-list-item + .handout-list-item, .handout-document-editor .handout-prosemirror :where(ul:not([data-type=\"taskList\"]):not([data-handout-icon-list]), ol) > li + li { margin-top: var(--handout-list-item-gap); }.handout-prosemirror li p, .handout-list-item p { margin: 0px; }.handout-blockquote, .handout-prosemirror > blockquote, .handout-grid-cell > blockquote { margin: 0px; padding: 6px 0px 6px 16px; border-left: 4px solid var(--border); color: var(--muted-foreground); font-size: 16px; font-weight: var(--handout-font-weight-body); line-height: 26px; }.handout-blockquote p, .handout-prosemirror > blockquote p, .handout-grid-cell > blockquote p { margin: 0px; }.handout-task-list, .handout-document-editor .handout-prosemirror ul[data-type=\"taskList\"] { display: flex; flex-direction: column; gap: var(--handout-list-item-gap); padding: 0px !important; list-style: none !important; }.handout-task-item { display: flex; align-items: flex-start; gap: 8px; }.handout-task-check { display: flex; width: 16px; height: 16px; flex: 0 0 auto; align-items: center; justify-content: center; margin-top: 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; }.handout-task-item[data-checked=\"true\"] > div { color: var(--muted-foreground); text-decoration: line-through; }.handout-code-block, .handout-prosemirror > pre, .handout-grid-cell > pre { margin: 0px; overflow: auto; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--muted); color: var(--foreground); font-size: 14px; font-weight: var(--handout-font-weight-body); line-height: 24px; }.handout-code-block code, .handout-prosemirror > pre code, .handout-grid-cell > pre code { display: block; padding: 0px; border: 0px; background: transparent; color: inherit; font: inherit; }.handout-inline-code, .handout-document-editor .handout-prosemirror code:not(pre code) { padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--muted); color: var(--foreground); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875em; font-weight: var(--handout-font-weight-body); line-height: normal; }.handout-divider { height: 24px; margin: 0px; border: 0px; background: linear-gradient(to bottom,transparent calc(50% - .5px),var(--border) calc(50% - .5px),var(--border) calc(50% + .5px),transparent calc(50% + .5px)); }.handout-page-title { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 0px 0px 36px; border-bottom: 1px solid var(--border); text-align: center; }.handout-page-title[data-align=\"left\"] { align-items: flex-start; text-align: left; }.handout-page-title-logos { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }.handout-page-title[data-align=\"left\"] .handout-page-title-logos { justify-content: flex-start; }.handout-page-title-logo { display: flex; width: 52px; height: 52px; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--background); color: var(--foreground); }.handout-page-title-logo img { width: 100%; height: 100%; padding: 0px; object-fit: cover; }.handout-logo-connector { display: none; }.handout-page-title-copy { width: 100%; }.handout-page-title-heading, [data-handout-page-title-heading] { max-width: 100%; margin: 0px; color: var(--foreground); font-size: 28px; font-weight: var(--handout-font-weight-heading); letter-spacing: -0.03em; line-height: 1; }.handout-page-title-subtitle, [data-handout-page-title-subtitle] { max-width: 100%; margin: 8px 0px 0px; color: var(--tertiary-foreground); font-size: 16px; font-weight: var(--handout-font-weight-body); letter-spacing: -0.02em; line-height: 1.5; }.handout-icon-list, .handout-document-editor .handout-prosemirror ul[data-handout-icon-list] { display: flex; flex-direction: column; gap: var(--handout-list-item-gap); padding: 0px !important; list-style: none !important; }.handout-document-editor .handout-prosemirror li[data-handout-icon-list-item], .handout-document-editor .handout-prosemirror li[data-handout-icon-list-item]::marker { list-style: none; }.handout-document-editor .handout-prosemirror li[data-handout-icon-list-item]::marker { content: \"\"; }.handout-icon-list-item { display: grid; grid-template-columns: 20px minmax(0px, 1fr); align-items: start; gap: 2px; padding-left: 4px; }.handout-icon-list-item > div { min-width: 0px; color: var(--tertiary-foreground); font-size: 16px; line-height: 26px; }.handout-icon-tile { display: flex; width: 20px; height: 20px; align-items: center; justify-content: center; margin-top: 3px; color: var(--muted-foreground); }.handout-icon-tile svg { width: 14px; height: 14px; }[data-icon-color=\"neutral\"] { --handout-icon-color: var(--color-muted-foreground,var(--muted-foreground)); --handout-icon-background: var(--color-muted,var(--muted)); color: var(--handout-icon-color); }[data-icon-color=\"purple\"] { --handout-icon-color: var(--color-purple-foreground,var(--purple-foreground)); --handout-icon-background: var(--color-purple-background,var(--purple-background)); color: var(--handout-icon-color); }[data-icon-color=\"blue\"] { --handout-icon-color: var(--color-blue-foreground,var(--blue-foreground)); --handout-icon-background: var(--color-blue-background,var(--blue-background)); color: var(--handout-icon-color); }[data-icon-color=\"cyan\"] { --handout-icon-color: var(--color-cyan-foreground,var(--cyan-foreground)); --handout-icon-background: var(--color-cyan-background,var(--cyan-background)); color: var(--handout-icon-color); }[data-icon-color=\"teal\"] { --handout-icon-color: var(--color-teal-foreground,var(--teal-foreground)); --handout-icon-background: var(--color-teal-background,var(--teal-background)); color: var(--handout-icon-color); }[data-icon-color=\"green\"] { --handout-icon-color: var(--color-green-foreground,var(--green-foreground)); --handout-icon-background: var(--color-green-background,var(--green-background)); color: var(--handout-icon-color); }[data-icon-color=\"yellow\"] { --handout-icon-color: var(--color-yellow-foreground,var(--yellow-foreground)); --handout-icon-background: var(--color-yellow-background,var(--yellow-background)); color: var(--handout-icon-color); }[data-icon-color=\"orange\"] { --handout-icon-color: var(--color-orange-foreground,var(--orange-foreground)); --handout-icon-background: var(--color-orange-background,var(--orange-background)); color: var(--handout-icon-color); }[data-icon-color=\"red\"] { --handout-icon-color: var(--color-red-foreground,var(--red-foreground)); --handout-icon-background: var(--color-red-background,var(--red-background)); color: var(--handout-icon-color); }[data-icon-color=\"pink\"] { --handout-icon-color: var(--color-pink-foreground,var(--pink-foreground)); --handout-icon-background: var(--color-pink-background,var(--pink-background)); color: var(--handout-icon-color); }.handout-image-block { overflow: hidden; border-radius: 10px; }.handout-image-block img { display: block; width: 100%; height: auto; max-height: 680px; object-fit: contain; }.handout-document-editor .handout-editor-image, .handout-document-editor .handout-editor-gif { display: block; height: auto; max-width: 100%; max-height: 680px; border: 0px; border-radius: 10px; background: transparent; object-fit: contain; }.handout-image-card { display: grid; grid-template-columns: minmax(180px, 41.5%) minmax(0px, 1fr); align-items: center; gap: 20px; overflow: hidden; padding: 6px; border: 1px solid var(--site-card-border); border-radius: 14px; background: var(--site-card-background); color: var(--foreground); box-shadow: var(--shadow-xs); }.handout-image-card-media { display: block; align-self: center; overflow: hidden; border-radius: 10px; line-height: 0; }.handout-image-card-media img { display: block; width: 100%; height: auto; border-radius: 10px; object-fit: contain; }.handout-image-card-copy { display: flex; min-width: 0px; flex-direction: column; align-items: flex-start; justify-content: center; padding: 20px; }.handout-card-title, [data-handout-icon-card-title], [data-handout-image-card-title] { margin: 0px; color: var(--foreground); font-size: 16px; font-weight: var(--handout-font-weight-heading); line-height: 24px; }.handout-card-body, [data-handout-icon-card-body], [data-handout-image-card-body] { margin: 0px; color: var(--tertiary-foreground); font-size: 14px; font-weight: var(--handout-font-weight-body); line-height: 24px; }.handout-small-button { display: inline-flex; width: max-content; height: 30px; align-items: center; justify-content: center; margin-top: 12px; padding: 0px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--foreground); font-size: 14px; font-weight: var(--handout-font-weight-label); text-decoration: none; }.handout-icon-card { padding: 16px; border: 1px solid var(--site-card-border); border-radius: 14px; background: var(--site-card-background); color: var(--foreground); box-shadow: var(--shadow-xs); }.handout-card-icon { display: flex; width: 32px; height: 32px; align-items: center; justify-content: center; margin-bottom: 12px; border-radius: 8px; background: var(--handout-icon-background,var(--color-muted,var(--muted))); color: var(--handout-icon-color,var(--color-muted-foreground,var(--muted-foreground))); }.handout-card-icon svg { width: 18px; height: 18px; }.handout-card-copy { min-width: 0px; }.handout-card-title, [data-handout-icon-card-title], [data-handout-image-card-title], .handout-logo-grid-title, [data-handout-logo-grid-title] { letter-spacing: -0.03em; }.handout-testimonial { display: grid; grid-template-columns: 40px minmax(0px, 1fr); grid-template-rows: 20px 20px minmax(40px, auto); column-gap: 12px; align-items: center; padding: 16px 20px 20px 16px; border: 1px solid var(--site-card-border); border-radius: 14px; background: var(--site-card-background); color: var(--foreground); box-shadow: var(--shadow-xs); }.handout-testimonial-avatar { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; overflow: hidden; grid-area: 1 / 1 / span 2; border: 1px solid var(--border); border-radius: 10px; background: var(--muted); }.handout-testimonial-avatar img { width: 100%; height: 100%; object-fit: cover; }.handout-testimonial-avatar svg { width: 18px; height: 18px; }.handout-testimonial > div { display: contents; }.handout-testimonial-name, [data-handout-testimonial-author-name] { min-width: 0px; margin: 0px; overflow: hidden; grid-area: 1 / 2; color: var(--foreground); font-size: 16px; font-weight: var(--handout-font-weight-label); line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }.handout-testimonial-role, [data-handout-testimonial-author-role] { min-width: 0px; margin: 0px; overflow: hidden; grid-area: 2 / 2; color: var(--tertiary-foreground); font-size: 14px; font-weight: var(--handout-font-weight-body); line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }.handout-testimonial-quote, [data-handout-testimonial-quote] { min-height: 40px; margin: 0px; padding-top: 16px; grid-area: 3 / 1 / auto / -1; color: var(--foreground); font-size: 18px; font-weight: var(--handout-font-weight-heading); line-height: 24px; }.handout-testimonial-quote::before, [data-handout-testimonial-quote]::before { content: \"“\"; }.handout-testimonial-quote::after, [data-handout-testimonial-quote]::after { content: \"”\"; }.handout-logo-grid { display: grid; width: 100%; min-width: 0px; max-width: 100%; grid-template-columns: repeat(3, minmax(0px, 1fr)); gap: 8px; padding: 0px; }.handout-logo-grid-item { display: flex; min-width: 0px; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px 12px; border: 1px solid var(--site-card-border); border-radius: 14px; background: var(--site-card-background); color: var(--foreground); text-align: center; box-shadow: var(--shadow-xs); }.handout-logo-grid-image { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; overflow: hidden; border-radius: 10px; }.handout-logo-grid-image img { width: 100%; height: 100%; object-fit: contain; }.handout-logo-grid-image svg { width: 20px; height: 20px; }.handout-logo-grid-title, [data-handout-logo-grid-title] { margin: 0px; color: var(--foreground); font-size: 16px; font-weight: var(--handout-font-weight-heading); line-height: 24px; }.handout-button-block { display: inline-flex; width: max-content; min-height: 32px; max-width: 100%; align-items: center; justify-content: center; padding: 0px 12px; border-radius: 8px; background: var(--handout-primary,var(--primary)); color: var(--handout-primary-foreground,var(--primary-foreground)); font-size: 15px; font-weight: var(--handout-font-weight-label); line-height: 20px; text-align: center; text-decoration: none; box-shadow: 0 0 0 1px color-mix(in oklab,var(--handout-primary,var(--primary)) 16%,transparent); }.handout-button-block:hover { background: color-mix(in oklab,var(--handout-primary,var(--primary)) 88%,var(--background)); }.handout-button-block-full { display: flex; width: 100%; min-height: 40px; padding: 2px 12px; }.handout-embed { width: 100%; overflow: hidden; border: 1px solid var(--site-card-border); border-radius: 12px; background: var(--site-card-background); box-shadow: var(--shadow-xs); }.handout-embed iframe { width: 100%; height: 100%; border: 0px; }.handout-grid { display: flex; flex-direction: column; gap: 12px; }.handout-grid-row { display: grid; grid-template-columns: repeat(var(--handout-grid-columns),minmax(0,1fr)); gap: 12px; }.handout-grid-cell, .handout-document-editor .handout-grid-cell { min-width: 0px; padding: 0px; border: 0px; background: transparent; box-shadow: none; }.handout-grid-cell > * + * { margin-top: 12px; }.handout-page-navigation { display: grid; grid-template-columns: repeat(2, minmax(0px, 1fr)); gap: 12px; margin-top: 64px; }.handout-page-navigation-link { display: flex; min-width: 0px; min-height: 76px; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--site-card-border); border-radius: 14px; background: var(--site-card-background); color: var(--foreground); font: inherit; text-align: left; cursor: pointer; box-shadow: var(--shadow-xs); transition: border-color 0.15s, background 0.15s, transform 0.15s; }.handout-page-navigation-link:hover { border-color: var(--border-strong,var(--site-card-border)); background: var(--accent); }.handout-page-navigation-link:focus-visible { border-color: var(--ring); outline: 3px solid color-mix(in oklab,var(--ring) 35%,transparent); outline-offset: 2px; }.handout-page-navigation-link:active { transform: translateY(1px); }.handout-page-navigation-link > svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--muted-foreground); }.handout-page-navigation-copy { display: flex; min-width: 0px; flex: 1 1 0%; flex-direction: column; }.handout-page-navigation-label { color: var(--muted-foreground); font-size: 12px; font-weight: var(--handout-font-weight-label); line-height: 18px; }.handout-page-navigation-name { min-width: 0px; overflow: hidden; color: var(--foreground); font-size: 15px; font-weight: var(--handout-font-weight-label); line-height: 22px; text-overflow: ellipsis; white-space: nowrap; }.handout-page-navigation-next { grid-column: 2; text-align: right; }.handout-page-navigation-next .handout-page-navigation-copy { align-items: flex-end; }.handout-page-navigation-link:hover > svg, .handout-page-navigation-link:focus-visible > svg { color: var(--foreground); }@container (max-width: 520px) {\n  .handout-image-card { grid-template-columns: 1fr; gap: 0px; }\n  .handout-image-card-copy { min-height: 80px; padding: 16px; }\n  .handout-logo-grid { grid-template-columns: repeat(2, minmax(0px, 1fr)); }\n  .handout-grid-row { grid-template-columns: 1fr; }\n}@container (max-width: 520px) {\n  .handout-page-navigation { grid-template-columns: 1fr; gap: 8px; }\n  .handout-page-navigation-next { grid-column: 1; }\n}@container (max-width: 340px) {\n  .handout-logo-grid { grid-template-columns: 1fr; }\n}.handout-table-scroll, .handout-document-editor .tableWrapper { overflow-x: auto; border: 0px; border-radius: 10px; background: transparent; box-shadow: var(--shadow-xs); }.handout-table, .handout-document-editor .tableWrapper > table { width: 100%; border: 1px solid var(--site-card-border); border-collapse: separate; border-spacing: 0px; border-radius: 10px; background: var(--site-card-background); color: var(--foreground); font-size: 14px; font-weight: var(--handout-font-weight-body); line-height: 22px; }.handout-table th, .handout-table td, .handout-document-editor .tableWrapper > table th, .handout-document-editor .tableWrapper > table td { min-width: 112px; padding: 10px 12px; border-top: 0px; border-left: 0px; border-right: 1px solid var(--site-card-border); border-bottom: 1px solid var(--site-card-border); color: var(--tertiary-foreground); font-size: 14px; font-weight: var(--handout-font-weight-body); line-height: 22px; text-align: left; vertical-align: top; }.handout-table th, .handout-document-editor .tableWrapper > table th { background: var(--table-header-background); color: var(--foreground); font-weight: var(--handout-font-weight-label); }.handout-table tr > :last-child, .handout-document-editor .tableWrapper > table tr > :last-child { border-right: 0px; }.handout-table tr:last-child > *, .handout-document-editor .tableWrapper > table tr:last-child > * { border-bottom: 0px; }.handout-table :where(th, td) > *, .handout-document-editor .tableWrapper > table :where(th, td) > * { margin: 0px; }.handout-link, .handout-document-editor .handout-prosemirror a:not(.handout-editor-image-card-cta) { color: var(--link); text-underline-offset: 2px; }.handout-empty-page { padding: 80px 0px; text-align: center; }.handout-empty-page h1 { font-size: 20px; }.handout-consent-popup { position: fixed; z-index: 50; inset: 0px; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.2); font-family: \"Geist Variable\", Geist, ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.02em; }.handout-consent-dialog { display: flex; width: min(458px, 100%); flex-direction: column; gap: 20px; padding: 10px 16px 16px; border-radius: 18px; background: var(--popover); color: var(--popover-foreground); box-shadow: rgba(0, 0, 0, 0.16) 0px 16px 48px, rgba(0, 0, 0, 0.05) 0px 0px 0px 1px; }.handout-consent-copy { display: flex; flex-direction: column; }.handout-consent-dialog h2 { margin: 0px; padding: 6px 0px; font-size: 16px; font-weight: 500; line-height: 24px; }.handout-consent-dialog p { margin: 0px; color: var(--tertiary-foreground); font-size: 13px; font-weight: 400; line-height: 20px; }.handout-consent-dialog p a, .handout-consent-dialog p button { padding: 0px; border: 0px; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }.handout-consent-actions { display: flex; gap: 6px; }.handout-consent-button { display: flex; height: 32px; min-width: 0px; flex: 1 1 0%; align-items: center; justify-content: center; padding: 0px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--background); color: var(--muted-foreground); font-size: 14px; font-weight: 500; cursor: pointer; }.handout-consent-button-primary { border-color: transparent; background: var(--handout-primary,var(--primary)); color: var(--handout-primary-foreground,var(--primary-foreground)); box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 1px; }.handout-prosemirror > p + p { --handout-sibling-gap: var(--handout-body-gap); }.handout-prosemirror > h1 + p, .handout-prosemirror > h2 + p, .handout-prosemirror > h3 + p { --handout-sibling-gap: var(--handout-heading-body-gap); }.handout-prosemirror > blockquote, .handout-prosemirror > pre, .handout-prosemirror > ul, .handout-prosemirror > ol, .handout-prosemirror > :where(ul, ol) + * { --handout-sibling-gap: var(--handout-list-block-gap); }.handout-prosemirror > h1 { --handout-sibling-gap: var(--handout-heading-1-gap); }.handout-prosemirror > h2 { --handout-sibling-gap: var(--handout-heading-2-gap); }.handout-prosemirror > h3 { --handout-sibling-gap: var(--handout-heading-3-gap); }.handout-prosemirror > hr { --handout-sibling-gap: var(--handout-divider-gap); }.handout-prosemirror > :not(:first-child) { margin-top: var(--handout-sibling-gap,var(--handout-block-gap)); }.handout-document-editor .handout-prosemirror { width: 100%; min-width: 0px; max-width: 100%; padding-top: 54px; padding-bottom: 128px; }.handout-document-editor[data-has-page-navigation] .handout-prosemirror { padding-bottom: 0px; }.handout-editor-page-navigation { width: min(612px, 100% - 104px); max-width: calc(100% - 104px); margin: 64px auto 0px; padding-bottom: 128px; }.handout-document-editor .handout-prosemirror > p, .handout-document-editor .handout-prosemirror > h1, .handout-document-editor .handout-prosemirror > h2, .handout-document-editor .handout-prosemirror > h3, .handout-document-editor .handout-prosemirror > ul, .handout-document-editor .handout-prosemirror > ol, .handout-document-editor .handout-prosemirror > blockquote, .handout-document-editor .handout-prosemirror > pre, .handout-document-editor .handout-prosemirror > hr, .handout-document-editor .handout-prosemirror > .react-renderer, .handout-document-editor .handout-prosemirror > [data-handout-grid], .handout-document-editor .handout-prosemirror > .tableWrapper, .handout-document-editor .handout-prosemirror > table, .handout-document-editor .handout-prosemirror > [data-handout-gif-empty], .handout-document-editor .handout-prosemirror > [data-handout-image-empty], .handout-document-editor .handout-prosemirror > [data-resize-container][data-node=\"gifBlock\"], .handout-document-editor .handout-prosemirror > [data-resize-container][data-node=\"image\"] { width: min(612px, 100% - 104px); max-width: calc(100% - 104px); margin-right: auto; margin-left: auto; }.handout-document-editor .handout-editor-page-title { display: contents; }.handout-document-editor .handout-editor-page-title-content > [data-node-view-content-react], .handout-document-editor .handout-editor-logo-grid > [data-node-view-content-react] { display: contents; }@media (max-width: 760px) {\n  .handout-editor-sidebar-desktop { display: none; }\n  .handout-editor-mobile-bar { display: flex; }\n  .handout-editor-sidebar-content { width: 100%; }\n  body.handout-drawer-open { overflow: hidden; }\n  .handout-site { display: block; }\n  .handout-sidebar { position: fixed; z-index: 30; top: 0px; left: 0px; width: min(289px, 86vw); height: 100svh; gap: 0px; padding: 0px; border-right: 1px solid var(--border); background: var(--background); box-shadow: rgba(0, 0, 0, 0.18) 0px 16px 40px; visibility: hidden; transform: translateX(-100%); transition: transform 0.2s, visibility 0.2s; }\n  .handout-sidebar.is-open { visibility: visible; transform: translateX(0px); }\n  .handout-sidebar-mobile-header { display: flex; height: 44px; align-items: center; gap: 8px; padding: 0px 8px 0px 16px; border-bottom: 1px solid var(--border-subtle); }\n  .handout-sidebar-mobile-title { min-width: 0px; flex: 1 1 0%; overflow: hidden; color: var(--tertiary-foreground); font-size: 16px; font-weight: 500; line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }\n  .handout-sidebar-close { display: flex; width: 28px; height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; border: 0px; border-radius: 8px; background: transparent; color: var(--tertiary-foreground); cursor: pointer; }\n  .handout-sidebar-close:hover, .handout-sidebar-close:focus-visible { background: var(--neutral-alpha-a500); outline: 0px; }\n  .handout-sidebar-close svg { width: 14px; height: 14px; }\n  .handout-sidebar-inner { width: 100%; padding: 20px 16px; }\n  .handout-sidebar-built-with { padding: 0px 16px 20px; }\n  .handout-sidebar-backdrop { position: fixed; z-index: 20; inset: 0px; display: block; border: 0px; background: rgba(0, 0, 0, 0.1); opacity: 0; visibility: hidden; cursor: default; transition: opacity 0.1s, visibility 0.1s; }\n  .handout-sidebar-backdrop.is-open { opacity: 1; visibility: visible; }\n  .handout-mobile-bar { position: sticky; z-index: 10; top: 0px; display: flex; height: 44px; align-items: center; gap: 8px; padding: 0px 12px; border-bottom: 1px solid var(--border-subtle); background: var(--background); }\n  .handout-mobile-menu { display: flex; width: 28px; height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; border: 0px; border-radius: 8px; background: transparent; color: var(--tertiary-foreground); cursor: pointer; }\n  .handout-mobile-menu:hover, .handout-mobile-menu:focus-visible { background: var(--neutral-alpha-a500); outline: 0px; }\n  .handout-mobile-menu svg { width: 14px; height: 14px; }\n  .handout-mobile-bar > span { min-width: 0px; overflow: hidden; font-size: 16px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }\n  .handout-document { padding: 36px 20px 96px; }\n  .handout-page-title-heading { font-size: 28px; }\n}@media (prefers-reduced-motion: reduce) {\n  .handout-site *, .handout-document-editor * { scroll-behavior: auto !important; transition: none !important; }\n}"
+                    },
+                    "childNodes": [
+                      {
+                        "type": 3,
+                        "textContent": "",
+                        "id": 33
+                      }
+                    ],
+                    "id": 32
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n",
+                    "id": 34
+                  }
+                ],
+                "id": 4
+              },
+              {
+                "type": 3,
+                "textContent": "\n",
+                "id": 35
+              },
+              {
+                "type": 2,
+                "tagName": "body",
+                "attributes": {
+                  "data-handout-public-site": ""
+                },
+                "childNodes": [
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 37
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "div",
+                    "attributes": {
+                      "class": "handout-site",
+                      "data-handout-site-id": "627a41ab-34f1-4f9e-bb35-187f6a2c705c"
+                    },
+                    "childNodes": [
+                      {
+                        "type": 3,
+                        "textContent": "\n    ",
+                        "id": 39
+                      },
+                      {
+                        "type": 2,
+                        "tagName": "aside",
+                        "attributes": {
+                          "id": "handout-site-sidebar",
+                          "class": "handout-sidebar",
+                          "aria-label": "Site navigation"
+                        },
+                        "childNodes": [
+                          {
+                            "type": 2,
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "handout-sidebar-mobile-header"
+                            },
+                            "childNodes": [
+                              {
+                                "type": 2,
+                                "tagName": "span",
+                                "attributes": {
+                                  "class": "handout-sidebar-mobile-title",
+                                  "data-handout-active-page-label": ""
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 3,
+                                    "textContent": "Overview",
+                                    "id": 43
+                                  }
+                                ],
+                                "id": 42
+                              },
+                              {
+                                "type": 2,
+                                "tagName": "button",
+                                "attributes": {
+                                  "class": "handout-sidebar-close",
+                                  "type": "button",
+                                  "aria-label": "Close site navigation"
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 2,
+                                    "tagName": "svg",
+                                    "attributes": {
+                                      "viewBox": "0 0 24 24",
+                                      "aria-hidden": "true",
+                                      "fill": "none",
+                                      "stroke": "currentColor",
+                                      "stroke-width": "2",
+                                      "stroke-linecap": "round",
+                                      "stroke-linejoin": "round"
+                                    },
+                                    "childNodes": [
+                                      {
+                                        "type": 2,
+                                        "tagName": "path",
+                                        "attributes": {
+                                          "stroke": "none",
+                                          "d": "M0 0h24v24H0z",
+                                          "fill": "none"
+                                        },
+                                        "childNodes": [],
+                                        "isSVG": true,
+                                        "id": 46
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "path",
+                                        "attributes": {
+                                          "d": "M18 6l-12 12"
+                                        },
+                                        "childNodes": [],
+                                        "isSVG": true,
+                                        "id": 47
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "path",
+                                        "attributes": {
+                                          "d": "M6 6l12 12"
+                                        },
+                                        "childNodes": [],
+                                        "isSVG": true,
+                                        "id": 48
+                                      }
+                                    ],
+                                    "isSVG": true,
+                                    "id": 45
+                                  }
+                                ],
+                                "id": 44
+                              }
+                            ],
+                            "id": 41
+                          },
+                          {
+                            "type": 2,
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "handout-sidebar-inner"
+                            },
+                            "childNodes": [
+                              {
+                                "type": 2,
+                                "tagName": "section",
+                                "attributes": {
+                                  "class": "handout-sidebar-section"
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 2,
+                                    "tagName": "h2",
+                                    "attributes": {},
+                                    "childNodes": [
+                                      {
+                                        "type": 3,
+                                        "textContent": "Tabs",
+                                        "id": 52
+                                      }
+                                    ],
+                                    "id": 51
+                                  },
+                                  {
+                                    "type": 2,
+                                    "tagName": "div",
+                                    "attributes": {},
+                                    "childNodes": [
+                                      {
+                                        "type": 2,
+                                        "tagName": "button",
+                                        "attributes": {
+                                          "type": "button",
+                                          "class": "handout-sidebar-row handout-tab is-active",
+                                          "data-handout-page-target": "overview",
+                                          "data-handout-page-id": "page-overview",
+                                          "data-handout-track": "tab"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 2,
+                                            "tagName": "svg",
+                                            "attributes": {
+                                              "viewBox": "0 0 24 24",
+                                              "aria-hidden": "true",
+                                              "fill": "none",
+                                              "stroke": "currentColor",
+                                              "stroke-width": "2",
+                                              "stroke-linecap": "round",
+                                              "stroke-linejoin": "round"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "path",
+                                                "attributes": {
+                                                  "stroke": "none",
+                                                  "d": "M0 0h24v24H0z",
+                                                  "fill": "none"
+                                                },
+                                                "childNodes": [],
+                                                "isSVG": true,
+                                                "id": 56
+                                              },
+                                              {
+                                                "type": 2,
+                                                "tagName": "path",
+                                                "attributes": {
+                                                  "d": "M5 5a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -14"
+                                                },
+                                                "childNodes": [],
+                                                "isSVG": true,
+                                                "id": 57
+                                              },
+                                              {
+                                                "type": 2,
+                                                "tagName": "path",
+                                                "attributes": {
+                                                  "d": "M9 7l6 0"
+                                                },
+                                                "childNodes": [],
+                                                "isSVG": true,
+                                                "id": 58
+                                              },
+                                              {
+                                                "type": 2,
+                                                "tagName": "path",
+                                                "attributes": {
+                                                  "d": "M9 11l6 0"
+                                                },
+                                                "childNodes": [],
+                                                "isSVG": true,
+                                                "id": 59
+                                              },
+                                              {
+                                                "type": 2,
+                                                "tagName": "path",
+                                                "attributes": {
+                                                  "d": "M9 15l4 0"
+                                                },
+                                                "childNodes": [],
+                                                "isSVG": true,
+                                                "id": 60
+                                              }
+                                            ],
+                                            "isSVG": true,
+                                            "id": 55
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "span",
+                                            "attributes": {},
+                                            "childNodes": [
+                                              {
+                                                "type": 3,
+                                                "textContent": "Overview",
+                                                "id": 62
+                                              }
+                                            ],
+                                            "id": 61
+                                          }
+                                        ],
+                                        "id": 54
+                                      }
+                                    ],
+                                    "id": 53
+                                  }
+                                ],
+                                "id": 50
+                              }
+                            ],
+                            "id": 49
+                          },
+                          {
+                            "type": 2,
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "handout-sidebar-built-with"
+                            },
+                            "childNodes": [
+                              {
+                                "type": 2,
+                                "tagName": "span",
+                                "attributes": {
+                                  "class": "handout-sidebar-built-with-logo",
+                                  "aria-hidden": "true"
+                                },
+                                "childNodes": [],
+                                "id": 64
+                              },
+                              {
+                                "type": 2,
+                                "tagName": "span",
+                                "attributes": {},
+                                "childNodes": [
+                                  {
+                                    "type": 3,
+                                    "textContent": "Built with ",
+                                    "id": 66
+                                  },
+                                  {
+                                    "type": 2,
+                                    "tagName": "a",
+                                    "attributes": {
+                                      "target": "_blank",
+                                      "rel": "noopener noreferrer"
+                                    },
+                                    "childNodes": [
+                                      {
+                                        "type": 3,
+                                        "textContent": "Handout",
+                                        "id": 68
+                                      }
+                                    ],
+                                    "id": 67
+                                  }
+                                ],
+                                "id": 65
+                              }
+                            ],
+                            "id": 63
+                          }
+                        ],
+                        "id": 40
+                      },
+                      {
+                        "type": 2,
+                        "tagName": "div",
+                        "attributes": {
+                          "class": "handout-sidebar-backdrop",
+                          "aria-hidden": "true"
+                        },
+                        "childNodes": [],
+                        "id": 69
+                      },
+                      {
+                        "type": 3,
+                        "textContent": "\n    ",
+                        "id": 70
+                      },
+                      {
+                        "type": 2,
+                        "tagName": "main",
+                        "attributes": {
+                          "class": "handout-main"
+                        },
+                        "childNodes": [
+                          {
+                            "type": 3,
+                            "textContent": "\n      ",
+                            "id": 72
+                          },
+                          {
+                            "type": 2,
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "handout-mobile-bar"
+                            },
+                            "childNodes": [
+                              {
+                                "type": 3,
+                                "textContent": "\n        ",
+                                "id": 74
+                              },
+                              {
+                                "type": 2,
+                                "tagName": "button",
+                                "attributes": {
+                                  "class": "handout-mobile-menu",
+                                  "type": "button",
+                                  "aria-label": "Open site navigation",
+                                  "aria-controls": "handout-site-sidebar",
+                                  "aria-expanded": "false"
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 2,
+                                    "tagName": "svg",
+                                    "attributes": {
+                                      "viewBox": "0 0 24 24",
+                                      "aria-hidden": "true",
+                                      "fill": "none",
+                                      "stroke": "currentColor",
+                                      "stroke-width": "2",
+                                      "stroke-linecap": "round",
+                                      "stroke-linejoin": "round"
+                                    },
+                                    "childNodes": [
+                                      {
+                                        "type": 2,
+                                        "tagName": "path",
+                                        "attributes": {
+                                          "stroke": "none",
+                                          "d": "M0 0h24v24H0z",
+                                          "fill": "none"
+                                        },
+                                        "childNodes": [],
+                                        "isSVG": true,
+                                        "id": 77
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "path",
+                                        "attributes": {
+                                          "d": "M4 6l16 0"
+                                        },
+                                        "childNodes": [],
+                                        "isSVG": true,
+                                        "id": 78
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "path",
+                                        "attributes": {
+                                          "d": "M4 12l16 0"
+                                        },
+                                        "childNodes": [],
+                                        "isSVG": true,
+                                        "id": 79
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "path",
+                                        "attributes": {
+                                          "d": "M4 18l16 0"
+                                        },
+                                        "childNodes": [],
+                                        "isSVG": true,
+                                        "id": 80
+                                      }
+                                    ],
+                                    "isSVG": true,
+                                    "id": 76
+                                  }
+                                ],
+                                "id": 75
+                              },
+                              {
+                                "type": 3,
+                                "textContent": "\n        ",
+                                "id": 81
+                              },
+                              {
+                                "type": 2,
+                                "tagName": "span",
+                                "attributes": {
+                                  "data-handout-active-page-label": ""
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 3,
+                                    "textContent": "Overview",
+                                    "id": 83
+                                  }
+                                ],
+                                "id": 82
+                              },
+                              {
+                                "type": 3,
+                                "textContent": "\n      ",
+                                "id": 84
+                              }
+                            ],
+                            "id": 73
+                          },
+                          {
+                            "type": 3,
+                            "textContent": "\n      ",
+                            "id": 85
+                          },
+                          {
+                            "type": 2,
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "handout-document"
+                            },
+                            "childNodes": [
+                              {
+                                "type": 2,
+                                "tagName": "article",
+                                "attributes": {
+                                  "class": "handout-page-panel",
+                                  "aria-label": "Overview",
+                                  "data-handout-page-panel": "overview",
+                                  "data-handout-page-id": "page-overview",
+                                  "tabindex": "-1"
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 2,
+                                    "tagName": "div",
+                                    "attributes": {
+                                      "class": "handout-prosemirror"
+                                    },
+                                    "childNodes": [
+                                      {
+                                        "type": 2,
+                                        "tagName": "section",
+                                        "attributes": {
+                                          "class": "handout-page-title",
+                                          "data-align": "center",
+                                          "data-handout-node-id": "northstar-title"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 2,
+                                            "tagName": "div",
+                                            "attributes": {
+                                              "class": "handout-page-title-logos"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "span",
+                                                "attributes": {
+                                                  "class": "handout-page-title-logo",
+                                                  "data-handout-logo-kind": "workspace"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 2,
+                                                    "tagName": "img",
+                                                    "attributes": {
+                                                      "src": "http://127.0.0.1:3011/editor-assets/dev-workspace-logo.jpg",
+                                                      "alt": "Handout Dev logo"
+                                                    },
+                                                    "childNodes": [],
+                                                    "id": 92
+                                                  }
+                                                ],
+                                                "id": 91
+                                              },
+                                              {
+                                                "type": 2,
+                                                "tagName": "span",
+                                                "attributes": {
+                                                  "class": "handout-logo-connector"
+                                                },
+                                                "childNodes": [],
+                                                "id": 93
+                                              },
+                                              {
+                                                "type": 2,
+                                                "tagName": "span",
+                                                "attributes": {
+                                                  "class": "handout-page-title-logo",
+                                                  "data-handout-logo-kind": "recipient"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 2,
+                                                    "tagName": "img",
+                                                    "attributes": {
+                                                      "src": "http://127.0.0.1:3011/api/public/site-logo/handout-dev/northstar-buyer-brief/recipient",
+                                                      "alt": "northstar.com logo"
+                                                    },
+                                                    "childNodes": [],
+                                                    "id": 95
+                                                  }
+                                                ],
+                                                "id": 94
+                                              }
+                                            ],
+                                            "id": 90
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "div",
+                                            "attributes": {
+                                              "class": "handout-page-title-copy"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "h1",
+                                                "attributes": {
+                                                  "class": "handout-page-title-heading"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Acme x Northstar",
+                                                    "id": 98
+                                                  }
+                                                ],
+                                                "id": 97
+                                              },
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-page-title-subtitle"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Call recap and next steps",
+                                                    "id": 100
+                                                  }
+                                                ],
+                                                "id": 99
+                                              }
+                                            ],
+                                            "id": 96
+                                          }
+                                        ],
+                                        "id": 89
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "h2",
+                                        "attributes": {
+                                          "class": "handout-heading handout-heading-2",
+                                          "data-handout-node-id": "northstar-challenges"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 3,
+                                            "textContent": "Challenges you’ve shared",
+                                            "id": 102
+                                          }
+                                        ],
+                                        "id": 101
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "ul",
+                                        "attributes": {
+                                          "class": "handout-list",
+                                          "data-handout-node-id": "northstar-challenge-list"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Inconsistent follow-up after technical discovery",
+                                                    "id": 106
+                                                  }
+                                                ],
+                                                "id": 105
+                                              }
+                                            ],
+                                            "id": 104
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Technical buyers need more implementation detail",
+                                                    "id": 109
+                                                  }
+                                                ],
+                                                "id": 108
+                                              }
+                                            ],
+                                            "id": 107
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Proof is spread across too many tools",
+                                                    "id": 112
+                                                  }
+                                                ],
+                                                "id": 111
+                                              }
+                                            ],
+                                            "id": 110
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "New stakeholders join late without the right context",
+                                                    "id": 115
+                                                  }
+                                                ],
+                                                "id": 114
+                                              }
+                                            ],
+                                            "id": 113
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "No signal after the call to know what resonated",
+                                                    "id": 118
+                                                  }
+                                                ],
+                                                "id": 117
+                                              }
+                                            ],
+                                            "id": 116
+                                          }
+                                        ],
+                                        "id": 103
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "hr",
+                                        "attributes": {
+                                          "class": "handout-divider",
+                                          "data-handout-node-id": "northstar-divider"
+                                        },
+                                        "childNodes": [],
+                                        "id": 119
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "h2",
+                                        "attributes": {
+                                          "class": "handout-heading handout-heading-2",
+                                          "data-handout-node-id": "northstar-plan"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 3,
+                                            "textContent": "A clear path to rollout",
+                                            "id": 121
+                                          }
+                                        ],
+                                        "id": 120
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "p",
+                                        "attributes": {
+                                          "class": "handout-paragraph",
+                                          "data-handout-node-id": "northstar-plan-copy"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 3,
+                                            "textContent": "Start with one buyer journey, prove engagement with real visitor signals, then expand across the revenue team.",
+                                            "id": 123
+                                          }
+                                        ],
+                                        "id": 122
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "ol",
+                                        "attributes": {
+                                          "class": "handout-list",
+                                          "data-handout-node-id": "northstar-rollout-list"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Connect the proof buyers need in one place",
+                                                    "id": 127
+                                                  }
+                                                ],
+                                                "id": 126
+                                              }
+                                            ],
+                                            "id": 125
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Personalize the recap around Northstar’s priorities",
+                                                    "id": 130
+                                                  }
+                                                ],
+                                                "id": 129
+                                              }
+                                            ],
+                                            "id": 128
+                                          },
+                                          {
+                                            "type": 2,
+                                            "tagName": "li",
+                                            "attributes": {
+                                              "class": "handout-list-item"
+                                            },
+                                            "childNodes": [
+                                              {
+                                                "type": 2,
+                                                "tagName": "p",
+                                                "attributes": {
+                                                  "class": "handout-paragraph"
+                                                },
+                                                "childNodes": [
+                                                  {
+                                                    "type": 3,
+                                                    "textContent": "Use visit signals to guide every follow-up",
+                                                    "id": 133
+                                                  }
+                                                ],
+                                                "id": 132
+                                              }
+                                            ],
+                                            "id": 131
+                                          }
+                                        ],
+                                        "id": 124
+                                      },
+                                      {
+                                        "type": 2,
+                                        "tagName": "a",
+                                        "attributes": {
+                                          "class": "handout-button-block",
+                                          "target": "_blank",
+                                          "rel": "noopener noreferrer",
+                                          "data-handout-node-id": "northstar-review-plan",
+                                          "data-handout-track": "button",
+                                          "data-handout-element-id": "northstar-review-plan"
+                                        },
+                                        "childNodes": [
+                                          {
+                                            "type": 3,
+                                            "textContent": "Review rollout plan",
+                                            "id": 135
+                                          }
+                                        ],
+                                        "id": 134
+                                      }
+                                    ],
+                                    "id": 88
+                                  }
+                                ],
+                                "id": 87
+                              }
+                            ],
+                            "id": 86
+                          },
+                          {
+                            "type": 3,
+                            "textContent": "\n    ",
+                            "id": 136
+                          }
+                        ],
+                        "id": 71
+                      },
+                      {
+                        "type": 3,
+                        "textContent": "\n  ",
+                        "id": 137
+                      }
+                    ],
+                    "id": 38
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 138
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "aside",
+                    "attributes": {
+                      "class": "handout-consent-popup",
+                      "role": "dialog",
+                      "aria-modal": "true",
+                      "data-handout-consent-popup": "popup-a",
+                      "data-handout-consent-site-id": "627a41ab-34f1-4f9e-bb35-187f6a2c705c",
+                      "data-handout-consent-notice-version": "1",
+                      "data-handout-consent-script-src": "/track/2026-07-13.v9/script.js",
+                      "data-handout-consent-bootstrap": "{\"version\":2,\"trackingMode\":\"events_and_replay\",\"contextToken\":\"lsv2.ZGVmYXVsdA.LMHk1HlPbo9-3Hgf._eVnj-zAlNqscceUguFZRqBFfG8CoqBDI41mSD-SRecdHUjTV0o9mJO37nmmnB1ljEmzyQDmsMrtj7mRNXMoKDrwFAwF9gavu_bkHqHN_7VN298yc8QOx3wl3ZcKcGX168IjabnMI8r5VH0WqqIWPpW32WCSKpkkU2qThYvv4B8hCIx_hgWdLe71FGuxxmw4B7itWbbt0KszaxuqtZ1-bwfgIQq4yKmcP1CzXvXlz_VWF6wibCuageV8A--gnV4M1xqaARUC17X7Q0VKFmvlEZVH2XqXSPLcVP9_kgSLBjKBvlCeIJVm4ywF-z55bIR4dmawIm79Hfb3Vk1yYLPwDn2uK5rv-K-iWpUGRYPTs8wt8GmiCPeZhaLw1HkEMdEcV1TOfNN6N5c0zp54GNaQyRHbelxieu6bg2U3Y4CwcHlrgwRgMe5EO1uogzVCqmWAx7dYQHzsChJ9pizFH3zg0jtszLvgRiLNMrLKYueaXW_lHpq_zROyUyCd_vRGvvKMFvgudPT75PVo88m-8dlE8x_xgihlVb_gcPHhKTnvrsroLsSMfFbpQZrzTT4NrTg.0DIjhI3c7XDafGOelKGJPA\",\"issuedAt\":\"2026-07-21T12:14:52.515Z\",\"expiresAt\":\"2026-07-22T12:14:52.515Z\"}",
+                      "aria-labelledby": "handout-consent-title",
+                      "hidden": ""
+                    },
+                    "childNodes": [
+                      {
+                        "type": 2,
+                        "tagName": "div",
+                        "attributes": {
+                          "class": "handout-consent-dialog"
+                        },
+                        "childNodes": [
+                          {
+                            "type": 2,
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "handout-consent-copy"
+                            },
+                            "childNodes": [
+                              {
+                                "type": 2,
+                                "tagName": "h2",
+                                "attributes": {
+                                  "id": "handout-consent-title"
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 3,
+                                    "textContent": "We value your privacy",
+                                    "id": 143
+                                  }
+                                ],
+                                "id": 142
+                              },
+                              {
+                                "type": 2,
+                                "tagName": "p",
+                                "attributes": {},
+                                "childNodes": [
+                                  {
+                                    "type": 3,
+                                    "textContent": "This site uses cookies and other technology upon consent to help the owner understand how you use it, including session behavior and where you click and scroll. By selecting Allow and proceed, you consent to this as described in the ",
+                                    "id": 145
+                                  },
+                                  {
+                                    "type": 2,
+                                    "tagName": "a",
+                                    "attributes": {
+                                      "target": "_blank",
+                                      "rel": "noopener noreferrer"
+                                    },
+                                    "childNodes": [
+                                      {
+                                        "type": 3,
+                                        "textContent": "Privacy Policy",
+                                        "id": 147
+                                      }
+                                    ],
+                                    "id": 146
+                                  },
+                                  {
+                                    "type": 3,
+                                    "textContent": ". You may decline and enter ",
+                                    "id": 148
+                                  },
+                                  {
+                                    "type": 2,
+                                    "tagName": "button",
+                                    "attributes": {
+                                      "type": "button",
+                                      "data-handout-consent": "deny"
+                                    },
+                                    "childNodes": [
+                                      {
+                                        "type": 3,
+                                        "textContent": "here",
+                                        "id": 150
+                                      }
+                                    ],
+                                    "id": 149
+                                  },
+                                  {
+                                    "type": 3,
+                                    "textContent": ".",
+                                    "id": 151
+                                  }
+                                ],
+                                "id": 144
+                              }
+                            ],
+                            "id": 141
+                          },
+                          {
+                            "type": 2,
+                            "tagName": "div",
+                            "attributes": {
+                              "class": "handout-consent-actions"
+                            },
+                            "childNodes": [
+                              {
+                                "type": 2,
+                                "tagName": "button",
+                                "attributes": {
+                                  "class": "handout-consent-button handout-consent-button-primary",
+                                  "type": "button",
+                                  "data-handout-consent": "allow"
+                                },
+                                "childNodes": [
+                                  {
+                                    "type": 3,
+                                    "textContent": "Allow and proceed",
+                                    "id": 154
+                                  }
+                                ],
+                                "id": 153
+                              }
+                            ],
+                            "id": 152
+                          }
+                        ],
+                        "id": 140
+                      }
+                    ],
+                    "id": 139
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "button",
+                    "attributes": {
+                      "class": "handout-privacy-choices",
+                      "type": "button",
+                      "data-handout-privacy-choices": ""
+                    },
+                    "childNodes": [
+                      {
+                        "type": 3,
+                        "textContent": "Privacy choices",
+                        "id": 156
+                      }
+                    ],
+                    "id": 155
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  ",
+                    "id": 157
+                  },
+                  {
+                    "type": 3,
+                    "textContent": "\n  \n\n",
+                    "id": 158
+                  }
+                ],
+                "id": 36
+              }
+            ],
+            "id": 3
+          }
+        ],
+        "id": 1
+      },
+      "initialOffset": {
+        "left": 0,
+        "top": 0
+      }
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636115111,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 826,
+          "y": 80,
+          "id": 92,
+          "timeOffset": 0
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636115612,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 852,
+          "y": 144,
+          "id": 97,
+          "timeOffset": -41
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636116113,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 695,
+          "y": 292,
+          "id": 101,
+          "timeOffset": -28
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636116614,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 642,
+          "y": 347,
+          "id": 105,
+          "timeOffset": -61
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636117116,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 826,
+          "y": 403,
+          "id": 111,
+          "timeOffset": -105
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636117618,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 732,
+          "y": 462,
+          "id": 117,
+          "timeOffset": -142
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636117992,
+    "data": {
+      "source": 3,
+      "id": 1,
+      "x": 0,
+      "y": 180.55555725097656
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636118119,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 930,
+          "y": 650,
+          "id": 122,
+          "timeOffset": -129
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636118752,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 805,
+          "y": 450,
+          "id": 88,
+          "timeOffset": 0
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636119254,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 650,
+          "y": 540,
+          "id": 126,
+          "timeOffset": -14
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636119745,
+    "data": {
+      "source": 3,
+      "id": 1,
+      "x": 0,
+      "y": 0
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636119755,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 930,
+          "y": 360,
+          "id": 88,
+          "timeOffset": -12
+        }
+      ]
+    }
+  },
+  {
+    "type": 3,
+    "timestamp": 1784636120410,
+    "data": {
+      "source": 1,
+      "positions": [
+        {
+          "x": 825,
+          "y": 170,
+          "id": 99,
+          "timeOffset": 0
+        }
+      ]
+    }
+  }
+]

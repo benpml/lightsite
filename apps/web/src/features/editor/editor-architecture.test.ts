@@ -24,6 +24,10 @@ const editorModules = import.meta.glob("./**/*.{ts,tsx}", {
   import: "default",
 })
 const stylesheetSource = readFileSync(new URL("../../index.css", import.meta.url), "utf8")
+const editorCanvasModuleSource = readFileSync(
+  new URL("./components/editor-canvas.tsx", import.meta.url),
+  "utf8",
+)
 const sharedInputSource = readFileSync(
   new URL("../../components/ui/input.tsx", import.meta.url),
   "utf8",
@@ -72,7 +76,10 @@ describe("editor architecture", () => {
     )
     expect(SITE_DOCUMENT_CSS).toContain(".handout-image-card{display:grid")
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-icon-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--background)"
+      ".handout-icon-card{padding:16px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background)"
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-grid-cell,.handout-document-editor .handout-grid-cell{min-width:0;padding:0;border:0;background:transparent;box-shadow:none}"
     )
     expect(SITE_DOCUMENT_CSS).toContain(
       "--handout-icon-color:var(--color-purple-foreground,var(--purple-foreground));--handout-icon-background:var(--color-purple-background,var(--purple-background))"
@@ -127,6 +134,12 @@ describe("editor architecture", () => {
     expect(sidebarSource).toContain('data-[side=left]:w-[min(289px,86vw)]')
     expect(sidebarSource).toContain('className="handout-editor-sidebar-content flex min-w-0 w-full flex-col gap-6"')
     expect(sidebarSource).toContain("handout-editor-sidebar-desktop")
+    expect(sidebarSource).toContain("BuiltWithHandoutFooter")
+    expect(sidebarSource).toContain('/handout-logo-icon.svg')
+    expect(sidebarSource).toContain('href="https://www.handout.link"')
+    expect(sidebarSource).not.toContain("border-r border-border-subtle")
+    expect(sidebarSource).not.toContain("border-r border-border bg-background")
+    expect(sidebarSource).not.toContain("border-r border-transparent")
     expect(sidebarSource).toContain("handout-editor-mobile-bar")
     expect(sidebarSource).not.toContain("md:w-[241px]")
     expect(sidebarSource).toContain("props.model.pages.length > 0")
@@ -143,12 +156,15 @@ describe("editor architecture", () => {
     expect(sidebarSource).not.toContain("tracking-normal")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section>h2,.handout-editor-sidebar-section-title{height:26px;min-width:0;margin:0 0 0 4px;overflow:hidden;color:var(--foreground);font-size:14px;font-weight:500;letter-spacing:-.02em")
     expect(sidebarSource).toContain('sectionKey === "nextSteps" ? "gap-2.5" : "gap-2"')
-    expect(sidebarSource).toContain("IconLink")
-    expect(sidebarSource).not.toContain("IconWorld")
+    expect(sidebarSource).toContain("IconWorldLongitude")
     expect(sidebarSource).toContain('text-[var(--handout-sidebar-link-icon)]')
     expect(pageSource).toContain('"--handout-sidebar-link-icon": "var(--blue-foreground)"')
     expect(pageSource).toContain('"--handout-sidebar-link-icon": `var(--${color}-foreground)`')
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-inner{display:flex;width:241px;flex-direction:column;gap:24px}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-inner{display:flex;width:241px;min-height:0;flex:1;flex-direction:column;gap:24px;overflow-y:auto}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar{position:sticky;top:0;display:flex;width:289px;height:100svh;flex:none;flex-direction:column;gap:24px;padding:26px 24px 20px;background:var(--background)")
+    expect(SITE_DOCUMENT_CSS).not.toContain("padding:26px 24px;border-right")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-built-with{display:flex;width:100%;flex:none;align-items:center;justify-content:center;gap:6px;color:var(--tertiary-foreground);font-size:14px")
+    expect(SITE_DOCUMENT_CSS).toContain('-webkit-mask:url("/handout-logo-icon.svg") center/contain no-repeat')
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section-buttons{gap:10px}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-tab,.handout-sidebar-link{color:var(--tertiary-foreground)}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-link:hover,.handout-sidebar-link:focus-visible{color:var(--foreground)}")
@@ -273,6 +289,12 @@ describe("editor architecture", () => {
     expect(sidebarSource).toContain("function SidebarItemDeleteConfirmation")
     expect(sidebarSource).toContain("group-hover/sidebar-item:opacity-100")
     expect(sidebarSource).toContain("group-focus-within/sidebar-item:opacity-100")
+    expect(sidebarSource).toContain("group-hover/sidebar-item:pr-[62px]")
+    expect(sidebarSource).toContain("group-focus-within/sidebar-item:pr-[62px]")
+    expect(sidebarSource).toContain("group-hover/sidebar-item:px-[62px]")
+    expect(sidebarSource).toContain("group-focus-within/sidebar-item:px-[62px]")
+    expect(sidebarSource).not.toContain("rounded-lg px-2.5 pr-[62px]")
+    expect(sidebarSource).not.toContain("rounded-[10px] px-[62px]")
     expect(sidebarSource).toContain("min-w-0 flex-1 truncate")
     expect(sidebarSource).toContain('>Edit {itemKind}</TooltipContent>')
     expect(sidebarSource).toContain('>Delete {itemKind}</TooltipContent>')
@@ -666,6 +688,13 @@ describe("editor architecture", () => {
     expect(blockControlsSource).toContain("node.type.isInGroup(\"block\")")
     expect(stylesheetSource).toContain("[data-handout-grid-cell] > .react-renderer")
     expect(stylesheetSource).toContain("[data-handout-grid-cell] > :not(:last-child)")
+    expect(stylesheetSource).toContain("outline: 1px dashed transparent")
+    expect(stylesheetSource).toContain("outline-color: var(--border-subtle)")
+    expect(editorCanvasModuleSource).toContain("useLayoutEffect(() =>")
+    expect(editorCanvasModuleSource).toContain(
+      "canvas.scrollTo({ top: 0, left: 0, behavior: \"auto\" })",
+    )
+    expect(editorCanvasModuleSource).toContain("window.requestAnimationFrame(resetScroll)")
     expect(stylesheetSource).toContain("p.handout-editor-placeholder-hidden")
     expect(stylesheetSource).toContain("margin-bottom: 0")
     expect(stylesheetSource).toContain("p.handout-editor-placeholder-hidden")
@@ -832,9 +861,10 @@ describe("editor architecture", () => {
     expect(blockViewsSource).toContain("openHandoutNextImageCardButtonSettings")
     expect(blockViewsSource).not.toContain("handout-editor-image-card-shell py-2")
     expect(blockViewsSource).not.toContain('className="py-2"')
-    expect(stylesheetSource).toContain(".react-renderer.node-imageCard")
-    expect(stylesheetSource).toContain(".react-renderer.node-iconCard")
-    expect(stylesheetSource).toContain(".react-renderer.node-buttonBlock")
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-document-editor .handout-prosemirror>hr,.handout-document-editor .handout-prosemirror>.react-renderer",
+    )
+    expect(stylesheetSource).not.toContain(".react-renderer.node-buttonBlock,")
     expect(stylesheetSource).toContain(".handout-editor-image-card-shell")
     expect(stylesheetSource).not.toMatch(/node-imageCard[\s\S]{0,160}padding-top: 8px/)
     expect(imageCardButtonSettingsSource).toContain('node.type.name !== "imageCard"')
@@ -898,9 +928,8 @@ describe("editor architecture", () => {
     expect(blockControlsSource).toContain('node.type.name === "logoGrid"')
     expect(blockControlsSource).toContain('label="Add logo"')
     expect(blockControlsSource).toContain("addLogoGridItem")
-    expect(stylesheetSource).toContain(".react-renderer.node-logoGrid")
-    expect(stylesheetSource).toMatch(
-      /\.handout-editor \.react-renderer\.node-logoGrid,[\s\S]*?@apply mx-auto w-\[612px\] max-w-\[calc\(100%-104px\)\]/,
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-document-editor .handout-prosemirror>hr,.handout-document-editor .handout-prosemirror>.react-renderer",
     )
     expect(stylesheetSource).toContain(".handout-editor-logo-grid")
     expect(stylesheetSource).toContain(".handout-editor-logo-grid-item")
@@ -920,8 +949,8 @@ describe("editor architecture", () => {
   })
 
   it("keeps logo-grid wrappers inside the standard responsive content width", () => {
-    expect(stylesheetSource).toMatch(
-      /\.handout-editor \.react-renderer\.node-logoGrid,[\s\S]*?@apply mx-auto w-\[612px\] max-w-\[calc\(100%-104px\)\]/,
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-document-editor .handout-prosemirror>hr,.handout-document-editor .handout-prosemirror>.react-renderer",
     )
     expect(stylesheetSource).toContain(".handout-editor-logo-grid-shell {\n    width: 100%;")
     expect(SITE_DOCUMENT_CSS).toContain(
@@ -1056,7 +1085,19 @@ describe("editor architecture", () => {
     expect(SITE_DOCUMENT_CSS).not.toContain(
       ".handout-document-editor .handout-prosemirror>*+*{margin-top:20px}",
     )
-    expect(SITE_DOCUMENT_CSS.lastIndexOf(".handout-prosemirror>blockquote,.handout-prosemirror>pre,.handout-prosemirror>ul,.handout-prosemirror>ol")).toBeGreaterThan(
+    expect(stylesheetSource).not.toContain(".handout-tiptap p + p")
+    expect(stylesheetSource).not.toContain(".handout-tiptap p {")
+    expect(stylesheetSource).not.toContain(".handout-editor .ProseMirror > p {\n    @apply px-0")
+    expect(stylesheetSource).not.toContain(".handout-editor .ProseMirror > h1 {\n    @apply px-0")
+    expect(stylesheetSource).not.toContain(".handout-editor .ProseMirror a {\n")
+    expect(stylesheetSource).not.toContain(".handout-editor .ProseMirror code {\n")
+    expect(stylesheetSource).not.toContain(".handout-editor .ProseMirror > blockquote {\n")
+    expect(stylesheetSource).not.toContain(".handout-editor .ProseMirror > pre {\n")
+    expect(stylesheetSource).not.toContain(".handout-editor .ProseMirror > hr {\n")
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-prosemirror>p+p{--handout-sibling-gap:var(--handout-body-gap)}",
+    )
+    expect(SITE_DOCUMENT_CSS.lastIndexOf(".handout-prosemirror>:not(:first-child){margin-top:var(--handout-sibling-gap,var(--handout-block-gap))}")).toBeGreaterThan(
       SITE_DOCUMENT_CSS.indexOf(".handout-list,.handout-prosemirror>ul,.handout-prosemirror>ol"),
     )
   })

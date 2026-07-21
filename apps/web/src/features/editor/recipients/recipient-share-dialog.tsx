@@ -40,6 +40,7 @@ import {
   buildRecipientScreenshotUrl,
   createRecipientEmailEmbedHtml,
   getRecipientLogoUrl,
+  isBuiltInRecipientVariableId,
   normalizeOptionalRecipientWebsite,
   type SiteRecipient,
 } from "./recipient-model"
@@ -73,12 +74,6 @@ type RecipientDraft = {
   website: string
 }
 
-const builtInRecipientVariableIds = new Set([
-  "recipient-name",
-  "recipient-company",
-  "var-company-logo",
-])
-
 export function RecipientShareDialog({
   createRecipient,
   deleteRecipient,
@@ -95,7 +90,7 @@ export function RecipientShareDialog({
   const selectedRecipient =
     recipients.find((recipient) => recipient.id === selectedRecipientId) ?? null
   const customVariables = useMemo(
-    () => variables.filter((variable) => !builtInRecipientVariableIds.has(variable.id)),
+    () => variables.filter((variable) => !isBuiltInRecipientVariableId(variable.id)),
     [variables]
   )
   const [draft, setDraft] = useState<RecipientDraft>(() =>
@@ -465,7 +460,6 @@ function RecipientForm({
   const nameId = useId()
   const companyId = useId()
   const websiteId = useId()
-
   return (
     <FieldGroup className="gap-4">
       <div className="grid grid-cols-2 gap-3">

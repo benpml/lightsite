@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "handout": {
+      "type": "http",
+      "url": "https://api.handout.link/mcp"
+    }
+  }
+}

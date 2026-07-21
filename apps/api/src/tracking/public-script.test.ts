@@ -78,6 +78,9 @@ describe("public tracking script", () => {
     expect(PUBLIC_TRACKING_V2_RECORDER_SCRIPT).toContain("maxEventsPerChunk");
     expect(PUBLIC_TRACKING_V2_RECORDER_SCRIPT).toContain("maxChunkBytes");
     expect(PUBLIC_TRACKING_V2_RECORDER_SCRIPT).toContain("maxBytes");
+    expect(PUBLIC_TRACKING_V2_RECORDER_SCRIPT).toContain("completion: terminalMetadata");
+    expect(PUBLIC_TRACKING_V2_RECORDER_SCRIPT).toContain("if (upload === terminalUpload) continue;");
+    expect(PUBLIC_TRACKING_V2_RECORDER_SCRIPT).not.toContain("state.inFlightSequence");
     expect(PUBLIC_TRACKING_V2_RECORDER_SCRIPT).not.toContain("compressed: false");
   });
 });

@@ -12,6 +12,7 @@ import {
   trackingV2EventRegistry,
   trackingV2ManifestPayloadSchema,
   trackingV2PublicBootstrapSchema,
+  trackingV2RecordingUploadSchema,
   trackingV2ServerEventDataSchema,
   trackingV2SiteTrackingSettingsResponseSchema,
   trackingV2SessionStartRequestSchema,
@@ -119,6 +120,26 @@ describe("tracking v2 browser contract", () => {
     });
 
     expect(trackingV2EventBatchSchema.safeParse(batch).success).toBe(false);
+  });
+
+  it("accepts terminal replay metadata only on the matching final chunk", () => {
+    const upload = {
+      schemaVersion: 4,
+      sessionId: "session_abc123",
+      sequence: 2,
+      events: [{ type: 2, timestamp: Date.parse(now), data: {} }],
+      completion: {
+        finalSequence: 2,
+        endedAt: now,
+        stopReason: "pagehide",
+      },
+    };
+
+    expect(trackingV2RecordingUploadSchema.safeParse(upload).success).toBe(true);
+    expect(trackingV2RecordingUploadSchema.safeParse({
+      ...upload,
+      completion: { ...upload.completion, finalSequence: 1 },
+    }).success).toBe(false);
   });
 
   it("keeps public bootstrap opaque and manifest binding encrypted", () => {
@@ -257,6 +278,8 @@ describe("tracking v2 server-owned data", () => {
   it("keeps the registry and type helpers explicit", () => {
     expect(trackingV2EventRegistry.site_visit.sessionScoped).toBe(true);
     expect(trackingV2EventRegistry.slack_share.sessionScoped).toBe(false);
+    expect(trackingV2EventRegistry.site_visit.automationTriggerable).toBe(true);
+    expect(trackingV2EventRegistry.webhook_send.automationTriggerable).toBe(false);
     expect(isTrackingV2EventType("button_click")).toBe(true);
     expect(isTrackingV2EventType("heartbeat")).toBe(false);
     expect(isTrackingV2BrowserEventType("site_visit")).toBe(false);

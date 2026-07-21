@@ -122,8 +122,8 @@ export function TrackingRecordingReplay({
       )}>
         {!session.recording.available ? (
           <RecordingReplayEmpty
-            detail={unavailableReplayCopy(session.recording.status).detail}
-            title={unavailableReplayCopy(session.recording.status).title}
+            detail={unavailableReplayCopy(session).detail}
+            title={unavailableReplayCopy(session).title}
             variant={variant}
           />
         ) : null}
@@ -624,9 +624,12 @@ const quietReplayLogger: Pick<Console, "debug" | "error" | "info" | "log" | "war
   warn() {},
 }
 
-function unavailableReplayCopy(status: TrackingV2SessionSummary["recording"]["status"]) {
+function unavailableReplayCopy(session: TrackingV2SessionSummary) {
+  const status = session.recording.status
   if (status === "pending" || status === "recording") {
-    return { title: "Replay processing", detail: "The replay is still receiving its final session data." }
+    return session.state === "active"
+      ? { title: "Recording in progress", detail: "The replay will be ready after this visit ends." }
+      : { title: "Finalizing replay", detail: "The final session data is being assembled." }
   }
   if (status === "expired" || status === "deleted") {
     return { title: "Replay expired", detail: "This replay has reached its retention limit and was removed." }

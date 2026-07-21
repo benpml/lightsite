@@ -1,11 +1,11 @@
 import type { ComponentType, SVGProps } from "react"
 import {
   IconBook,
+  IconBolt,
   IconBox,
   IconChartBar,
   IconClock,
   IconCopy,
-  IconCreditCard,
   IconEye,
   IconMouse,
   IconPalette,
@@ -111,8 +111,8 @@ export const activeWorkspace = workspaces[0]
 export const primaryNavItems: NavItem[] = [
   { title: "Sites", href: "/sites", icon: IconWorldLongitude },
   { title: "Tracking", href: "/tracking", icon: IconScanPosition },
+  { title: "Automations", href: "/automations", icon: IconBolt },
   { title: "Team", href: "/team", icon: IconUsersGroup },
-  { title: "Billing", href: "/billing", icon: IconCreditCard },
   { title: "Settings", href: "/settings", icon: IconSettings2 },
 ]
 

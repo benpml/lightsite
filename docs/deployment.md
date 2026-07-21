@@ -48,7 +48,7 @@ Render setup:
 1. New > Blueprint.
 2. Connect `benpml/handout`.
 3. Use `render.yaml`.
-4. Provide `DATABASE_URL` and `LOGO_DEV_TOKEN` when prompted.
+4. Provide `DATABASE_URL`, `LOGO_DEV_TOKEN`, and the same `AUTOMATIONS_ENCRYPTION_KEY` value for both `handout-api` and `handout-automations-worker` when prompted.
 5. Let Render generate `BETTER_AUTH_SECRET` and `TRACKING_SIGNING_SECRET`.
 
 Important Render settings:
@@ -57,6 +57,8 @@ Important Render settings:
 - Move to `starter` when the API needs to stop sleeping.
 - `TRUST_PROXY=true` is required behind Render's proxy.
 - `API_JSON_BODY_LIMIT=256kb` keeps request bodies bounded.
+- `AUTOMATIONS_ENCRYPTION_KEY` is a 32-byte base64 key used to encrypt webhook URLs and signing secrets. Generate it once with `openssl rand -base64 32`; the API and automation worker must use the exact same value. Losing or changing it makes saved destinations unreadable, so store it in the production secret manager and rotate through the product flow rather than replacing the environment value.
+- `AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS` must remain `false` in production. It exists only for isolated local end-to-end tests.
 
 Render free web services do not support Blueprint `preDeployCommand`, so the web
 service start command intentionally does not run migrations. Run Neon migrations
@@ -167,6 +169,14 @@ The API web service uses `TRACKING_RETENTION_MODE=external` so it does not run a
 The cron command processes bounded batches until idle and exits nonzero when object deletion
 fails or work remains after its safety ceiling; Render failure notifications must remain enabled.
 
+Session expiry and replay finalization are latency-sensitive rather than retention work. Session
+list/detail reads therefore run a single-flight reconciler at most once per 30 seconds per API
+instance. Each run performs two bounded, partial-index-backed reads (maximum 1,000 candidates),
+does not read or write replay objects, and logs only when it changes state. There is no background
+database polling while the tracking UI is idle, and the six-hour cron remains the unattended
+fallback. Completion writes are conditional and idempotent, so a late browser request cannot
+downgrade an available replay.
+
 The cron job and API share the same Neon connection and bucket-scoped R2 credentials. The cron
 job uses `DATABASE_POOL_MAX=2`; the API remains capped at five connections.
 
@@ -248,6 +258,7 @@ Keep these from day one:
 - `DATABASE_POOL_MAX=5` on Render while using Neon.
 - Tracking should stay batched/rate-limited/summarized.
 - No unbounded background retries.
+- Webhook queues, monthly outbound attempts, request duration, payload size, test frequency, and retries all have server-enforced hard limits.
 - Provider budget alerts enabled in Cloudflare, Neon, and Render.
 
 ## Production Checklist

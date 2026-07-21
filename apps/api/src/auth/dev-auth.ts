@@ -1,4 +1,5 @@
 import type { Database } from "@handout/db";
+import { eq } from "drizzle-orm";
 import type { Request } from "express";
 import type { AppBootstrap } from "../bootstrap/service";
 import type { CurrentActor } from "./current-actor";
@@ -22,6 +23,12 @@ export const devWorkspace = {
   plan: "pro",
 } as const;
 
+let devProfileImageUrl: string | undefined;
+
+export function setDevProfileImageUrl(imageUrl: string | undefined) {
+  devProfileImageUrl = imageUrl;
+}
+
 export function isDevAuthBypassRequest(request: Request) {
   return isDevAuthBypassEnabled() && request.header(DEV_AUTH_BYPASS_HEADER) === "1";
 }
@@ -34,12 +41,19 @@ export function isDevAuthBypassEnabled() {
   return process.env.NODE_ENV !== "production";
 }
 
+export function resolveDevWorkspaceLogoUrl(workspaceId: string) {
+  return isDevAuthBypassEnabled() && workspaceId === devWorkspace.id
+    ? devWorkspace.logoUrl
+    : null;
+}
+
 export function getDevAppBootstrap(): AppBootstrap {
   return {
     user: {
       id: devActor.userId,
       email: devActor.email,
       ...(devActor.name ? { name: devActor.name } : {}),
+      ...(devProfileImageUrl ? { avatarUrl: devProfileImageUrl } : {}),
       accountSetupComplete: true,
       internalAccess: true,
     },
@@ -173,6 +187,13 @@ export async function provisionDevAuthBypass(database?: Database) {
         },
       });
   });
+
+  const [persistedUser] = await db
+    .select({ image: user.image })
+    .from(user)
+    .where(eq(user.id, devActor.userId))
+    .limit(1);
+  setDevProfileImageUrl(persistedUser?.image ?? undefined);
 
   return devActor;
 }

@@ -113,6 +113,8 @@ const shadSemanticTokens: TokenRow[] = [
 
 const handoutTokens: TokenRow[] = [
   semantic("page-background", "background", "background", "Compatibility alias only. Background and page background are now the same."),
+  semantic("site-card-background", "white", "neutral-800", "Card-like blocks inside site documents, separate from app cards."),
+  semantic("site-card-border", "border", "neutral-alpha-A300", "Border for card-like blocks inside site documents."),
   semantic("tertiary-foreground", "neutral-600", "neutral-300", "Third-level labels, icons, sidebar secondary rows."),
   semantic("muted-faint", "neutral-400", "neutral-600", "Fainter block placeholder text."),
   semantic("selection-background", "#F7F9FF", "neutral-50 at 8%", "Selected editor blocks and selection fill."),

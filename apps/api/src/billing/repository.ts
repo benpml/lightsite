@@ -1,8 +1,10 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, gt } from "drizzle-orm";
 import {
   db as defaultDb,
   workspaceBilling,
   workspaceMembers,
+  workspaceInvitations,
+  webhookAutomations,
   workspaces,
   type Database,
 } from "@handout/db";
@@ -38,7 +40,7 @@ export type SyncSubscriptionInput = {
 };
 
 export interface BillingRepository {
-  countActiveWorkspaceMembers(workspaceId: string): Promise<number>;
+  countBillableWorkspaceSeats(workspaceId: string): Promise<number>;
   findByWorkspaceId(workspaceId: string): Promise<BillingRecord | null>;
   findWorkspaceIdByStripeCustomerId(stripeCustomerId: string): Promise<string | null>;
   findWorkspaceIdByStripeSubscriptionId(stripeSubscriptionId: string): Promise<string | null>;
@@ -51,16 +53,26 @@ export interface BillingRepository {
 
 export function createDbBillingRepository(database: Database = defaultDb): BillingRepository {
   return {
-    async countActiveWorkspaceMembers(workspaceId) {
-      const [row] = await database
+    async countBillableWorkspaceSeats(workspaceId) {
+      const [memberRow, invitationRow] = await Promise.all([
+        database
         .select({ value: count() })
         .from(workspaceMembers)
         .where(and(
           eq(workspaceMembers.workspaceId, workspaceId),
           eq(workspaceMembers.status, "active"),
-        ));
+        )),
+        database
+          .select({ value: count() })
+          .from(workspaceInvitations)
+          .where(and(
+            eq(workspaceInvitations.workspaceId, workspaceId),
+            eq(workspaceInvitations.status, "pending"),
+            gt(workspaceInvitations.expiresAt, new Date()),
+          )),
+      ]);
 
-      return row?.value ?? 0;
+      return (memberRow[0]?.value ?? 0) + (invitationRow[0]?.value ?? 0);
     },
 
     async findByWorkspaceId(workspaceId) {
@@ -164,6 +176,17 @@ export function createDbBillingRepository(database: Database = defaultDb): Billi
             updatedAt: now,
           })
           .where(eq(workspaces.id, input.workspaceId));
+
+        if (input.effectivePlan !== "pro") {
+          await transaction.update(webhookAutomations).set({
+            state: "paused",
+            stateReason: "plan_changed",
+            updatedAt: now,
+          }).where(and(
+            eq(webhookAutomations.workspaceId, input.workspaceId),
+            eq(webhookAutomations.state, "enabled"),
+          ));
+        }
 
         return toBillingRecord(billing);
       });

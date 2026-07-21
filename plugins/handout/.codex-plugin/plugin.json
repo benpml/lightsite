@@ -1,0 +1,32 @@
+{
+  "name": "handout",
+  "version": "1.0.0",
+  "description": "Build, personalize, publish, and analyze Handout sales sites with an agent.",
+  "author": {
+    "name": "Handout",
+    "url": "https://www.handout.link"
+  },
+  "homepage": "https://www.handout.link",
+  "repository": "https://github.com/benpml/handout",
+  "keywords": ["sales", "personalization", "sites", "analytics", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Handout",
+    "shortDescription": "Build and personalize sales sites with your agent",
+    "longDescription": "Handout gives your agent a safe, first-class workflow for building polished sales sites, editing pages, creating recipient-specific copies, publishing with approval, and turning engagement into follow-up actions.",
+    "developerName": "Handout",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write", "Analytics"],
+    "websiteURL": "https://www.handout.link",
+    "privacyPolicyURL": "https://www.handout.link/privacy",
+    "defaultPrompt": [
+      "Build a polished sales site for this opportunity.",
+      "Personalize this site for my account list.",
+      "Analyze engagement and recommend follow-up."
+    ],
+    "brandColor": "#0A0A0A",
+    "composerIcon": "./assets/handout-icon.svg",
+    "logo": "./assets/handout-logo.svg"
+  }
+}

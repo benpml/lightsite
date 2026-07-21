@@ -210,7 +210,6 @@ export function createEditorExtensions(
       enableClickSelection: true,
       linkOnPaste: true,
       openOnClick: false,
-      protocols: ["mailto", "tel"],
       HTMLAttributes: {
         rel: "noopener noreferrer",
         target: "_blank",

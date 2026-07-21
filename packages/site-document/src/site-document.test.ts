@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { HANDOUT_THEME_CSS } from "@handout/design-tokens";
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain";
+import { TRACKING_V2_SCRIPT_ENDPOINT } from "@handout/tracking-schema";
 
 import {
   createDefaultSiteContent,
+  defaultSiteDefaults,
   getSiteMetadata,
   getSiteVariableValues,
+  HANDOUT_PRIVACY_POLICY_URL,
   normalizeSiteContent,
   normalizePublishedSitePayload,
   normalizeSiteIconColor,
@@ -20,12 +23,59 @@ import {
   SITE_ICON_OPTIONS,
   SITE_DOCUMENT_CSS,
   SITE_DOCUMENT_IFRAME_SANDBOX,
+  SITE_DOCUMENT_PROSEMIRROR_SCHEMA,
   SITE_DOCUMENT_SCHEMA_VERSION,
   siteContentSchema,
+  siteDefaultsSchema,
   type PublishedSitePayload,
 } from "./index";
 
 describe("canonical site document", () => {
+  it("rejects unsafe session replay defaults", () => {
+    expect(siteDefaultsSchema.safeParse({
+      ...defaultSiteDefaults,
+      recordingEnabled: true,
+    }).success).toBe(false);
+    expect(siteDefaultsSchema.safeParse({
+      ...defaultSiteDefaults,
+      recordingEnabled: true,
+      recordingDisclosureAccepted: true,
+      trackingConsentPopup: "none",
+    }).success).toBe(false);
+    const enabledDefaults = siteDefaultsSchema.safeParse({
+      ...defaultSiteDefaults,
+      recordingEnabled: true,
+      recordingDisclosureAccepted: true,
+      trackingPrivacyPolicyUrl: "https://customer.example/privacy",
+    });
+    expect(enabledDefaults.success).toBe(true);
+    if (enabledDefaults.success) {
+      expect(enabledDefaults.data.trackingPrivacyPolicyUrl).toBe(HANDOUT_PRIVACY_POLICY_URL);
+    }
+  });
+
+  it("rejects custom default variables that collide with system variables", () => {
+    const variable = {
+      id: "custom-name",
+      key: "custom-name",
+      label: "Name",
+      type: "text" as const,
+      defaultValue: "",
+    };
+    expect(siteDefaultsSchema.safeParse({
+      ...defaultSiteDefaults,
+      variables: [variable],
+    }).success).toBe(false);
+
+    expect(siteDefaultsSchema.safeParse({
+      ...defaultSiteDefaults,
+      variables: [
+        { ...variable, label: "Deal value" },
+        { ...variable, id: "custom-name-2", key: "custom-name-2", label: " deal  value " },
+      ],
+    }).success).toBe(false);
+  });
+
   it("names the first tab Overview by default", () => {
     const content = createDefaultSiteContent();
 
@@ -108,7 +158,7 @@ describe("canonical site document", () => {
       siteDescription: "",
       primaryColor: "neutral",
       trackingConsentPopup: "popup-a",
-      trackingPrivacyPolicyUrl: "",
+      trackingPrivacyPolicyUrl: HANDOUT_PRIVACY_POLICY_URL,
     });
   });
 
@@ -125,6 +175,42 @@ describe("canonical site document", () => {
     expect(getSiteMetadata(content, "Fallback title", values)).toEqual({
       title: "Plan for Acme",
       description: "Prepared for Mira at acme.com",
+    });
+  });
+
+  it("keeps page title content separate from site metadata", () => {
+    const content = createDefaultSiteContent("Fallback title");
+    content.variables.push({
+      id: "var-company",
+      key: "company_name",
+      label: "Company name",
+      type: "text",
+      defaultValue: "your team",
+    });
+    content.pages[0]!.document.content = [{
+      type: "pageTitleSection",
+      attrs: { id: "title", align: "left" },
+      content: [{
+        type: "pageTitleTitle",
+        content: [
+          { type: "text", text: "Plan for " },
+          { type: "variableToken", attrs: { variableId: "var-company", fallbackName: "your team" } },
+        ],
+      }, {
+        type: "pageTitleSubtitle",
+        content: [
+          { type: "text", text: "Prepared for " },
+          { type: "variableToken", attrs: { variableId: "var-company", fallbackName: "your team" } },
+        ],
+      }],
+    }];
+    const values = getSiteVariableValues(content, {
+      variableValues: { company_name: "Acme" },
+    });
+
+    expect(getSiteMetadata(content, "Fallback title", values)).toEqual({
+      title: "Fallback title",
+      description: "",
     });
   });
 
@@ -201,12 +287,20 @@ describe("canonical site document", () => {
     expect(html).toContain('data-handout-track="link" data-handout-element-id="proposal-link"');
     expect(html).toContain('data-handout-page-id="page-pricing" data-handout-track="tab"');
     expect(html).toContain(renderSiteIconSvg("notes"));
+    expect(html).toContain(renderSiteIconSvg("world-longitude"));
     expect(html).toContain(renderSiteIconSvg("calendar"));
+    expect(html).toContain('class="handout-sidebar-button handout-sidebar-button-filled"');
+    expect(html).toContain(
+      '<html lang="en" class="dark" data-handout-public-site="" style="--handout-primary:var(--foreground,var(--primary));',
+    );
+    expect(html).toContain(
+      `class="handout-site" data-handout-site-id="${payload.site.id}">`,
+    );
     expect(html).toContain("Book a demo</a>");
     expect(html).not.toContain("data-handout-element-kind");
     expect(html).not.toContain("data-handout-element-label");
     expect(html).not.toContain("data-handout-element-href");
-    expect(html).toContain('<script defer src="/site-runtime.v5.js"></script>');
+    expect(html).toContain('<script defer src="/site-runtime.v6.js"></script>');
     expect(html).toContain('url("/fonts/geist-latin-wght-normal.woff2")');
     expect(html).toContain('format("woff2")');
     expect(html).not.toContain("woff2-variations");
@@ -218,8 +312,11 @@ describe("canonical site document", () => {
     expect(html).toContain(renderSiteIconSvg("x"));
     expect(html).toContain('stroke-width="2"');
     expect(html).toContain('<h2>Tabs</h2>');
-    expect(html).toContain('<span class="handout-footer-logo" role="img" aria-label="Handout"></span>');
-    expect(html).not.toContain('<img src="/handout-logo.svg" alt="Handout">');
+    expect(html).toContain('class="handout-sidebar-built-with"');
+    expect(html).toContain('<span class="handout-sidebar-built-with-logo" aria-hidden="true"></span>');
+    expect(html).toContain('Built with <a href="https://www.handout.link" target="_blank" rel="noopener noreferrer">Handout</a>');
+    expect(html).not.toContain('class="handout-footer"');
+    expect(SITE_DOCUMENT_CSS).toContain('-webkit-mask:url("/handout-logo-icon.svg") center/contain no-repeat');
     expect(html).toContain(`<style>${HANDOUT_THEME_CSS}${SITE_DOCUMENT_CSS}</style>`);
   });
 
@@ -392,7 +489,8 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).toContain('font-family:"Geist Variable","Geist"')
     expect(SITE_DOCUMENT_CSS).toContain("letter-spacing:-.02em")
     expect(SITE_DOCUMENT_CSS).toContain("letter-spacing:-.03em")
-    expect(SITE_DOCUMENT_CSS).toContain("--handout-font-weight-body:400;--handout-font-weight-heading:550;--handout-font-weight-label:500;--handout-list-item-gap:4px")
+    expect(SITE_DOCUMENT_CSS).toContain("--handout-block-gap:20px;--handout-body-gap:12px;--handout-heading-body-gap:14px;--handout-list-block-gap:24px")
+    expect(SITE_DOCUMENT_CSS).toContain("--handout-heading-1-gap:72px;--handout-heading-2-gap:50px;--handout-heading-3-gap:36px;--handout-divider-gap:36px;--handout-list-item-gap:4px")
     expect(SITE_DOCUMENT_CSS).toContain(
       ":where(html[data-handout-public-site],body[data-handout-public-site],.handout-site,.handout-document-editor,.handout-editor-sidebar-content),:where(.handout-site,.handout-document-editor,.handout-editor-sidebar-content) *{font-feature-settings:normal;font-kerning:normal;font-optical-sizing:auto;font-synthesis-weight:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}",
     )
@@ -403,7 +501,7 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).not.toContain("font-variation-settings")
     expect(SITE_DOCUMENT_CSS).not.toContain(".handout-document-editor .handout-prosemirror>p{padding")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-title-subtitle,[data-handout-page-title-subtitle]{max-width:100%;margin:8px 0 0")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror>h1+p,.handout-prosemirror>h2+p,.handout-prosemirror>h3+p{margin-top:14px}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror>h1+p,.handout-prosemirror>h2+p,.handout-prosemirror>h3+p{--handout-sibling-gap:var(--handout-heading-body-gap)}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-title{display:flex;flex-direction:column;align-items:center;gap:24px;padding:0 0 36px")
     expect(SITE_DOCUMENT_CSS).toContain("overflow:hidden;border:1px solid var(--border);border-radius:14px")
     expect(SITE_DOCUMENT_CSS).toContain("background:var(--background);color:var(--foreground)}.handout-page-title-logo img")
@@ -413,7 +511,9 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).not.toContain(".handout-document-editor .handout-prosemirror>*+*{margin-top:20px}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-document-editor .handout-prosemirror{width:100%;min-width:0;max-width:100%")
     expect(SITE_DOCUMENT_CSS).toContain("width:min(612px,calc(100% - 104px));max-width:calc(100% - 104px)")
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-logo-grid{display:grid;width:100%;min-width:0;max-width:100%")
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-logo-grid{display:grid;width:100%;min-width:0;max-width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0}",
+    )
     expect(SITE_DOCUMENT_CSS).toContain(
       ".handout-icon-list,.handout-document-editor .handout-prosemirror ul[data-handout-icon-list]{display:flex;flex-direction:column;gap:var(--handout-list-item-gap);padding:0!important;list-style:none!important}"
     )
@@ -421,11 +521,17 @@ describe("canonical site document", () => {
       ".handout-task-list,.handout-document-editor .handout-prosemirror ul[data-type=taskList]{display:flex;flex-direction:column;gap:var(--handout-list-item-gap);padding:0!important;list-style:none!important}",
     )
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-prosemirror>blockquote,.handout-prosemirror>pre,.handout-prosemirror>ul,.handout-prosemirror>ol,.handout-prosemirror>:where(ul,ol)+*{margin-top:24px}",
+      ".handout-prosemirror>blockquote,.handout-prosemirror>pre,.handout-prosemirror>ul,.handout-prosemirror>ol,.handout-prosemirror>:where(ul,ol)+*{--handout-sibling-gap:var(--handout-list-block-gap)}",
     )
-    expect(SITE_DOCUMENT_CSS.lastIndexOf(".handout-prosemirror>blockquote,.handout-prosemirror>pre,.handout-prosemirror>ul,.handout-prosemirror>ol")).toBeGreaterThan(
+    expect(SITE_DOCUMENT_CSS.lastIndexOf(".handout-prosemirror>:not(:first-child){margin-top:var(--handout-sibling-gap,var(--handout-block-gap))}")).toBeGreaterThan(
       SITE_DOCUMENT_CSS.indexOf(".handout-list,.handout-prosemirror>ul,.handout-prosemirror>ol"),
     )
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror>p+p{--handout-sibling-gap:var(--handout-body-gap)}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror>h1{--handout-sibling-gap:var(--handout-heading-1-gap)}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-prosemirror>hr{--handout-sibling-gap:var(--handout-divider-gap)}")
+    expect(SITE_DOCUMENT_CSS).not.toContain("margin-top:36px!important")
+    expect(SITE_DOCUMENT_CSS).not.toContain(".handout-blockquote,.handout-document-editor .handout-prosemirror>blockquote")
+    expect(SITE_DOCUMENT_CSS).not.toContain(".handout-code-block,.handout-document-editor .handout-prosemirror>pre")
     expect(SITE_DOCUMENT_CSS).toContain(
       ".handout-list-item,.handout-document-editor .handout-prosemirror>:where(ul,ol)>li{padding-left:0}",
     )
@@ -452,7 +558,9 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar,.handout-editor-sidebar-content{font-family:\"Geist Variable\",\"Geist\"")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-editor-sidebar-content :where(button,a){font-family:inherit;letter-spacing:-.02em}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section>h2,.handout-editor-sidebar-section-title{height:26px;min-width:0;margin:0 0 0 4px;overflow:hidden;color:var(--foreground);font-size:14px;font-weight:500;letter-spacing:-.02em");
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-inner{display:flex;width:241px;flex-direction:column;gap:24px}");
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-sidebar-inner{display:flex;width:241px;min-height:0;flex:1;flex-direction:column;gap:24px;overflow-y:auto}",
+    );
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-section-buttons{gap:10px}");
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-link:hover,.handout-sidebar-link:focus-visible{color:var(--foreground)}");
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-link svg{color:var(--handout-sidebar-link-icon,var(--blue-foreground))}");
@@ -470,7 +578,7 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).toContain(".handout-mobile-menu svg{width:14px;height:14px}");
     expect(SITE_DOCUMENT_CSS).toContain("color:var(--tertiary-foreground);cursor:pointer");
     expect(SITE_DOCUMENT_CSS).toContain("background:var(--neutral-alpha-a500)");
-    expect(SITE_DOCUMENT_CSS).toContain('mask:url("/handout-logo.svg") center/contain no-repeat');
+    expect(SITE_DOCUMENT_CSS).toContain('mask:url("/handout-logo-icon.svg") center/contain no-repeat');
   });
 
   it("uses the complete shared Tabler icon catalog in every renderer", () => {
@@ -501,22 +609,49 @@ describe("canonical site document", () => {
       "background:var(--handout-icon-background,var(--color-muted,var(--muted)))",
     );
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-icon-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+      ".handout-icon-card{padding:16px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background)",
     );
   });
 
-  it("uses the background token for every card block surface", () => {
+  it("uses the canonical site-card surface and shadow for every card-like block", () => {
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-image-card{display:grid;grid-template-columns:minmax(180px,41.5%) minmax(0,1fr);align-items:center;gap:20px;overflow:hidden;padding:6px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+      ".handout-image-card{display:grid;grid-template-columns:minmax(180px,41.5%) minmax(0,1fr);align-items:center;gap:20px;overflow:hidden;padding:6px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background);color:var(--foreground);box-shadow:var(--shadow-xs)",
     );
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-icon-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+      ".handout-icon-card{padding:16px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background);color:var(--foreground);box-shadow:var(--shadow-xs)",
     );
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-testimonial{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:20px 20px minmax(40px,auto);column-gap:12px;align-items:center;padding:16px 20px 20px 16px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+      ".handout-testimonial{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:20px 20px minmax(40px,auto);column-gap:12px;align-items:center;padding:16px 20px 20px 16px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background);color:var(--foreground);box-shadow:var(--shadow-xs)",
     );
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-logo-grid-item{display:flex;min-width:0;flex-direction:column;align-items:center;gap:8px;padding:16px 12px 12px;border:1px solid var(--border);border-radius:14px;background:var(--background)",
+      ".handout-logo-grid-item{display:flex;min-width:0;flex-direction:column;align-items:center;gap:8px;padding:16px 12px 12px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background);color:var(--foreground);text-align:center;box-shadow:var(--shadow-xs)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-embed{width:100%;overflow:hidden;border:1px solid var(--site-card-border);border-radius:12px;background:var(--site-card-background);box-shadow:var(--shadow-xs)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-page-navigation-link{display:flex;min-width:0;min-height:76px;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-table-scroll,.handout-document-editor .tableWrapper{overflow-x:auto;border:0;border-radius:10px;background:transparent;box-shadow:var(--shadow-xs)}",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-table,.handout-document-editor .tableWrapper>table{width:100%;border:1px solid var(--site-card-border)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      "border-right:1px solid var(--site-card-border);border-bottom:1px solid var(--site-card-border)",
+    );
+  });
+
+  it("keeps grid cells as layout containers instead of card surfaces", () => {
+    expect(SITE_DOCUMENT_PROSEMIRROR_SCHEMA.nodes.gridCell?.spec.content).toBe(
+      "block+",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-grid-cell,.handout-document-editor .handout-grid-cell{min-width:0;padding:0;border:0;background:transparent;box-shadow:none}",
+    );
+    expect(SITE_DOCUMENT_CSS).not.toContain(
+      ".handout-grid-cell,.handout-document-editor .handout-grid-cell{min-width:0;padding:16px;border:1px solid var(--site-card-border)",
     );
   });
 
@@ -597,6 +732,10 @@ describe("canonical site document", () => {
 
     expect(html).toContain(`<script>${PUBLIC_SITE_RUNTIME}</script>`);
     expect(html).toContain('class="handout-sidebar"');
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-sidebar{position:sticky;top:0;display:flex;width:289px;height:100svh;flex:none;flex-direction:column;gap:24px;padding:26px 24px 20px;background:var(--background)",
+    );
+    expect(SITE_DOCUMENT_CSS).not.toContain("padding:26px 24px;border-right");
     expect(html).toContain('aria-label="Open site navigation"');
     expect(html).toContain('data-handout-page-target=');
     expect(html).not.toContain(`<script defer src="${PUBLIC_SITE_RUNTIME_PATH}"></script>`);
@@ -605,8 +744,60 @@ describe("canonical site document", () => {
     expect(html).not.toContain(PUBLIC_SITE_LOGO_ENDPOINT);
     expect(PUBLIC_SITE_RUNTIME).toContain("image.src='/handout-logo.svg'");
     expect(PUBLIC_SITE_RUNTIME).toContain("removeLogoTile(tile)");
-    expect(PUBLIC_SITE_RUNTIME).toContain("setSidebarOpen(false,true)");
+    expect(PUBLIC_SITE_RUNTIME).toContain("setSidebarOpen(false,restoreMenuFocus)");
     expect(PUBLIC_SITE_RUNTIME).toContain(".handout-sidebar-backdrop");
+  });
+
+  it("renders docs-style previous and next navigation for adjacent visible tabs", () => {
+    const payload = buildPayload();
+    payload.content.pages.push(
+      {
+        id: "page-middle",
+        name: "Implementation",
+        slug: "implementation",
+        status: "visible",
+        sortOrder: 1,
+        document: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Middle" }] }] },
+      },
+      {
+        id: "page-last",
+        name: "Next steps",
+        slug: "next-steps",
+        status: "visible",
+        sortOrder: 2,
+        document: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Last" }] }] },
+      },
+      {
+        id: "page-hidden",
+        name: "Internal notes",
+        slug: "internal-notes",
+        status: "hidden",
+        sortOrder: 3,
+        document: { type: "doc", content: [{ type: "paragraph" }] },
+      },
+    );
+
+    const html = renderPublicSiteHtml(payload, { includeTracking: false });
+
+    expect(html.match(/handout-page-navigation-next"/g)).toHaveLength(2);
+    expect(html.match(/handout-page-navigation-previous"/g)).toHaveLength(2);
+    expect(html).toContain('aria-label="Go to next tab, Implementation"');
+    expect(html).toContain('aria-label="Go to previous tab, Overview"');
+    expect(html).toContain('aria-label="Go to next tab, Next steps"');
+    expect(html).not.toContain("Internal notes");
+    expect(html).toContain(renderSiteIconSvg("arrow-left"));
+    expect(html).toContain(renderSiteIconSvg("arrow-right"));
+    expect(PUBLIC_SITE_RUNTIME).toContain(
+      "selectedPanel.focus({preventScroll:true});requestAnimationFrame(function(){window.scrollTo({top:0,left:0,behavior:'auto'});})",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-page-navigation{display:grid");
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-page-navigation-next{grid-column:2;text-align:right}");
+  });
+
+  it("omits page navigation when there is only one visible tab", () => {
+    const html = renderPublicSiteHtml(buildPayload(), { includeTracking: false });
+
+    expect(html).not.toContain('aria-label="Page navigation"');
   });
 
   it("omits empty editor scaffold paragraphs from public output", () => {
@@ -676,17 +867,20 @@ describe("canonical site document", () => {
     });
     const neutralHtml = renderPublicSiteHtml(payload, { includeTracking: false });
 
-    expect(neutralHtml).toContain("--handout-sidebar-link-icon:var(--blue-foreground)");
+    expect(neutralHtml).toContain("--handout-sidebar-link-icon:var(--blue-foreground,var(--link))");
 
     payload.content.settings.primaryColor = "purple";
 
     const html = renderPublicSiteHtml(payload, { includeTracking: false });
 
-    expect(html).toContain("--handout-primary:var(--purple-foreground)");
-    expect(html).toContain("--handout-primary-soft:var(--purple-background-subtle)");
-    expect(html).toContain("--handout-sidebar-link-icon:var(--purple-foreground)");
+    expect(html).toContain(
+      '<html lang="en" class="dark" data-handout-public-site="" style="--handout-primary:var(--purple-foreground,var(--primary));',
+    );
+    expect(html).toContain("--handout-primary:var(--purple-foreground,var(--primary))");
+    expect(html).toContain("--handout-primary-soft:var(--purple-background-subtle,var(--accent))");
+    expect(html).toContain("--handout-sidebar-link-icon:var(--purple-foreground,var(--link))");
     expect(html).toContain("handout-sidebar-row handout-sidebar-link");
-    expect(html).toContain(renderSiteIconSvg("link"));
+    expect(html).toContain(renderSiteIconSvg("world-longitude"));
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-row.is-active{background:var(--handout-primary-soft");
     expect(SITE_DOCUMENT_CSS).toContain(".handout-tab,.handout-sidebar-link{color:var(--tertiary-foreground)}");
     expect(SITE_DOCUMENT_CSS).toContain(".handout-tab svg{color:var(--muted-foreground)}");
@@ -705,8 +899,6 @@ describe("canonical site document", () => {
       expiresAt: "2026-07-10T12:00:00.000Z",
     };
     payload.content.settings.trackingConsentPopup = "popup-b";
-    payload.content.settings.trackingPrivacyPolicyUrl = "https://customer.example/privacy";
-
     const popupHtml = renderPublicSiteHtml(payload);
     expect(popupHtml).toContain('data-handout-consent-popup="popup-b"');
     expect(popupHtml).toContain('role="dialog" aria-modal="true"');
@@ -715,7 +907,7 @@ describe("canonical site document", () => {
     expect(popupHtml).toContain("Deny and proceed");
     expect(popupHtml).toContain("Allow and proceed");
     expect(popupHtml).toContain('data-handout-consent-site-id="22222222-2222-4222-8222-222222222222"');
-    expect(popupHtml).toContain('data-handout-consent-script-src="/track/2026-07-13.v9/script.js"');
+    expect(popupHtml).toContain(`data-handout-consent-script-src="${TRACKING_V2_SCRIPT_ENDPOINT}"`);
     expect(popupHtml).not.toContain("<script>(function()");
     expect(PUBLIC_SITE_RUNTIME).toContain("localStorage.setItem(consentStorageKey,JSON.stringify(value))");
     expect(PUBLIC_SITE_RUNTIME).toContain("data-handout-replay-consent");
@@ -726,7 +918,7 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).toContain("padding:6px 0;font-size:16px");
     expect(SITE_DOCUMENT_CSS).toContain("padding:0 10px;border:1px solid var(--border)");
     expect(popupHtml).toContain("Privacy choices");
-    expect(popupHtml).toContain('href="https://customer.example/privacy"');
+    expect(popupHtml).toContain(`href="${HANDOUT_PRIVACY_POLICY_URL}"`);
 
     payload.content.settings.trackingConsentPopup = "popup-a";
     const popupAHtml = renderPublicSiteHtml(payload);
@@ -740,7 +932,7 @@ describe("canonical site document", () => {
     expect(immediateHtml).toContain("data-handout-tracking-v2=");
   });
 
-  it("fails consent-gated tracking closed without a valid customer privacy policy", () => {
+  it("always uses Handout's privacy policy for consent-gated tracking", () => {
     const payload = buildPayload();
     payload.trackingV2 = {
       version: 2,
@@ -751,11 +943,14 @@ describe("canonical site document", () => {
     };
 
     const html = renderPublicSiteHtml(payload);
-    expect(html).not.toContain("data-handout-consent-popup");
-    expect(html).not.toContain("data-handout-tracking-v2=");
+    expect(html).toContain("data-handout-consent-popup");
+    expect(html).toContain("data-handout-consent-bootstrap=");
+    expect(html).toContain(`href="${HANDOUT_PRIVACY_POLICY_URL}"`);
 
     payload.content.settings.trackingPrivacyPolicyUrl = "http://customer.example/privacy";
-    expect(renderPublicSiteHtml(payload)).not.toContain("data-handout-tracking-v2=");
+    const legacyHtml = renderPublicSiteHtml(payload);
+    expect(legacyHtml).toContain(`href="${HANDOUT_PRIVACY_POLICY_URL}"`);
+    expect(legacyHtml).not.toContain("customer.example/privacy");
   });
 });
 

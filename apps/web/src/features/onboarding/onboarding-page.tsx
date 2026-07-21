@@ -21,7 +21,9 @@ import {
 } from "@/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { Spinner } from "@/components/ui/spinner"
+import { authClient } from "@/features/auth/auth-client"
 import { getAppBootstrap, completeAccountSetup } from "@/features/app-bootstrap/api"
 import { getApiErrorMessage, getApiFieldError, isApiClientError } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
@@ -144,20 +146,90 @@ function OnboardingErrorCard({
 }
 
 function VerifyEmailCard({ email }: { email: string }) {
+  const queryClient = useQueryClient()
+  const [code, setCode] = useState("")
+  const [error, setError] = useState("")
+  const [pending, setPending] = useState(false)
+  const [resent, setResent] = useState(false)
+
+  const verify = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (code.length !== 6 || pending) return
+    setPending(true)
+    setError("")
+    try {
+      const result = await authClient.emailOtp.verifyEmail({ email, otp: code })
+      if (result.error) throw new Error(result.error.message)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.me() })
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "That code is invalid or expired.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const resend = async () => {
+    if (pending) return
+    setPending(true)
+    setError("")
+    setResent(false)
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "email-verification",
+      })
+      if (result.error) throw new Error(result.error.message)
+      setResent(true)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "A new code could not be sent.")
+    } finally {
+      setPending(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Verify your email</CardTitle>
-        <CardDescription>{email}</CardDescription>
+        <CardDescription>Enter the 6-digit code sent to {email}.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <Alert>
-          <AlertTitle>Email verification required</AlertTitle>
-          <AlertDescription>
-            Open the verification link sent to your inbox, then refresh this page.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
+      <form className="contents" onSubmit={verify}>
+        <CardContent>
+          <FieldGroup>
+            <Field data-invalid={Boolean(error) || undefined}>
+              <FieldLabel htmlFor="onboarding-verification-code">Verification code</FieldLabel>
+              <InputOTP
+                id="onboarding-verification-code"
+                maxLength={6}
+                value={code}
+                onChange={(value) => {
+                  setCode(value)
+                  setError("")
+                }}
+                disabled={pending}
+                aria-invalid={Boolean(error) || undefined}
+              >
+                <InputOTPGroup>
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <InputOTPSlot key={index} index={index} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+              {error ? <FieldError>{error}</FieldError> : null}
+              {resent ? <FieldDescription>A new code was sent.</FieldDescription> : null}
+            </Field>
+          </FieldGroup>
+        </CardContent>
+        <CardFooter className="flex gap-2">
+          <Button type="submit" disabled={pending || code.length !== 6}>
+            {pending ? <Spinner data-icon="inline-start" /> : null}
+            Verify email
+          </Button>
+          <Button type="button" variant="outline" disabled={pending} onClick={() => void resend()}>
+            Resend code
+          </Button>
+        </CardFooter>
+      </form>
     </Card>
   )
 }

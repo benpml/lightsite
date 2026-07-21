@@ -20,10 +20,14 @@ describe("api env parsing", () => {
       API_JSON_BODY_LIMIT: "256kb",
       API_PORT: 3011,
       API_SITE_CONTENT_JSON_BODY_LIMIT: "12mb",
+      AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS: false,
+      AUTOMATIONS_ENABLED: false,
+      AUTOMATIONS_WORKER_MODE: "in-process",
       BETTER_AUTH_SECRET: "a-secret-value-that-is-long-enough",
       BETTER_AUTH_URL: "http://localhost:5173",
       DATABASE_POOL_MAX: 10,
       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/handout",
+      EMAIL_FROM: "Handout <noreply@handout.link>",
       NODE_ENV: "development",
       PUBLIC_SITE_ORIGIN: "https://pages.handout.test",
       TRACKING_SIGNING_SECRET: "a-tracking-signing-secret-long-enough",
@@ -53,6 +57,23 @@ describe("api env parsing", () => {
   it("supports an external production retention scheduler", () => {
     expect(parseApiEnv({ ...validEnv, TRACKING_RETENTION_MODE: "external" }).TRACKING_RETENTION_MODE)
       .toBe("external");
+  });
+
+  it("requires an encryption key when automations are enabled", () => {
+    expect(() => parseApiEnv({ ...validEnv, AUTOMATIONS_ENABLED: "true" })).toThrow();
+    expect(parseApiEnv({
+      ...validEnv,
+      AUTOMATIONS_ENABLED: "true",
+      AUTOMATIONS_ENCRYPTION_KEY: "a".repeat(32),
+    }).AUTOMATIONS_ENABLED).toBe(true);
+  });
+
+  it("never permits local automation destinations in production", () => {
+    expect(() => parseApiEnv({
+      ...validEnv,
+      NODE_ENV: "production",
+      AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS: "true",
+    })).toThrow();
   });
 
   it("rejects short auth secrets", () => {

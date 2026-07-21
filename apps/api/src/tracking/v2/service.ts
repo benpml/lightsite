@@ -2,7 +2,6 @@ import { createHash, createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import {
   resolvePublicSiteTracking,
-  sanitizeTrackingPrivacyPolicyUrl,
   type PublishedSitePayload,
 } from "@handout/site-document";
 import {
@@ -25,7 +24,7 @@ import {
   type TrackingV2EventsResponse,
   type TrackingV2ManifestElement,
   type TrackingV2ManifestPayload,
-  type TrackingV2RecordingChunk,
+  type TrackingV2RecordingUpload,
   type TrackingV2RecordingComplete,
   type TrackingV2RecordingManifestResponse,
   type TrackingV2SessionEnd,
@@ -75,6 +74,7 @@ export type TrackingV2ServiceOptions = {
   suppressionService: TrackingSuppressionService;
   tokenSecret: string;
   recordingService?: TrackingV2RecordingService | null;
+  reconcileSessions?: () => Promise<void>;
   now?: () => Date;
 };
 
@@ -119,7 +119,7 @@ export interface TrackingV2Service {
   }): Promise<{ recorded: boolean }>;
   recordHeartbeat(heartbeat: TrackingV2SessionHeartbeat): Promise<void>;
   endSession(end: TrackingV2SessionEnd): Promise<void>;
-  recordRecordingChunk(input: { recordingId: string; uploadToken: string; chunk: TrackingV2RecordingChunk }): Promise<{ duplicate: boolean; sequence: number }>;
+  recordRecordingChunk(input: { recordingId: string; uploadToken: string; upload: TrackingV2RecordingUpload }): Promise<{ duplicate: boolean; sequence: number }>;
   completeRecording(input: { recordingId: string; uploadToken: string; complete: TrackingV2RecordingComplete }): Promise<{ status: string }>;
   getRecordingManifest(input: { workspaceId: string; sessionId: string }): Promise<Omit<TrackingV2RecordingManifestResponse, "requestId"> | null>;
   getRecordingChunk(input: { workspaceId: string; recordingId: string; sequence: number }): Promise<TrackingV2RecordingObject | null>;
@@ -240,8 +240,7 @@ export function createTrackingV2Service(options: TrackingV2ServiceOptions): Trac
         settings.recordingEnabled &&
         settings.recordingTermsVersion === TRACKING_V2_REPLAY_TERMS_VERSION &&
         settings.recordingTermsAcceptedAt &&
-        payload.content.settings.trackingConsentPopup !== "none" &&
-        sanitizeTrackingPrivacyPolicyUrl(payload.content.settings.trackingPrivacyPolicyUrl),
+        payload.content.settings.trackingConsentPopup !== "none",
       );
       return {
         workspaceId: payload.tracking.workspaceId,
@@ -284,6 +283,7 @@ export function createTrackingV2Service(options: TrackingV2ServiceOptions): Trac
     },
 
     async listSessions(input) {
+      await options.reconcileSessions?.();
       const result = await repositoryQuery(() => options.repository.listSessions({
         workspace: input.workspace,
         userId: input.userId,
@@ -303,6 +303,7 @@ export function createTrackingV2Service(options: TrackingV2ServiceOptions): Trac
     },
 
     async getSession(input) {
+      await options.reconcileSessions?.();
       const session = await repositoryQuery(() => options.repository.findReadSession({
         workspace: input.workspace,
         userId: input.userId,

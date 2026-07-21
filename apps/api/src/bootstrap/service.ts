@@ -1,5 +1,11 @@
 import { validateTextLimit } from "@handout/domain";
+import {
+  defaultSiteDefaults,
+  normalizeSiteDefaults,
+  type SiteDefaults,
+} from "@handout/site-document";
 import type { CurrentActor } from "../auth/current-actor";
+import { readImageDimensions } from "../uploads/image-dimensions";
 import type {
   BootstrapRepository,
   BootstrapWorkspaceMembershipRecord,
@@ -43,6 +49,16 @@ export interface BootstrapService {
     actor: CurrentActor;
     workspaceId: string;
   }): Promise<AppBootstrap>;
+  getSiteDefaults(actor: CurrentActor): Promise<SiteDefaults>;
+  updateSiteDefaults(input: { actor: CurrentActor; defaults: SiteDefaults }): Promise<SiteDefaults>;
+  isEmailAvailable(input: { actor: CurrentActor; email: string }): Promise<boolean>;
+  uploadProfileImage(input: {
+    actor: CurrentActor;
+    fileName: string;
+    contentType: "image/png" | "image/jpeg" | "image/webp";
+    dataBase64: string;
+  }): Promise<{ imageAssetId: string; imageUrl: string }>;
+  getProfileImage(assetId: string): Promise<{ contentType: string; content: Buffer } | null>;
 }
 
 export class WorkspaceMembershipRequiredError extends Error {
@@ -58,6 +74,13 @@ export class AccountSetupValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "AccountSetupValidationError";
+  }
+}
+
+export class ProfileImageUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProfileImageUploadError";
   }
 }
 
@@ -142,6 +165,53 @@ export function createBootstrapService(repository: BootstrapRepository): Bootstr
 
       return getBootstrap(input.actor);
     },
+
+    async getSiteDefaults(actor) {
+      const profile = await repository.findUserProfile(actor.userId);
+      return profile?.siteDefaults
+        ? normalizeSiteDefaults(profile.siteDefaults)
+        : defaultSiteDefaults;
+    },
+
+    async updateSiteDefaults(input) {
+      const defaults = normalizeSiteDefaults(input.defaults);
+      await repository.updateSiteDefaults({ userId: input.actor.userId, defaults });
+      return defaults;
+    },
+
+    async isEmailAvailable(input) {
+      return repository.isEmailAvailable({
+        userId: input.actor.userId,
+        email: input.email.trim().toLowerCase(),
+      });
+    },
+
+    async uploadProfileImage(input) {
+      const content = Buffer.from(input.dataBase64, "base64");
+      if (!content.byteLength || content.byteLength > 1_048_576) {
+        throw new ProfileImageUploadError("Choose a square image no larger than 1 MB.");
+      }
+      const dimensions = readImageDimensions(content, input.contentType);
+      if (!dimensions || dimensions.width !== dimensions.height) {
+        throw new ProfileImageUploadError("Profile images must be square PNG, JPEG, or WebP images.");
+      }
+      const asset = await repository.saveUserProfileImage({
+        userId: input.actor.userId,
+        fileName: input.fileName,
+        contentType: input.contentType,
+        width: dimensions.width,
+        height: dimensions.height,
+        content,
+      });
+      return {
+        imageAssetId: asset.id,
+        imageUrl: `/api/me/profile-image-assets/${asset.id}`,
+      };
+    },
+
+    async getProfileImage(assetId) {
+      return repository.findUserProfileImage(assetId);
+    },
   };
 }
 
@@ -153,7 +223,9 @@ function toWorkspaceSwitcherItem(
     slug: record.workspace.slug,
     name: record.workspace.name,
     websiteDomain: record.workspace.websiteDomain ?? "",
-    logoUrl: null,
+    logoUrl: record.workspace.logoAssetId
+      ? `/api/workspaces/logo-assets/${record.workspace.logoAssetId}`
+      : null,
     plan: record.workspace.plan,
     role: record.membership.role,
     membershipId: record.membership.id,

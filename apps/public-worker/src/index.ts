@@ -6,6 +6,7 @@ import {
   buildPublicHtmlSnapshotKey,
   buildRecipientPreviewKey,
   classifyPublicRoute,
+  isShortPublicSitePath,
   isSnapshotFresh,
   readPositiveInteger,
 } from "./cache-policy";
@@ -54,6 +55,10 @@ export default {
       return servePublicScreenshot(request, env, ctx);
     }
 
+    if (routeKind === "recipient-link") {
+      return withEdgeHeader(await fetchOrigin(request, env), "proxy", request.method);
+    }
+
     if (routeKind !== "public-site") {
       return new Response("Not found", {
         status: 404,
@@ -81,7 +86,13 @@ export default {
 
 async function servePublicHtml(request: Request, env: Env, ctx: ExecutionContext) {
   const url = new URL(request.url);
-  url.search = "";
+  const shortLinkVersion = isShortPublicSitePath(url.pathname)
+    ? url.searchParams.get("v")
+    : null;
+  if (isShortPublicSitePath(url.pathname) && !shortLinkVersion) {
+    return withEdgeHeader(await fetchOrigin(request, env), "proxy", request.method);
+  }
+  if (!shortLinkVersion) url.search = "";
   const cacheKey = new Request(publicUrlFor(env, url.pathname), {
     method: "GET",
     headers: {
@@ -95,7 +106,7 @@ async function servePublicHtml(request: Request, env: Env, ctx: ExecutionContext
     return withEdgeHeader(cached, "hit", request.method);
   }
 
-  const snapshotKey = buildPublicHtmlSnapshotKey(url.pathname);
+  const snapshotKey = buildPublicHtmlSnapshotKey(url.pathname, shortLinkVersion);
   const r2SnapshotSeconds = readPositiveInteger(
     env.EDGE_R2_SNAPSHOT_SECONDS,
     DEFAULT_R2_SNAPSHOT_SECONDS,
@@ -146,7 +157,9 @@ async function servePublicScreenshot(request: Request, env: Env, ctx: ExecutionC
   if (storedPreview) {
     if (isSlackPreviewRequest(request)) {
       ctx.waitUntil(
-        fetchOrigin(request, env, { timeoutMs: SCREENSHOT_ORIGIN_TIMEOUT_MS })
+        fetchOrigin(new Request(request, { method: "HEAD" }), env, {
+          timeoutMs: SCREENSHOT_ORIGIN_TIMEOUT_MS,
+        })
           .then((response) => response.body?.cancel())
           .catch(() => undefined),
       );

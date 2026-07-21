@@ -122,11 +122,12 @@ function siteVariantToRecipient(variant: SiteVariant, workspaceId: string): Site
     createdAt: variant.createdAt,
     id: variant.id,
     linkSlug: variant.slug,
+    shortCode: variant.shortCode ?? "",
     name: variant.recipientName ?? variant.name,
     siteId: variant.siteId,
     updatedAt: variant.updatedAt,
     values,
-    website: values.recipient_website ?? "",
+    website: values.recipient_website || values.website || "",
     workspaceId,
   }
 }

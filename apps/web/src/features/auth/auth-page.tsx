@@ -21,6 +21,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { Spinner } from "@/components/ui/spinner"
 import { queryKeys } from "@/lib/api/query-keys"
 import {
@@ -31,13 +32,18 @@ import { cn } from "@/lib/utils"
 
 import { authClient } from "./auth-client"
 
-type AuthMode = "sign-in" | "sign-up"
+type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "verify-email"
+
+const pendingVerificationEmailKey = "handout:pending-verification-email"
 
 export function AuthPage() {
-  const returnTo = useMemo(() => getSafeExtensionReturnTo(), [])
+  const returnTo = useMemo(() => getSafeAuthReturnTo(), [])
   const initialMode = useMemo<AuthMode>(() => {
     const mode = new URLSearchParams(window.location.search).get("mode")
-    return mode === "sign-up" ? "sign-up" : "sign-in"
+    if (mode === "sign-up" || mode === "forgot-password" || mode === "verify-email") {
+      return mode
+    }
+    return "sign-in"
   }, [])
   const [mode, setMode] = useState<AuthMode>(initialMode)
 
@@ -68,6 +74,9 @@ function LoginForm({
   const queryClient = useQueryClient()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState(
+    () => window.sessionStorage.getItem(pendingVerificationEmailKey) ?? "",
+  )
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -80,7 +89,7 @@ function LoginForm({
     onModeChange(nextMode)
     setSubmitError(null)
     const params = new URLSearchParams()
-    if (nextMode === "sign-up") params.set("mode", "sign-up")
+    if (nextMode !== "sign-in") params.set("mode", nextMode)
     if (returnTo) params.set("returnTo", returnTo)
     window.history.replaceState(null, "", `/auth${params.size ? `?${params}` : ""}`)
   }
@@ -109,7 +118,20 @@ function LoginForm({
             })
 
       if (result.error) {
+        if (mode === "sign-in" && result.error.code === "EMAIL_NOT_VERIFIED") {
+          window.sessionStorage.setItem(pendingVerificationEmailKey, normalizedEmail)
+          setPendingVerificationEmail(normalizedEmail)
+          switchMode("verify-email")
+          return
+        }
         throw new Error(getBetterAuthErrorMessage(result.error, mode))
+      }
+
+      if (mode === "sign-up") {
+        window.sessionStorage.setItem(pendingVerificationEmailKey, normalizedEmail)
+        setPendingVerificationEmail(normalizedEmail)
+        switchMode("verify-email")
+        return
       }
 
       await queryClient.invalidateQueries({ queryKey: queryKeys.me() })
@@ -133,6 +155,25 @@ function LoginForm({
     } else {
       await navigate({ to: "/sites" })
     }
+  }
+
+  if (mode === "verify-email") {
+    return (
+      <VerifyEmailForm
+        email={pendingVerificationEmail}
+        onBack={() => switchMode("sign-in")}
+        returnTo={returnTo}
+      />
+    )
+  }
+
+  if (mode === "forgot-password") {
+    return (
+      <ForgotPasswordForm
+        initialEmail={email}
+        onBack={() => switchMode("sign-in")}
+      />
+    )
   }
 
   return (
@@ -191,6 +232,19 @@ function LoginForm({
                 {!passwordIsValid && password.length > 0 ? (
                   <FieldError>Use at least 8 characters.</FieldError>
                 ) : null}
+                {mode === "sign-in" ? (
+                  <FieldDescription className="text-right">
+                    <a
+                      href="/auth?mode=forgot-password"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        switchMode("forgot-password")
+                      }}
+                    >
+                      Forgot password?
+                    </a>
+                  </FieldDescription>
+                ) : null}
               </Field>
               <AuthErrorAlert mode={mode} submitError={submitError} />
               {isDevAuthBypassAvailable() ? (
@@ -232,6 +286,220 @@ function LoginForm({
   )
 }
 
+function VerifyEmailForm({
+  email,
+  onBack,
+  returnTo,
+}: {
+  email: string
+  onBack: () => void
+  returnTo: string | null
+}) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [code, setCode] = useState("")
+  const [error, setError] = useState("")
+  const [pending, setPending] = useState(false)
+  const [resent, setResent] = useState(false)
+
+  const verify = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!email || code.length !== 6 || pending) return
+    setPending(true)
+    setError("")
+
+    try {
+      const result = await authClient.emailOtp.verifyEmail({ email, otp: code })
+      if (result.error) {
+        throw new Error(result.error.message ?? "That code is invalid or expired.")
+      }
+      window.sessionStorage.removeItem(pendingVerificationEmailKey)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.me() })
+      if (returnTo) {
+        window.location.replace(returnTo)
+      } else {
+        await navigate({ to: "/onboarding" })
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "That code is invalid or expired.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const resend = async () => {
+    if (!email || pending) return
+    setPending(true)
+    setError("")
+    setResent(false)
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "email-verification",
+      })
+      if (result.error) throw new Error(result.error.message)
+      setResent(true)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "A new code could not be sent.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  if (!email) {
+    return (
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Verify your email</CardTitle>
+          <CardDescription>Return to sign in so we know where to send your code.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="w-full" onClick={onBack}>Back to sign in</Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">Check your email</CardTitle>
+        <CardDescription>Enter the 6-digit code sent to {email}.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={verify}>
+          <FieldGroup>
+            <Field data-invalid={Boolean(error) || undefined}>
+              <FieldLabel htmlFor="verification-code">Verification code</FieldLabel>
+              <InputOTP
+                id="verification-code"
+                maxLength={6}
+                value={code}
+                onChange={(value) => {
+                  setCode(value)
+                  setError("")
+                }}
+                disabled={pending}
+                aria-invalid={Boolean(error) || undefined}
+              >
+                <InputOTPGroup>
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <InputOTPSlot key={index} index={index} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+              {error ? <FieldError>{error}</FieldError> : null}
+              {resent ? <FieldDescription>A new code was sent.</FieldDescription> : null}
+            </Field>
+            <Field>
+              <Button type="submit" disabled={pending || code.length !== 6}>
+                {pending ? <Spinner data-icon="inline-start" /> : null}
+                Verify email
+              </Button>
+              <FieldDescription className="text-center">
+                Didn&apos;t get it?{" "}
+                <button type="button" onClick={() => void resend()} disabled={pending}>
+                  Resend code
+                </button>
+                {" · "}
+                <button type="button" onClick={onBack}>Use another email</button>
+              </FieldDescription>
+            </Field>
+          </FieldGroup>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ForgotPasswordForm({
+  initialEmail,
+  onBack,
+}: {
+  initialEmail: string
+  onBack: () => void
+}) {
+  const [email, setEmail] = useState(initialEmail)
+  const [error, setError] = useState("")
+  const [pending, setPending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const validation = validateEmail(email)
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!validation.ok || pending) return
+    setPending(true)
+    setError("")
+    try {
+      const result = await authClient.requestPasswordReset({
+        email: validation.email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+      if (result.error) throw new Error(result.error.message)
+      setSent(true)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Reset instructions could not be sent.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">Reset your password</CardTitle>
+        <CardDescription>
+          {sent
+            ? "If an account exists for that email, a reset link is on its way."
+            : "Enter your email and we'll send you a secure reset link."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {sent ? (
+          <FieldGroup>
+            <Alert>
+              <AlertTitle>Check your inbox</AlertTitle>
+              <AlertDescription>The link expires in 60 minutes and can only be used once.</AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={onBack}>Back to sign in</Button>
+          </FieldGroup>
+        ) : (
+          <form onSubmit={submit}>
+            <FieldGroup>
+              <Field data-invalid={Boolean(error) || (!validation.ok && email.length > 0) || undefined}>
+                <FieldLabel htmlFor="reset-email">Email</FieldLabel>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    setError("")
+                  }}
+                  autoComplete="email"
+                  disabled={pending}
+                  aria-invalid={Boolean(error) || (!validation.ok && email.length > 0) || undefined}
+                />
+                {error ? <FieldError>{error}</FieldError> : null}
+                {!error && !validation.ok && email.length > 0 ? (
+                  <FieldError>{validation.message}</FieldError>
+                ) : null}
+              </Field>
+              <Field>
+                <Button type="submit" disabled={!validation.ok || pending}>
+                  {pending ? <Spinner data-icon="inline-start" /> : null}
+                  Send reset link
+                </Button>
+                <Button type="button" variant="ghost" onClick={onBack}>Back to sign in</Button>
+              </Field>
+            </FieldGroup>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function AuthErrorAlert({
   mode,
   submitError,
@@ -257,12 +525,14 @@ function getInitialAccountName(email: string) {
   return email.split("@")[0]?.replace(/[._-]+/g, " ").trim() || "Handout user"
 }
 
-function getSafeExtensionReturnTo() {
+function getSafeAuthReturnTo() {
   const returnTo = new URLSearchParams(window.location.search).get("returnTo")
   if (!returnTo) return null
   try {
     const url = new URL(returnTo, window.location.origin)
-    if (url.origin !== window.location.origin || url.pathname !== "/extension-connect") {
+    const allowedPath = url.pathname === "/extension-connect"
+      || url.pathname === "/api/mcp/oauth/authorize"
+    if (url.origin !== window.location.origin || !allowedPath) {
       return null
     }
     return `${url.pathname}${url.search}`
@@ -273,7 +543,7 @@ function getSafeExtensionReturnTo() {
 
 function buildAuthModeHref(mode: AuthMode, returnTo: string | null) {
   const params = new URLSearchParams()
-  if (mode === "sign-up") params.set("mode", "sign-up")
+  if (mode !== "sign-in") params.set("mode", mode)
   if (returnTo) params.set("returnTo", returnTo)
   return `/auth${params.size ? `?${params}` : ""}`
 }

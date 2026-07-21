@@ -1,6 +1,7 @@
 import express from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
+import { TRACKING_V2_SCRIPT_VERSION } from "@handout/tracking-schema";
 import type { TrackingV2Service } from "./service";
 import { errorMiddleware } from "../../http/error-middleware";
 import { createEncryptedTrackingV2ContextTokenService } from "./context-token";
@@ -25,7 +26,7 @@ function harness() {
     recordingAccepted: false,
     sessionId: "session-router-one",
     eventToken: "event_token_router_long_enough",
-    scriptVersion: "2026-07-13.v9",
+    scriptVersion: TRACKING_V2_SCRIPT_VERSION,
     heartbeatIntervalMs: 15_000,
     idleTimeoutMs: 120_000,
     maxSessionDurationMs: 14_400_000,
@@ -37,7 +38,7 @@ function harness() {
   }));
   const recordRecordingChunk = vi.fn<TrackingV2Service["recordRecordingChunk"]>(async (input) => ({
     duplicate: false,
-    sequence: input.chunk.sequence,
+    sequence: input.upload.sequence,
   }));
   const trackingService = {
     preparePublicContext: async () => null,
@@ -121,7 +122,7 @@ describe("tracking v2 public router", () => {
       batchId: "batch-router-one",
       sessionId: "session-router-one",
       eventToken: "event_token_router_long_enough",
-      scriptVersion: "2026-07-13.v9",
+      scriptVersion: TRACKING_V2_SCRIPT_VERSION,
       sentAt: now.toISOString(),
     };
     await request(app).post("/api/public/tracking/v2/events").send({
@@ -150,7 +151,7 @@ describe("tracking v2 public router", () => {
       batchId: "batch-router-one",
       sessionId: "session-router-one",
       eventToken: "event_token_router_long_enough",
-      scriptVersion: "2026-07-13.v9",
+      scriptVersion: TRACKING_V2_SCRIPT_VERSION,
       sentAt: now.toISOString(),
       events: [{
         eventId: "event-button-one",

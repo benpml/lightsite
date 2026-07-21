@@ -54,6 +54,28 @@ describe("public site screenshots", () => {
     expect(renderedHtml).not.toContain("data-handout-tracking-v2");
   });
 
+  it("coalesces concurrent requests for the same immutable recipient image", async () => {
+    let finishRender: ((bytes: Buffer) => void) | undefined;
+    const pendingRender = new Promise<Buffer>((resolve) => {
+      finishRender = resolve;
+    });
+    const render = vi.fn(() => pendingRender);
+    const service = createPublicSiteScreenshotService({ render });
+    const payload = buildPayload();
+
+    const requests = Array.from({ length: 20 }, () => service.render({
+      origin: "https://handout.test",
+      payload,
+    }));
+
+    expect(render).toHaveBeenCalledTimes(1);
+    finishRender?.(Buffer.from("shared-jpg"));
+    const results = await Promise.all(requests);
+
+    expect(results.every((result) => result?.bytes.toString() === "shared-jpg")).toBe(true);
+    expect(new Set(results.map((result) => result?.cacheKey)).size).toBe(1);
+  });
+
   it("renders a new image when the recipient revision changes", async () => {
     const render = vi.fn(async (_input: PublicSiteScreenshotRenderInput) => Buffer.from("jpg"));
     const service = createPublicSiteScreenshotService({ render });

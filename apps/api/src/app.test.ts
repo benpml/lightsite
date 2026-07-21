@@ -6,14 +6,16 @@ import {
 } from "@handout/domain";
 import {
   createDefaultSiteContent,
+  defaultSiteDefaults,
   PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
+  PUBLIC_SITE_RUNTIME_PATH,
   type PublishedSitePayload,
   type SiteContent,
   type TiptapNode,
 } from "@handout/site-document";
 import { createApp } from "./app";
 import type { CurrentActor } from "./auth/current-actor";
-import { DEV_AUTH_BYPASS_HEADER } from "./auth/dev-auth";
+import { DEV_AUTH_BYPASS_HEADER, setDevProfileImageUrl } from "./auth/dev-auth";
 import {
   buildMemoryAppUserProfile,
   createMemoryBootstrapRepository,
@@ -51,6 +53,14 @@ const testActor: CurrentActor = {
   email: "jane@acme.com",
   emailVerified: true,
   name: "Jane Doe",
+};
+const unavailablePublicLinkMethods = {
+  async resolveShortLink() {
+    return { status: "unavailable" as const, cacheControl: "no-store" };
+  },
+  async resolveRecipientLink() {
+    return { status: "unavailable" as const, cacheControl: "no-store" };
+  },
 };
 function createTestApp(input: {
   initialWorkspaces?: WorkspaceRecord[];
@@ -209,6 +219,18 @@ function createFakeBillingService(): BillingService {
     },
 
     async handleWebhook() {
+      return undefined;
+    },
+
+    async updateSubscription() {
+      return undefined;
+    },
+
+    async cancelSubscription() {
+      return { currentPeriodEnd: "2026-02-01T00:00:00.000Z" };
+    },
+
+    async syncSeatCount() {
       return undefined;
     },
   };
@@ -661,6 +683,109 @@ describe("Handout API", () => {
     });
   });
 
+  it("uploads and serves a profile image through dev auth", async () => {
+    const app = createTestApp({ actor: null });
+    const dataBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+    const upload = await request(app)
+      .put("/api/me/profile-image")
+      .set(DEV_AUTH_BYPASS_HEADER, "1")
+      .send({
+        contentType: "image/png",
+        dataBase64,
+        fileName: "profile.png",
+      })
+      .expect(200);
+
+    expect(upload.body).toEqual({
+      imageAssetId: expect.any(String),
+      imageUrl: expect.stringMatching(/^\/api\/me\/profile-image-assets\//),
+      requestId: expect.any(String),
+    });
+
+    const image = await request(app)
+      .get(upload.body.imageUrl)
+      .expect("Content-Type", "image/png")
+      .expect(200);
+
+    expect(image.body).toEqual(Buffer.from(dataBase64, "base64"));
+
+    const bootstrap = await request(app)
+      .get("/api/me")
+      .set(DEV_AUTH_BYPASS_HEADER, "1")
+      .expect(200);
+    expect(bootstrap.body.user.avatarUrl).toBe(upload.body.imageUrl);
+    setDevProfileImageUrl(undefined);
+  });
+
+  it("rejects a non-square profile image", async () => {
+    const app = createTestApp();
+    const pngHeader = Buffer.alloc(24);
+    pngHeader.write("PNG", 1, "ascii");
+    pngHeader.writeUInt32BE(2, 16);
+    pngHeader.writeUInt32BE(1, 20);
+
+    const response = await request(app)
+      .put("/api/me/profile-image")
+      .send({
+        contentType: "image/png",
+        dataBase64: pngHeader.toString("base64"),
+        fileName: "wide.png",
+      })
+      .expect(400);
+
+    expect(response.body.error).toMatchObject({
+      code: "profile.image_invalid",
+      message: "Profile images must be square PNG, JPEG, or WebP images.",
+    });
+  });
+
+  it("persists site defaults across dev-auth requests", async () => {
+    const app = createTestApp({
+      actor: null,
+      bootstrap: {
+        profiles: [buildMemoryAppUserProfile({ userId: "dev_user_handout" })],
+      },
+    });
+    const defaults = {
+      ...defaultSiteDefaults,
+      themeMode: "light" as const,
+      primaryColor: "blue" as const,
+      trackingEnabled: false,
+    };
+
+    await request(app)
+      .put("/api/me/site-defaults")
+      .set(DEV_AUTH_BYPASS_HEADER, "1")
+      .send(defaults)
+      .expect(200);
+
+    const response = await request(app)
+      .get("/api/me/site-defaults")
+      .set(DEV_AUTH_BYPASS_HEADER, "1")
+      .expect(200);
+
+    expect(response.body.defaults).toEqual(defaults);
+  });
+
+  it("rejects unsafe replay defaults before persistence", async () => {
+    const app = createTestApp();
+    const response = await request(app)
+      .put("/api/me/site-defaults")
+      .send({
+        ...defaultSiteDefaults,
+        recordingEnabled: true,
+      })
+      .expect(400);
+
+    expect(response.body.error).toMatchObject({
+      code: "profile.invalid_payload",
+      issues: expect.arrayContaining([
+        expect.objectContaining({ path: ["recordingDisclosureAccepted"] }),
+      ]),
+    });
+  });
+
   it("switches the active workspace only when the user has active membership", async () => {
     const acmeWorkspace = buildWorkspace({
       id: "00000000-0000-4000-8000-000000000001",
@@ -1006,6 +1131,7 @@ describe("Handout API", () => {
     expect(response.body).toEqual({
       site: {
         id: expect.any(String),
+        publicId: expect.stringMatching(/^[A-Za-z0-9_-]{12}$/),
         name: "Acme rollout brief",
         slug: "acme-rollout-brief",
         status: "draft",
@@ -1017,6 +1143,7 @@ describe("Handout API", () => {
     expect(listResponse.body.sites).toEqual([
       {
         id: response.body.site.id,
+        publicId: response.body.site.publicId,
         name: "Acme rollout brief",
         slug: "acme-rollout-brief",
         status: "draft",
@@ -2133,6 +2260,7 @@ describe("Handout API", () => {
   it("returns a public-safe payload from the public site resolver", async () => {
     const app = createTestApp({
       publicSites: {
+        ...unavailablePublicLinkMethods,
         async resolve(input) {
           expect(input).toEqual({
             workspaceSlug: "acme",
@@ -2186,6 +2314,7 @@ describe("Handout API", () => {
   it("renders server HTML for public site links with metadata and critical content", async () => {
     const app = createTestApp({
       publicSites: {
+        ...unavailablePublicLinkMethods,
         async resolve(input) {
           expect(input).toEqual({
             workspaceSlug: "acme",
@@ -2231,7 +2360,8 @@ describe("Handout API", () => {
   it("serves workspace and recipient logos only through published site context", async () => {
     const fetchedLogos: Array<{ domain: string; size: number; theme: "dark" | "light" }> = [];
     const payload = buildPublicHtmlPayload();
-    payload.selectedVariant!.variableValues.recipient_website = "linear.app";
+    payload.selectedVariant!.variableValues.website = "linear.app";
+    delete payload.selectedVariant!.variableValues.recipient_website;
     const app = createTestApp({
       actor: null,
       logoPreview: {
@@ -2248,6 +2378,7 @@ describe("Handout API", () => {
         },
       },
       publicSites: {
+        ...unavailablePublicLinkMethods,
         async resolve(input) {
           expect(input.workspaceSlug).toBe("acme");
           expect(input.siteSlug).toBe("rollout-brief");
@@ -2296,6 +2427,7 @@ describe("Handout API", () => {
         },
       },
       publicSites: {
+        ...unavailablePublicLinkMethods,
         async resolve() {
           resolveCount += 1;
           return {
@@ -2336,7 +2468,7 @@ describe("Handout API", () => {
     expect(body).not.toContain("This page is unavailable");
 
     const runtimeResponse = await request(app)
-      .get("/site-runtime.v4.js")
+      .get(PUBLIC_SITE_RUNTIME_PATH)
       .expect(200);
 
     expect(runtimeResponse.headers["content-type"]).toContain("application/javascript");

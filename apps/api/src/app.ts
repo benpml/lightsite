@@ -13,10 +13,21 @@ import {
   TRACKING_V2_SESSION_START_ENDPOINT,
 } from "@handout/tracking-schema";
 import { auth } from "./auth";
+import { handleRemoteMcpRequest, protectedResourceMetadata } from "@handout/mcp/remote";
+import { db } from "@handout/db";
+import { createAutomationRouter } from "./automations/router";
+import { createAutomationService, enqueueAutomationMessage, enqueueAutomationMessages } from "./automations/service";
+import { parseAutomationEncryptionKey } from "./automations/crypto";
+import { createDbWorkspaceAssetRepository } from "./assets/repository";
+import { createPublicAssetRouter, createWorkspaceAssetRouter } from "./assets/router";
+import { createWorkspaceAssetService, type WorkspaceAssetService } from "./assets/service";
 import { getCurrentActor, type CurrentActorProvider } from "./auth/current-actor";
+import { resolveDevWorkspaceLogoUrl } from "./auth/dev-auth";
 import { createDevAuthRouter } from "./auth/dev-auth-router";
 import { createExtensionAuthCodeService } from "./auth/extension-auth-code";
 import { createExtensionAuthRouter } from "./auth/extension-auth-router";
+import { createMcpOAuthService } from "./auth/mcp-oauth";
+import { authorizationServerMetadata, createMcpOAuthRouter } from "./auth/mcp-oauth-router";
 import { createDbBillingRepository } from "./billing/repository";
 import { createBillingRouter, createBillingWebhookRouter } from "./billing/router";
 import { createBillingService, type BillingService } from "./billing/service";
@@ -24,6 +35,7 @@ import { createDbBootstrapRepository } from "./bootstrap/repository";
 import { createBootstrapService, type BootstrapService } from "./bootstrap/service";
 import { env } from "./env";
 import { errorMiddleware, notFoundMiddleware } from "./http/error-middleware";
+import { createTransactionalEmailSender } from "./email/transactional-email";
 import { requestContextMiddleware } from "./http/request-context";
 import { createMeRouter } from "./me/router";
 import { createPublicSiteDocumentRouter } from "./public-sites/document-router";
@@ -59,6 +71,7 @@ import { createTrackingV2RecordingService } from "./tracking/v2/recording-servic
 import { createTrackingV2ReadRouter } from "./tracking/v2/read-router";
 import { createTrackingV2Router } from "./tracking/v2/router";
 import { createTrackingV2Service, type TrackingV2Service } from "./tracking/v2/service";
+import { createTrackingV2ReadReconciler, createTrackingV2SessionExpirationService } from "./tracking/v2/session-expiration";
 import {
   createDbTrackingSuppressionRepository,
   createTrackingSuppressionService,
@@ -67,8 +80,10 @@ import { createLogoDevPreviewService, type WorkspaceLogoPreviewService } from ".
 import { createDbWorkspaceRepository } from "./workspaces/repository";
 import { createWorkspaceRouter } from "./workspaces/router";
 import { createWorkspaceService, type WorkspaceService } from "./workspaces/service";
+import { logger } from "./lib/logger";
 
 export type AppServices = {
+  assets: WorkspaceAssetService;
   billing: BillingService;
   bootstrap: BootstrapService;
   logoPreview: WorkspaceLogoPreviewService;
@@ -91,9 +106,15 @@ export function createApp(options: CreateAppOptions = {}) {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", parseTrustProxy(env.TRUST_PROXY));
+  const transactionalEmail = createTransactionalEmailSender({
+    apiKey: env.RESEND_API_KEY,
+    from: env.EMAIL_FROM,
+    nodeEnv: env.NODE_ENV,
+  });
 
   const bootstrap =
     options.bootstrap ?? createBootstrapService(createDbBootstrapRepository());
+  const assets = options.assets ?? createWorkspaceAssetService(createDbWorkspaceAssetRepository());
   const billing =
     options.billing ??
     createBillingService(createDbBillingRepository(), {
@@ -119,7 +140,9 @@ export function createApp(options: CreateAppOptions = {}) {
     : undefined;
   const publicSites =
     options.publicSites ??
-    createPublicSiteService(createDbPublicSiteRepository(), {
+    createPublicSiteService(createDbPublicSiteRepository(undefined, {
+      resolveWorkspaceLogoUrl: resolveDevWorkspaceLogoUrl,
+    }), {
       trackingV2ContextTokens,
       trackingV2Service,
     });
@@ -130,12 +153,29 @@ export function createApp(options: CreateAppOptions = {}) {
   const sites =
     options.sites ?? createSiteService(createDbSiteRepository());
   const team =
-    options.team ?? createTeamService(createDbTeamRepository());
+    options.team ?? createTeamService(createDbTeamRepository(), {
+      email: transactionalEmail,
+      webOrigin: env.WEB_ORIGIN,
+    });
   const trackingRateLimiter =
     options.trackingRateLimiter ?? createMemoryTrackingRateLimiter();
   const workspaces =
-    options.workspaces ?? createWorkspaceService(createDbWorkspaceRepository());
+    options.workspaces ?? createWorkspaceService(createDbWorkspaceRepository(), {
+      email: transactionalEmail,
+      webOrigin: env.WEB_ORIGIN,
+    });
   const actorProvider = options.getCurrentActor ?? getCurrentActor;
+  const mcpIssuer = process.env.HANDOUT_MCP_ISSUER ?? (
+    env.NODE_ENV === "production" ? "https://api.handout.link" : `http://localhost:${env.API_PORT}`
+  );
+  const mcpResource = process.env.HANDOUT_MCP_RESOURCE ?? `${mcpIssuer}/mcp`;
+  const mcpOAuth = createMcpOAuthService(env.BETTER_AUTH_SECRET);
+  const automations = env.AUTOMATIONS_ENABLED && env.AUTOMATIONS_ENCRYPTION_KEY
+    ? createAutomationService(db, {
+        encryptionKey: parseAutomationEncryptionKey(env.AUTOMATIONS_ENCRYPTION_KEY),
+        allowLocalDestinations: env.AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS,
+      })
+    : null;
 
   app.use(
     cors({
@@ -143,6 +183,24 @@ export function createApp(options: CreateAppOptions = {}) {
       credentials: true,
     }),
   );
+
+  app.get(["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"], (_request, response) => {
+    response.setHeader("cache-control", "public, max-age=300").json(protectedResourceMetadata({
+      authorizationServer: mcpIssuer,
+      resource: mcpResource,
+    }));
+  });
+  app.get("/.well-known/oauth-authorization-server", (_request, response) => {
+    response.setHeader("cache-control", "public, max-age=300").json(authorizationServerMetadata(mcpIssuer, env.WEB_ORIGIN));
+  });
+  app.all("/mcp", (request, response) => {
+    void handleRemoteMcpRequest(request, response, {
+      apiBaseUrl: `http://127.0.0.1:${env.API_PORT}`,
+      protectedResourceMetadataUrl: `${mcpIssuer}/.well-known/oauth-protected-resource/mcp`,
+      publicSiteOrigin: publicSiteOrigin,
+      webOrigin: env.WEB_ORIGIN,
+    });
+  });
 
   app.all("/api/auth/*", toNodeHandler(auth));
 
@@ -166,6 +224,18 @@ export function createApp(options: CreateAppOptions = {}) {
     "/api/sites/:siteId/content",
     express.json({ limit: env.API_SITE_CONTENT_JSON_BODY_LIMIT }),
   );
+  app.use(
+    "/api/workspaces/:workspaceId/logo",
+    express.json({ limit: "2mb" }),
+  );
+  app.use(
+    "/api/workspaces/:workspaceId/assets/import",
+    express.json({ limit: "8mb" }),
+  );
+  app.use(
+    "/api/me/profile-image",
+    express.json({ limit: "2mb" }),
+  );
   app.use(express.json({ limit: env.API_JSON_BODY_LIMIT }));
 
   app.get("/api/health", (request, response) => {
@@ -182,6 +252,17 @@ export function createApp(options: CreateAppOptions = {}) {
     createExtensionAuthRouter({
       codeService: createExtensionAuthCodeService(env.BETTER_AUTH_SECRET),
       getCurrentActor: actorProvider,
+    }),
+  );
+  app.use(
+    "/api/mcp/oauth",
+    createMcpOAuthRouter({
+      bootstrapService: bootstrap,
+      codeService: mcpOAuth,
+      getCurrentActor: actorProvider,
+      issuer: mcpIssuer,
+      secret: env.BETTER_AUTH_SECRET,
+      webOrigin: env.WEB_ORIGIN,
     }),
   );
   app.use(
@@ -215,6 +296,7 @@ export function createApp(options: CreateAppOptions = {}) {
     }),
   );
   app.use("/api/public/sites", createPublicSiteRouter({ publicSiteService: publicSites }));
+  app.use("/api/public/assets", createPublicAssetRouter({ assetService: assets }));
   if (trackingV2ContextTokens) {
     app.use(createTrackingV2Router({
       contextTokens: trackingV2ContextTokens,
@@ -241,11 +323,30 @@ export function createApp(options: CreateAppOptions = {}) {
       }),
     );
   }
+  if (automations) {
+    app.use(
+      "/api/workspaces/:workspaceId/automations",
+      createAutomationRouter({
+        service: automations,
+        bootstrapService: bootstrap,
+        getCurrentActor: actorProvider,
+      }),
+    );
+  }
+  app.use(
+    "/api/workspaces/:workspaceId/assets",
+    createWorkspaceAssetRouter({
+      assetService: assets,
+      bootstrapService: bootstrap,
+      getCurrentActor: actorProvider,
+    }),
+  );
   app.use(
     "/api/workspaces/:workspaceId/team",
     createTeamRouter({
       teamService: team,
       getCurrentActor: actorProvider,
+      billingService: billing,
     }),
   );
   app.use(
@@ -324,20 +425,44 @@ function createLazyTrackingV2Service(input: {
       const suppressionService = createTrackingSuppressionService({
         repository: createDbTrackingSuppressionRepository(db),
       });
+      const trackingRepository = createDbTrackingV2Repository(db, {
+        ...(env.AUTOMATIONS_ENABLED ? {
+          automationOutbox: {
+            enqueue: (event) => enqueueAutomationMessage(db, event),
+            enqueueMany: (events) => enqueueAutomationMessages(db, events),
+          },
+        } : {}),
+      });
+      const recordingRepository = createDbTrackingV2RecordingRepository(db);
       const recordingObjectStore = createConfiguredTrackingV2RecordingObjectStore(env);
       const recordingService = recordingObjectStore
         ? createTrackingV2RecordingService({
-            repository: createDbTrackingV2RecordingRepository(db),
+            repository: recordingRepository,
             objectStore: recordingObjectStore,
             tokenSecret: input.tokenSecret,
           })
         : null;
+      const reconcileSessions = createTrackingV2ReadReconciler({
+        service: createTrackingV2SessionExpirationService({
+          repository: trackingRepository,
+          recordingRepository,
+        }),
+        onError(error) {
+          logger.error("Tracking session reconciliation failed", { error });
+        },
+        onResult(result) {
+          if (result.expired > 0 || result.recordingsSettled > 0) {
+            logger.info("Completed tracking session reconciliation", result);
+          }
+        },
+      });
 
       return createTrackingV2Service({
-        repository: createDbTrackingV2Repository(db),
+        repository: trackingRepository,
         suppressionService,
         tokenSecret: input.tokenSecret,
         recordingService,
+        reconcileSessions,
       });
     });
 

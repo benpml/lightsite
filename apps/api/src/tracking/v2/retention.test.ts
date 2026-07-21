@@ -37,6 +37,7 @@ describe("tracking v2 retention", () => {
     expect(result).toEqual({
       now: runAt.toISOString(),
       sessionsExpired: 1,
+      endedRecordingsSettled: 0,
       staleRecordingsSettled: 0,
       recordingsExpired: 0,
       recordingObjectsQueued: 0,

@@ -2,6 +2,16 @@ import type { Response } from "express";
 import { ZodError } from "zod";
 
 export type ErrorCode =
+  | "asset.invalid"
+  | "asset.invalid_payload"
+  | "asset.not_found"
+  | "automation.admin_required"
+  | "automation.invalid_destination"
+  | "automation.invalid_payload"
+  | "automation.limit_reached"
+  | "automation.not_found"
+  | "automation.test_required"
+  | "automation.unavailable"
   | "auth.required"
   | "billing.checkout_unavailable"
   | "billing.invalid_payload"
@@ -17,6 +27,9 @@ export type ErrorCode =
   | "logo_preview.not_found"
   | "account.display_name_invalid"
   | "profile.invalid_payload"
+  | "profile.email_in_use"
+  | "profile.image_invalid"
+  | "profile.image_invalid_payload"
   | "request.invalid"
   | "request.too_large"
   | "route.not_found"

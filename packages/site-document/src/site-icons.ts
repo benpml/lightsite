@@ -81,7 +81,8 @@ export const SITE_ICON_OPTIONS = [
   icon("user-dollar", "User dollar"), icon("user-heart", "User heart"), icon("user-plus", "User plus"),
   icon("user-star", "User star"), icon("users", "Users"), icon("users-group", "Users group"),
   icon("variable", "Variable"), icon("video", "Video"), icon("wallet", "Wallet"), icon("wand", "Wand"),
-  icon("world", "World"), icon("world-www", "Website"), icon("writing", "Writing"),
+  icon("world", "World"), icon("world-longitude", "World longitude"),
+  icon("world-www", "Website"), icon("writing", "Writing"),
   icon("writing-sign", "Writing sign"), icon("x", "X"), icon("zoom-in", "Zoom in"),
 ] as const
 

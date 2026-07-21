@@ -137,6 +137,7 @@ function buildLogoDevUrl(input: WorkspaceLogoImageInput & { token: string }) {
   url.searchParams.set("retina", "true");
   url.searchParams.set("format", "webp");
   url.searchParams.set("theme", input.theme);
+  url.searchParams.set("fallback", "404");
 
   return url;
 }

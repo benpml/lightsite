@@ -36,6 +36,20 @@ export interface PublicSiteScreenshotService {
   } | null>;
 }
 
+export function getPublicSiteScreenshotCacheKey(payload: Record<string, unknown>) {
+  const normalized = normalizePublishedSitePayload(payload);
+  if (!normalized) return null;
+
+  return [
+    `jpg-q${PUBLIC_SITE_SCREENSHOT_JPEG_QUALITY}`,
+    normalized.workspace.id,
+    normalized.site.id,
+    normalized.site.publishedVersionId,
+    normalized.selectedVariant?.id ?? "default",
+    normalized.selectedVariant?.revisionNumber ?? 0,
+  ].join(":");
+}
+
 export function createPublicSiteScreenshotService(
   renderer: PublicSiteScreenshotRenderer = createPlaywrightPublicSiteScreenshotRenderer(),
 ): PublicSiteScreenshotService {
@@ -52,14 +66,8 @@ export function createPublicSiteScreenshotService(
         return null;
       }
 
-      const cacheKey = [
-        `jpg-q${PUBLIC_SITE_SCREENSHOT_JPEG_QUALITY}`,
-        payload.workspace.id,
-        payload.site.id,
-        payload.site.publishedVersionId,
-        payload.selectedVariant?.id ?? "default",
-        payload.selectedVariant?.revisionNumber ?? 0,
-      ].join(":");
+      const cacheKey = getPublicSiteScreenshotCacheKey(input.payload);
+      if (!cacheKey) return null;
       const cached = cache.get(cacheKey);
 
       if (cached) {
@@ -165,6 +173,17 @@ export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreen
             assetsReady,
             new Promise((resolve) => window.setTimeout(resolve, timeoutMs)),
           ]);
+          document.querySelectorAll<HTMLImageElement>(
+            '.handout-page-title-logo[data-handout-logo-kind="recipient"] img',
+          ).forEach((image) => {
+            if (image.naturalWidth > 0) return;
+            const tile = image.closest('.handout-page-title-logo');
+            const group = tile?.parentElement;
+            tile?.remove();
+            if (group && !group.querySelector('.handout-page-title-logo')) {
+              group.remove();
+            }
+          });
           window.scrollTo(0, 0);
         }, ASSET_SETTLE_TIMEOUT_MS);
 

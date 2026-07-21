@@ -8,6 +8,7 @@ import {
 import { Router } from "express";
 import { z } from "zod";
 import type { CurrentActorProvider } from "../auth/current-actor";
+import type { BillingService } from "../billing/service";
 import { requireAuthenticatedActor } from "../auth/require-authenticated-actor";
 import { asyncHandler } from "../http/async-handler";
 import { AppError, issuesFromZodError } from "../http/errors";
@@ -24,6 +25,7 @@ import {
 export type TeamRouterOptions = {
   teamService: TeamService;
   getCurrentActor: CurrentActorProvider;
+  billingService?: BillingService;
 };
 
 const idParamsSchema = z.object({
@@ -69,6 +71,7 @@ export function createTeamRouter(options: TeamRouterOptions) {
       email: payload.data.email,
       role: payload.data.role,
     }));
+    await options.billingService?.syncSeatCount(workspaceId);
 
     response.status(201).json(createWorkspaceInvitationResponseSchema.parse({
       result,
@@ -111,6 +114,7 @@ export function createTeamRouter(options: TeamRouterOptions) {
       workspaceId,
       memberId: id,
     }));
+    await options.billingService?.syncSeatCount(workspaceId);
     response.status(204).send();
   }));
 
@@ -122,6 +126,7 @@ export function createTeamRouter(options: TeamRouterOptions) {
       workspaceId,
       invitationId: id,
     }));
+    await options.billingService?.syncSeatCount(workspaceId);
     response.status(204).send();
   }));
 

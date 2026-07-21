@@ -8,6 +8,7 @@ import {
 type PublicHtmlRenderInput = {
   origin: string;
   payload: Record<string, unknown>;
+  publicPath?: string;
 };
 
 export function renderPublicSiteHtmlDocument(input: PublicHtmlRenderInput) {
@@ -17,7 +18,12 @@ export function renderPublicSiteHtmlDocument(input: PublicHtmlRenderInput) {
     return null;
   }
 
-  const ogImageUrl = new URL(buildPublicScreenshotPath(payload), input.origin).toString();
+  const ogImagePath = input.publicPath
+    ? `${input.publicPath.replace(/\/+$/, "")}/embed.jpg?v=${encodeURIComponent(
+        `${payload.site.publishedVersionId}.${payload.selectedVariant?.revisionNumber ?? 0}`,
+      )}`
+    : buildPublicScreenshotPath(payload);
+  const ogImageUrl = new URL(ogImagePath, input.origin).toString();
 
   return renderPublicSiteHtml({
     ...payload,
@@ -28,6 +34,7 @@ export function renderPublicSiteHtmlDocument(input: PublicHtmlRenderInput) {
   }, {
     includeTracking: true,
     origin: input.origin,
+    ...(input.publicPath ? { publicPath: input.publicPath } : {}),
   });
 }
 

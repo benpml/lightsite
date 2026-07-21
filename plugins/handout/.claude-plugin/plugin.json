@@ -1,0 +1,13 @@
+{
+  "name": "handout",
+  "version": "1.0.0",
+  "description": "Build, personalize, publish, and analyze Handout sales sites with Claude.",
+  "author": {
+    "name": "Handout",
+    "url": "https://www.handout.link"
+  },
+  "homepage": "https://www.handout.link",
+  "repository": "https://github.com/benpml/handout",
+  "license": "UNLICENSED",
+  "keywords": ["sales", "personalization", "sites", "analytics", "mcp"]
+}

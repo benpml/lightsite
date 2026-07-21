@@ -1,0 +1,4 @@
+interface:
+  display_name: "Analyze Engagement"
+  short_description: "Turn Handout engagement data into sales follow-up actions"
+  default_prompt: "Analyze engagement on this Handout site and recommend follow-up."

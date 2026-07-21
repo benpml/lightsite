@@ -19,6 +19,7 @@ import {
   type TrackingV2RecordingChunk,
   type TrackingV2RecordingComplete,
   type TrackingV2RecordingManifestResponse,
+  type TrackingV2RecordingUpload,
 } from "@handout/tracking-schema";
 
 import type { TrackingV2RecordingObject, TrackingV2RecordingObjectStore } from "./recording-object-store";
@@ -122,14 +123,16 @@ export function createTrackingV2RecordingService(options: {
       return enabledConfig({ recordingId: recording.id, uploadToken, maxDurationMs: recording.maxDurationMs });
     },
 
-    async uploadChunk(input: { recordingId: string; uploadToken: string; chunk: TrackingV2RecordingChunk }) {
+    async uploadChunk(input: { recordingId: string; uploadToken: string; upload: TrackingV2RecordingUpload }) {
       const receivedAt = now();
       const recording = await authorizedRecording(options.repository, input.recordingId, input.uploadToken, options.tokenSecret);
-      if (recording.publicSessionId !== input.chunk.sessionId) throw new TrackingV2RecordingInvalidError();
+      if (recording.publicSessionId !== input.upload.sessionId) throw new TrackingV2RecordingInvalidError();
 
       const sanitized = trackingV2RecordingChunkSchema.parse({
-        ...input.chunk,
-        events: input.chunk.events.map((event) => sanitizeRrwebEvent(event)),
+        schemaVersion: input.upload.schemaVersion,
+        sessionId: input.upload.sessionId,
+        sequence: input.upload.sequence,
+        events: input.upload.events.map((event) => sanitizeRrwebEvent(event)),
       });
       const eventBounds = recordingEventBounds(sanitized.events, recording);
       if (!eventBounds) {
@@ -141,6 +144,17 @@ export function createTrackingV2RecordingService(options: {
       if (payload.byteLength > recording.maxChunkBytes) {
         await failOrTruncate(options.repository, recording, "chunk_too_large", receivedAt);
         throw new TrackingV2RecordingLimitError("chunk_too_large");
+      }
+      if (input.upload.completion) {
+        await options.repository.requestCompletion(buildRecordingCompletion({
+          recording,
+          complete: {
+            schemaVersion: input.upload.schemaVersion,
+            sessionId: input.upload.sessionId,
+            ...input.upload.completion,
+          },
+          completedAt: receivedAt,
+        }));
       }
       const checksumSha256 = createHash("sha256").update(payload).digest("hex");
       const existing = await options.repository.findChunk({ recordingId: recording.id, sequence: sanitized.sequence });
@@ -219,19 +233,21 @@ export function createTrackingV2RecordingService(options: {
       if (recording.publicSessionId !== input.complete.sessionId) throw new TrackingV2RecordingInvalidError();
       if (!mutable(recording.status)) return { status: recording.status };
 
-      const endedAt = clampRecordingEnd(new Date(input.complete.endedAt), recording, completedAt);
-      const completion = {
-        recordingId: recording.id,
-        endedAt,
-        durationMs: Math.max(0, endedAt.getTime() - recording.startedAt.getTime()),
-        stopReason: input.complete.stopReason,
-        finalSequence: input.complete.finalSequence,
-        updatedAt: completedAt,
-      };
+      const completion = buildRecordingCompletion({ recording, complete: input.complete, completedAt });
       const chunks = await options.repository.listChunks(recording.id);
       if (!hasContiguousChunks(chunks, completion.finalSequence)) {
         await options.repository.requestCompletion(completion);
-        return { status: "recording" as const };
+        // The page-exit chunk and completion request are intentionally sent in
+        // parallel by the browser. Reconcile from both sides of that race: the
+        // chunk upload settles a previously requested completion, and the
+        // completion request re-checks chunks that may have committed while it
+        // was waiting for the recording row lock.
+        await settleIfRequested(options.repository, recording, completedAt);
+        const reconciled = await options.repository.findForUpload({
+          recordingId: recording.id,
+          uploadTokenHash: recording.uploadTokenHash,
+        });
+        return { status: reconciled?.status ?? "recording" as const };
       }
       const status = completionStatus(input.complete.stopReason, chunks.length);
       await options.repository.complete({ ...completion, status });
@@ -324,6 +340,22 @@ function validConsent(
   return Number.isFinite(grantedAt.getTime()) &&
     grantedAt.getTime() <= at.getTime() + MAX_CLOCK_SKEW_MS &&
     grantedAt.getTime() >= at.getTime() - MAX_CONSENT_AGE_MS;
+}
+
+function buildRecordingCompletion(input: {
+  recording: TrackingV2RecordingRecord;
+  complete: TrackingV2RecordingComplete;
+  completedAt: Date;
+}) {
+  const endedAt = clampRecordingEnd(new Date(input.complete.endedAt), input.recording, input.completedAt);
+  return {
+    recordingId: input.recording.id,
+    endedAt,
+    durationMs: Math.max(0, endedAt.getTime() - input.recording.startedAt.getTime()),
+    stopReason: input.complete.stopReason,
+    finalSequence: input.complete.finalSequence,
+    updatedAt: input.completedAt,
+  };
 }
 
 async function authorizedRecording(

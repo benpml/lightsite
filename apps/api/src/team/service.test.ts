@@ -97,6 +97,34 @@ describe("team service", () => {
     expect(expired.invitations[0]?.status).toBe("expired");
   });
 
+  it("delivers a workspace invitation with real actor and workspace details", async () => {
+    const repository = createMemoryTeamRepository({
+      members: [buildMember()],
+      workspaceNames: { [workspaceId]: "Acme Sales" },
+    });
+    const sendWorkspaceInvitation = vi.fn().mockResolvedValue(undefined);
+    const service = createTeamService(repository, {
+      now: () => now,
+      email: { sendWorkspaceInvitation },
+      webOrigin: "https://app.handout.link",
+    });
+
+    await service.invite({
+      actor: adminActor,
+      workspaceId,
+      email: "new@acme.com",
+      role: "user",
+    });
+
+    expect(sendWorkspaceInvitation).toHaveBeenCalledWith({
+      email: "new@acme.com",
+      inviterName: "Ada Admin",
+      workspaceName: "Acme Sales",
+      role: "user",
+      acceptUrl: "https://app.handout.link/auth?mode=sign-up",
+    });
+  });
+
   it("allows personal email domains and plus aliases in invitations", async () => {
     const repository = createMemoryTeamRepository({ members: [buildMember()] });
     const service = createTeamService(repository, { now: () => now });

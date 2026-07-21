@@ -78,7 +78,7 @@ Editor mode uses React node views for editing controls and injects `SITE_DOCUMEN
 
 Publishing snapshots canonical `SiteContent` without transformation. The public repository returns that immutable content and metadata. The API HTML route validates the public payload and calls the shared renderer.
 
-The API serves the versioned site runtime, `/fonts/*`, and shared public assets before the public-site fallback. It also serves title logos through `/api/public/site-logo/:workspaceSlug/:siteSlug/:kind`. That endpoint resolves the published site (and optional recipient variant) before looking up a workspace or recipient domain, so it cannot be used as an arbitrary-domain logo proxy. The public worker reserves and caches asset paths. Runtime bytes must never change behind an existing immutable versioned URL; behavior changes require a new path such as the current `/site-runtime.v4.js`.
+The API serves the versioned site runtime, `/fonts/*`, and shared public assets before the public-site fallback. It also serves title logos through `/api/public/site-logo/:workspaceSlug/:siteSlug/:kind`. That endpoint resolves the published site (and optional recipient variant) before looking up a workspace or recipient domain, so it cannot be used as an arbitrary-domain logo proxy. The public worker reserves and caches versioned runtime asset paths. Runtime bytes must never change behind an existing immutable versioned URL; behavior changes require a new path such as the current `/site-runtime.v6.js`.
 
 ### Web public fallback
 

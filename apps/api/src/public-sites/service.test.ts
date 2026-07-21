@@ -11,12 +11,74 @@ function createRecordingRepository(record: { payload: unknown } | null) {
       calls.push(input);
       return record;
     },
+    async findPublishedSiteByShortCode() {
+      return null;
+    },
+    async resolveOrCreateRecipientLink() {
+      return null;
+    },
   };
 
   return { calls, repository };
 }
 
 describe("public site service", () => {
+  it.each(["aZ7k2Q", "aZ7k2Qr9LmNp"])(
+    "resolves current and legacy recipient short code %s",
+    async (shortCode) => {
+    const payload = buildRecipientPayload();
+    const repository: PublicSiteRepository = {
+      async findPublishedSite() {
+        return null;
+      },
+      async findPublishedSiteByShortCode(shortCode) {
+        return { shortCode, payload };
+      },
+      async resolveOrCreateRecipientLink() {
+        return null;
+      },
+    };
+    const service = createPublicSiteService(repository);
+
+    await expect(service.resolveShortLink(shortCode)).resolves.toMatchObject({
+      status: "available",
+      shortCode,
+      version: "33333333-3333-4333-8333-333333333333.3",
+      payload,
+    });
+    },
+  );
+
+  it("rejects malformed public identifiers before repository access", async () => {
+    let calls = 0;
+    const repository: PublicSiteRepository = {
+      async findPublishedSite() {
+        return null;
+      },
+      async findPublishedSiteByShortCode() {
+        calls += 1;
+        return null;
+      },
+      async resolveOrCreateRecipientLink() {
+        calls += 1;
+        return null;
+      },
+    };
+    const service = createPublicSiteService(repository);
+
+    await expect(service.resolveShortLink("short")).resolves.toMatchObject({
+      status: "invalid_slug",
+    });
+    await expect(service.resolveRecipientLink({
+      sitePublicId: "bad",
+      recipientName: "John",
+      recipientCompany: "Linear",
+      recipientWebsite: "linear.app",
+      searchParams: new URLSearchParams(),
+    })).resolves.toMatchObject({ status: "invalid_slug" });
+    expect(calls).toBe(0);
+  });
+
   it("normalizes route slugs before looking up a published site", async () => {
     const { calls, repository } = createRecordingRepository({
       payload: {
@@ -187,3 +249,48 @@ describe("public site service", () => {
     });
   });
 });
+
+function buildRecipientPayload() {
+  return {
+    schemaVersion: PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION,
+    workspace: {
+      id: "11111111-1111-4111-8111-111111111111",
+      slug: "acme",
+      name: "Acme",
+      websiteDomain: "acme.com",
+      logoUrl: null,
+    },
+    site: {
+      id: "22222222-2222-4222-8222-222222222222",
+      slug: "rollout-brief",
+      name: "Rollout brief",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
+      publishedAt: "2026-07-09T12:00:00.000Z",
+    },
+    metadata: {
+      title: "John at Linear",
+      description: "A personalized brief.",
+      ogImageUrl: null,
+      robots: "noindex,nofollow",
+    },
+    content: createDefaultSiteContent("Rollout brief"),
+    selectedVariant: {
+      id: "44444444-4444-4444-8444-444444444444",
+      slug: "linear-john",
+      name: "John @ Linear",
+      recipientName: "John",
+      recipientCompany: "Linear",
+      revisionNumber: 3,
+      variableValues: {},
+    },
+    tracking: {
+      version: 2 as const,
+      workspaceId: "11111111-1111-4111-8111-111111111111",
+      siteId: "22222222-2222-4222-8222-222222222222",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
+      recipientId: "44444444-4444-4444-8444-444444444444",
+      recipientRevision: 3,
+      trackingMode: "events" as const,
+    },
+  };
+}

@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { Request } from "express";
 import type { CurrentActor } from "./current-actor";
+import { verifyMcpAccessToken } from "./mcp-oauth-token";
 
 export type AgentAuthContext = {
   actor: CurrentActor;
@@ -12,6 +13,30 @@ export type AgentAuthContext = {
 };
 
 export function getAgentAuthContext(request: Request): AgentAuthContext | null {
+  const authorization = request.header("authorization");
+  const token = authorization?.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length).trim()
+    : "";
+  if (!token) return null;
+
+  const oauth = verifyMcpAccessToken({
+    token,
+    issuer: resolveMcpIssuer(),
+    resource: resolveMcpResource(),
+    secret: process.env.BETTER_AUTH_SECRET ?? "",
+  });
+  if (oauth) {
+    return {
+      actor: {
+        userId: oauth.sub,
+        email: oauth.email,
+        emailVerified: true,
+        ...(oauth.name ? { name: oauth.name } : {}),
+      },
+      workspace: oauth.workspace,
+    };
+  }
+
   const expectedToken = process.env.HANDOUT_AGENT_API_TOKEN;
   const workspaceId = process.env.HANDOUT_AGENT_WORKSPACE_ID;
 
@@ -19,12 +44,7 @@ export function getAgentAuthContext(request: Request): AgentAuthContext | null {
     return null;
   }
 
-  const authorization = request.header("authorization");
-  const token = authorization?.startsWith("Bearer ")
-    ? authorization.slice("Bearer ".length).trim()
-    : "";
-
-  if (!token || !secureEquals(token, expectedToken)) {
+  if (!secureEquals(token, expectedToken)) {
     return null;
   }
 
@@ -41,6 +61,18 @@ export function getAgentAuthContext(request: Request): AgentAuthContext | null {
       role: process.env.HANDOUT_AGENT_WORKSPACE_ROLE === "user" ? "user" : "admin",
     },
   };
+}
+
+function resolveMcpIssuer() {
+  return process.env.HANDOUT_MCP_ISSUER ?? (
+    process.env.NODE_ENV === "production"
+      ? "https://api.handout.link"
+      : `http://localhost:${process.env.API_PORT ?? "3011"}`
+  );
+}
+
+function resolveMcpResource() {
+  return process.env.HANDOUT_MCP_RESOURCE ?? `${resolveMcpIssuer()}/mcp`;
 }
 
 function secureEquals(left: string, right: string) {

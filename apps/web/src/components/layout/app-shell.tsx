@@ -123,7 +123,7 @@ export function AppShell({ bootstrap, children }: AppShellProps) {
         <div className="px-2.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="compact" className="w-full">
+              <Button variant="outline" size="compact" className="w-full">
                 <IconCirclePlus data-icon="inline-start" />
                 Actions
               </Button>

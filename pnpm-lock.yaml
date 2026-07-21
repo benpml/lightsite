@@ -41,6 +41,9 @@ importers:
       '@handout/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@handout/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@handout/site-document':
         specifier: workspace:*
         version: link:../../packages/site-document

@@ -2,22 +2,26 @@ import { HANDOUT_TEXT_LIMITS } from "@handout/domain";
 import {
   siteContentPageSchema,
   siteContentSchema,
+  siteDefaultsSchema,
   siteSidebarButtonSchema,
   siteSidebarLinkSchema,
   siteSidebarSchema,
   siteVariableDefinitionSchema,
   type SiteContent,
   type SiteContentPage,
+  type SiteDefaults,
   type SiteSidebar,
   type SiteSidebarButton,
   type SiteSidebarLink,
   type SiteVariableDefinition,
 } from "@handout/site-document";
+export * from "./automations";
 import { z } from "zod";
 
 export {
   siteContentPageSchema,
   siteContentSchema,
+  siteDefaultsSchema,
   siteSidebarButtonSchema,
   siteSidebarLinkSchema,
   siteSidebarSchema,
@@ -108,6 +112,7 @@ export const validateSiteContentResponseSchema = z.object({
 
 export const siteListItemSchema = z.object({
   id: z.string(),
+  publicId: z.string().default(""),
   name: z.string(),
   slug: z.string(),
   status: siteStatusSchema,
@@ -134,6 +139,7 @@ export const createSiteRequestSchema = z.object({
 export const createSiteResponseSchema = z.object({
   site: siteListItemSchema.pick({
     id: true,
+    publicId: true,
     name: true,
     slug: true,
     status: true,
@@ -226,6 +232,7 @@ export const unpublishSiteResponseSchema = siteDetailResponseSchema;
 
 export const siteVariantSchema = z.object({
   id: z.string(),
+  shortCode: z.string().regex(/^[A-Za-z0-9_-]{6,16}$/).nullable().default(null),
   siteId: z.string(),
   name: z.string(),
   slug: z.string(),
@@ -413,6 +420,38 @@ export const billingCheckoutResponseSchema = z.object({
 
 export const billingPortalResponseSchema = billingCheckoutResponseSchema;
 
+export const updateBillingSubscriptionRequestSchema = z.object({
+  plan: z.enum(["core", "pro"]),
+  interval: billingIntervalSchema,
+});
+
+export const updateBillingSubscriptionResponseSchema = z.object({
+  success: z.literal(true),
+  requestId: z.string(),
+});
+
+export const cancelBillingSubscriptionResponseSchema = z.object({
+  cancelAtPeriodEnd: z.literal(true),
+  currentPeriodEnd: z.string().nullable(),
+  requestId: z.string(),
+});
+
+export const siteDefaultsResponseSchema = z.object({
+  defaults: siteDefaultsSchema,
+  requestId: z.string(),
+});
+
+export const updateSiteDefaultsRequestSchema = siteDefaultsSchema;
+
+export const checkEmailChangeRequestSchema = z.object({
+  email: z.string().trim().toLowerCase().max(HANDOUT_TEXT_LIMITS.email).pipe(z.email()),
+});
+
+export const checkEmailChangeResponseSchema = z.object({
+  available: z.literal(true),
+  requestId: z.string(),
+});
+
 export const workspaceSlugAvailabilityResponseSchema = z.object({
   slug: z.string(),
   available: z.boolean(),
@@ -424,6 +463,36 @@ export const createWorkspaceRequestSchema = z.object({
   slug: z.string().trim().max(64).optional(),
   website: z.string().trim().min(1).max(HANDOUT_TEXT_LIMITS.url),
   logoAssetId: z.uuid().optional(),
+});
+
+export const updateWorkspaceSettingsRequestSchema = z.object({
+  name: z.string().trim().min(1).max(HANDOUT_TEXT_LIMITS.workspaceName),
+  website: z.string().trim().min(1).max(HANDOUT_TEXT_LIMITS.url),
+});
+
+export const updateWorkspaceSettingsResponseSchema = z.object({
+  workspace: workspaceSummarySchema,
+  requestId: z.string(),
+});
+
+export const uploadWorkspaceLogoRequestSchema = z.object({
+  contentType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+  dataBase64: z.string().min(1),
+  fileName: z.string().trim().min(1).max(255),
+});
+
+export const uploadWorkspaceLogoResponseSchema = z.object({
+  logoAssetId: z.uuid(),
+  logoUrl: z.string(),
+  requestId: z.string(),
+});
+
+export const uploadProfileImageRequestSchema = uploadWorkspaceLogoRequestSchema;
+
+export const uploadProfileImageResponseSchema = z.object({
+  imageAssetId: z.uuid(),
+  imageUrl: z.string(),
+  requestId: z.string(),
 });
 
 export const createWorkspaceResponseSchema = z.object({
@@ -454,10 +523,24 @@ export type BillingSummary = z.infer<typeof billingSummarySchema>;
 export type CreateBillingCheckoutRequest = z.input<typeof createBillingCheckoutRequestSchema>;
 export type BillingCheckoutResponse = z.infer<typeof billingCheckoutResponseSchema>;
 export type BillingPortalResponse = z.infer<typeof billingPortalResponseSchema>;
+export type UpdateBillingSubscriptionRequest = z.input<typeof updateBillingSubscriptionRequestSchema>;
+export type UpdateBillingSubscriptionResponse = z.infer<typeof updateBillingSubscriptionResponseSchema>;
+export type CancelBillingSubscriptionResponse = z.infer<typeof cancelBillingSubscriptionResponseSchema>;
+export type SiteDefaultsResponse = z.infer<typeof siteDefaultsResponseSchema>;
+export type UpdateSiteDefaultsRequest = z.input<typeof updateSiteDefaultsRequestSchema>;
+export type CheckEmailChangeRequest = z.input<typeof checkEmailChangeRequestSchema>;
+export type CheckEmailChangeResponse = z.infer<typeof checkEmailChangeResponseSchema>;
 export type WorkspaceSummary = z.infer<typeof workspaceSummarySchema>;
 export type WorkspaceSlugAvailabilityResponse = z.infer<typeof workspaceSlugAvailabilityResponseSchema>;
 export type CreateWorkspaceRequest = z.input<typeof createWorkspaceRequestSchema>;
 export type CreateWorkspaceResponse = z.infer<typeof createWorkspaceResponseSchema>;
+export type UpdateWorkspaceSettingsRequest = z.input<typeof updateWorkspaceSettingsRequestSchema>;
+export type UpdateWorkspaceSettingsResponse = z.infer<typeof updateWorkspaceSettingsResponseSchema>;
+export type UploadWorkspaceLogoRequest = z.input<typeof uploadWorkspaceLogoRequestSchema>;
+export type UploadWorkspaceLogoResponse = z.infer<typeof uploadWorkspaceLogoResponseSchema>;
+export type UploadProfileImageRequest = z.input<typeof uploadProfileImageRequestSchema>;
+export type UploadProfileImageResponse = z.infer<typeof uploadProfileImageResponseSchema>;
+export type { SiteDefaults };
 
 export const onboardingNextStepSchema = z.enum([
   "verify_email",

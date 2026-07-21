@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operate Handout"
+  short_description: "Safely operate sites, pages, publishing, and versions"
+  default_prompt: "Use Handout to help me manage my sales sites."

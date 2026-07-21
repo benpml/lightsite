@@ -4,9 +4,11 @@ import {
   type TrackingV2CreateSessionInput,
 } from "./repository";
 import {
+  createTrackingV2ReadReconciler,
   createTrackingV2SessionExpirationService,
   startTrackingV2SessionExpirationJob,
 } from "./session-expiration";
+import { createMemoryTrackingV2RecordingRepository } from "./recording-repository";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const siteId = "22222222-2222-4222-8222-222222222222";
@@ -49,6 +51,7 @@ describe("tracking v2 session expiration", () => {
 
     expect(result).toEqual({
       expired: 1,
+      recordingsSettled: 0,
       now: "2026-07-11T12:03:00.000Z",
       staleBefore: "2026-07-11T12:01:00.000Z",
     });
@@ -129,6 +132,79 @@ describe("tracking v2 session expiration", () => {
     });
   });
 
+  it("settles an ended replay even when the browser never sends completion metadata", async () => {
+    const repository = createMemoryTrackingV2Repository();
+    const recording = createMemoryTrackingV2RecordingRepository();
+    const startedAt = new Date("2026-07-11T12:00:00.000Z");
+    const endedAt = new Date("2026-07-11T12:00:15.000Z");
+    const session = await repository.createSession(sessionInput({
+      publicSessionId: "session_abandoned_replay",
+      startedAt,
+    }));
+    const storedSession = repository.sessions.get("session_abandoned_replay");
+    if (!storedSession) throw new Error("Expected memory session.");
+    storedSession.recordingStatus = "recording";
+    const created = await recording.repository.createRecording({
+      id: "77777777-7777-4777-8777-777777777777",
+      workspaceId,
+      siteId,
+      recipientId: null,
+      sessionId: session.id,
+      publicSessionId: session.publicSessionId,
+      uploadTokenHash: "upload-token-hash",
+      runtimeVersion: "test",
+      visitorNoticeVersion: 1,
+      consentGrantedAt: startedAt,
+      consentSource: "prompt",
+      maxDurationMs: 600_000,
+      maxChunkBytes: 524_288,
+      maxEvents: 20_000,
+      startedAt,
+      expiresAt: new Date("2026-07-25T12:00:00.000Z"),
+      usageDate: "2026-07-11",
+      dailyRecordingLimit: 1_000,
+    });
+    if (!created) throw new Error("Expected memory recording.");
+    await recording.repository.insertChunk({
+      recordingId: created.id,
+      workspaceId,
+      sessionId: session.id,
+      sequence: 0,
+      objectKey: "recordings/test/chunk-0.json.gz",
+      eventCount: 1,
+      compressedBytes: 100,
+      uncompressedBytes: 200,
+      checksumSha256: "a".repeat(64),
+      firstEventAt: startedAt,
+      lastEventAt: endedAt,
+      receivedAt: endedAt,
+      usageDate: "2026-07-11",
+      dailyCompressedByteLimit: 1_000_000,
+      recordingByteLimit: 1_000_000,
+    });
+    await repository.endSession({
+      sessionId: session.id,
+      activeAfter: new Date("2026-07-11T11:58:00.000Z"),
+      occurredAt: endedAt,
+      reason: "pagehide",
+      activeMs: 15_000,
+    });
+
+    const result = await createTrackingV2SessionExpirationService({
+      repository,
+      recordingRepository: recording.repository,
+      recordingSettlementGraceMs: 30_000,
+    }).runOnce({ now: new Date("2026-07-11T12:00:45.000Z") });
+
+    expect(result.recordingsSettled).toBe(1);
+    expect(recording.recordings.get(created.id)).toMatchObject({
+      status: "truncated",
+      finalSequence: 0,
+      stopReason: "pagehide",
+      errorCode: "missing_completion",
+    });
+  });
+
   it("runs immediately, does not overlap, and stops cleanly", async () => {
     vi.useFakeTimers();
     let releaseFirstRun: (() => void) | undefined;
@@ -155,6 +231,35 @@ describe("tracking v2 session expiration", () => {
 
     stop();
     await vi.advanceTimersByTimeAsync(3_000);
+    expect(runOnce).toHaveBeenCalledTimes(2);
+  });
+
+  it("coalesces concurrent tracking reads and performs no idle polling", async () => {
+    let currentTime = 1_000;
+    let releaseRun: (() => void) | undefined;
+    const pendingRun = new Promise<void>((resolve) => { releaseRun = resolve; });
+    const runOnce = vi.fn()
+      .mockImplementationOnce(async () => {
+        await pendingRun;
+        return result(0);
+      })
+      .mockResolvedValue(result(0));
+    const reconcile = createTrackingV2ReadReconciler({
+      service: { runOnce },
+      intervalMs: 30_000,
+      now: () => currentTime,
+    });
+
+    const first = reconcile();
+    const concurrent = reconcile();
+    expect(runOnce).toHaveBeenCalledTimes(1);
+    releaseRun?.();
+    await Promise.all([first, concurrent]);
+    await reconcile();
+    expect(runOnce).toHaveBeenCalledTimes(1);
+
+    currentTime += 30_000;
+    await reconcile();
     expect(runOnce).toHaveBeenCalledTimes(2);
   });
 });
@@ -188,6 +293,7 @@ function sessionInput(input: {
 function result(expired: number) {
   return {
     expired,
+    recordingsSettled: 0,
     now: "2026-07-11T12:00:00.000Z",
     staleBefore: "2026-07-11T11:58:00.000Z",
   };

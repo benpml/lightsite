@@ -142,6 +142,29 @@ describe("shared design tokens", () => {
     )
   })
 
+  it("defines the canonical site card surface in both modes", () => {
+    expect(handoutFoundationTokens["shadow-xs"]).toBe(
+      "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+    )
+    expect(HANDOUT_THEME_CSS).toContain(
+      "--shadow-xs:0 1px 2px 0 rgb(0 0 0 / 0.05)",
+    )
+    expect(handoutLightTokens).toMatchObject({
+      "site-card-background": "var(--white-white)",
+      "site-card-border": "var(--border)",
+    })
+    expect(handoutDarkTokens).toMatchObject({
+      "site-card-background": "var(--neutral-800)",
+      "site-card-border": "var(--neutral-alpha-a300)",
+    })
+    expect(HANDOUT_THEME_CSS).toContain(
+      "--site-card-background:var(--white-white);--site-card-border:var(--border)",
+    )
+    expect(HANDOUT_THEME_CSS).toContain(
+      "--site-card-background:var(--neutral-800);--site-card-border:var(--neutral-alpha-a300)",
+    )
+  })
+
   it("emits light, dark, and system selectors from the same maps", () => {
     expect(HANDOUT_THEME_CSS).toContain(":root,.light{color-scheme:light")
     expect(HANDOUT_THEME_CSS).toContain(".dark{color-scheme:dark")
@@ -179,8 +202,12 @@ describe("shared design tokens", () => {
   })
 
   it("gives table headers the shared translucent black fill", () => {
-    expect(handoutLightTokens["table-header-background"]).toBe("rgb(0 0 0 / 5%)")
-    expect(handoutDarkTokens["table-header-background"]).toBe("rgb(0 0 0 / 5%)")
+    expect(handoutLightTokens["table-header-background"]).toBe(
+      "var(--neutral-alpha-a100)",
+    )
+    expect(handoutDarkTokens["table-header-background"]).toBe(
+      "rgb(0 0 0 / 20%)",
+    )
   })
 
   it("uses a dedicated subtle input fill without weakening input borders", () => {

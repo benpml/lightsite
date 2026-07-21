@@ -6,12 +6,21 @@ import {
   createSiteRecipient,
   createStableRecipientLinkSlug,
   getRecipientLogoUrl,
+  isBuiltInRecipientVariableId,
   normalizeOptionalRecipientWebsite,
   normalizeWebsite,
   updateSiteRecipient,
 } from "./recipient-model"
 
 describe("recipient model", () => {
+  it("keeps system recipient fields out of custom-variable inputs", () => {
+    expect(isBuiltInRecipientVariableId("recipient-name")).toBe(true)
+    expect(isBuiltInRecipientVariableId("recipient-company")).toBe(true)
+    expect(isBuiltInRecipientVariableId("recipient_website")).toBe(true)
+    expect(isBuiltInRecipientVariableId("var-company-logo")).toBe(true)
+    expect(isBuiltInRecipientVariableId("var-deal-stage")).toBe(false)
+  })
+
   it("normalizes websites for logo lookup", () => {
     expect(normalizeWebsite("https://www.Linear.app/pricing")).toBe("linear.app")
     expect(normalizeWebsite(" ACME.com ")).toBe("acme.com")
@@ -98,6 +107,36 @@ describe("recipient model", () => {
       siteUri: "ab4125",
     })).toBe(
       "https://handout.link/ab4125/linear-david"
+    )
+  })
+
+  it("prefers the server-owned short link and short screenshot path", () => {
+    const recipient = {
+      ...createSiteRecipient(
+        {
+          company: "Linear",
+          name: "David",
+          siteId: "site-1",
+          values: {},
+          workspaceId: "workspace-1",
+        },
+        []
+      ),
+      shortCode: "aZ7k2Qr9LmNp",
+    }
+
+    expect(buildRecipientPublicUrl({
+      publicOrigin: "https://handout.link",
+      recipient,
+      siteUri: "workspace/site",
+    })).toBe("https://handout.link/aZ7k2Qr9LmNp")
+    expect(createRecipientEmailEmbedHtml({
+      publicOrigin: "https://handout.link",
+      recipient,
+      siteUri: "workspace/site",
+      siteVersion: "version-7",
+    })).toContain(
+      'src="https://handout.link/aZ7k2Qr9LmNp/embed.jpg?v=version-7.'
     )
   })
 

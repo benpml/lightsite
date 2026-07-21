@@ -63,9 +63,10 @@ describe("tracking v2 retention runner", () => {
 });
 
 function result(overrides: Partial<TrackingV2RetentionRunResult> = {}): TrackingV2RetentionRunResult {
-  return {
+  const base: TrackingV2RetentionRunResult = {
     now: batchAt.toISOString(),
     sessionsExpired: 0,
+    endedRecordingsSettled: 0,
     staleRecordingsSettled: 0,
     recordingsExpired: 0,
     recordingObjectsQueued: 0,
@@ -76,8 +77,8 @@ function result(overrides: Partial<TrackingV2RetentionRunResult> = {}): Tracking
     eventsDeleted: 0,
     sessionsDeleted: 0,
     manifestsDeleted: 0,
-    ...overrides,
   };
+  return Object.assign(base, overrides);
 }
 
 function serviceReturning(output: TrackingV2RetentionRunResult): TrackingV2RetentionService {
