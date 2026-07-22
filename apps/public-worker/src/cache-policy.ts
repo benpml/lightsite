@@ -14,6 +14,7 @@ const RESERVED_FIRST_SEGMENTS = new Set([
   "favicon.ico",
   "fonts",
   "health",
+  "handout-logo-icon.svg",
   "handout-logo.svg",
   "robots.txt",
 ]);
@@ -39,6 +40,7 @@ export function classifyPublicRoute(pathname: string): PublicRouteKind {
 
   if (
     pathname === "/favicon.ico" ||
+    pathname === "/handout-logo-icon.svg" ||
     pathname === "/handout-logo.svg" ||
     pathname === "/robots.txt" ||
     SITE_RUNTIME_PATH_PATTERN.test(pathname) ||

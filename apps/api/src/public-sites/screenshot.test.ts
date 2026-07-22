@@ -46,7 +46,7 @@ describe("public site screenshots", () => {
         response.end();
         return;
       }
-      if (request.url === "/handout-logo.svg") {
+      if (request.url === "/handout-logo-icon.svg") {
         response.setHeader("content-type", "image/svg+xml");
         response.end('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10H0z"/></svg>');
         return;
@@ -66,7 +66,7 @@ describe("public site screenshots", () => {
       });
 
       expect(requestedPaths).toContain("/missing-workspace-logo.jpg");
-      expect(requestedPaths).toContain("/handout-logo.svg");
+      expect(requestedPaths).toContain("/handout-logo-icon.svg");
     } finally {
       await renderer.close?.();
       await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

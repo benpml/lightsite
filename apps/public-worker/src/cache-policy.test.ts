@@ -24,6 +24,7 @@ describe("public worker cache policy", () => {
     expect(classifyPublicRoute("/assets/images/foo/bar")).toBe("not-found");
     expect(classifyPublicRoute("/editor-assets/site-avatar.png")).toBe("asset");
     expect(classifyPublicRoute("/fonts/geist-latin-wght-normal.woff2")).toBe("asset");
+    expect(classifyPublicRoute("/handout-logo-icon.svg")).toBe("asset");
     expect(classifyPublicRoute("/handout-logo.svg")).toBe("asset");
     expect(classifyPublicRoute("/site-runtime.v6.js")).toBe("asset");
     expect(classifyPublicRoute("/site-runtime.v99.js")).toBe("asset");

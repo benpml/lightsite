@@ -57,6 +57,8 @@ export type RenderPublicSiteOptions = {
 
 export const PUBLIC_SITE_LOGO_ENDPOINT = "/api/public/site-logo" as const;
 export const PUBLIC_SITE_RUNTIME_PATH = "/site-runtime.v6.js" as const;
+export const HANDOUT_LOGO_MARK_PATH = "/handout-logo-icon.svg" as const;
+export const PUBLIC_SITE_PREVIEW_RENDER_VERSION = 2 as const;
 /**
  * Shared iframe capability contract for generated site documents.
  *
@@ -642,7 +644,7 @@ export function buildPublicPreviewVersion(payload: PublishedSitePayload) {
     payload.workspace.websiteDomain,
   ].join("\u0000");
 
-  return `${payload.site.publishedVersionId}.${revision}.w${hashPreviewIdentity(workspaceLogoIdentity)}`;
+  return `${payload.site.publishedVersionId}.${revision}.r${PUBLIC_SITE_PREVIEW_RENDER_VERSION}.w${hashPreviewIdentity(workspaceLogoIdentity)}`;
 }
 
 function hashPreviewIdentity(value: string) {
@@ -734,7 +736,7 @@ function removeLogoTile(tile){var group=tile&&tile.parentElement;if(tile)tile.re
 function handleLogoError(image){
   var tile=image.closest('.handout-page-title-logo');if(!tile)return;
   if(tile.getAttribute('data-handout-logo-kind')==='workspace'&&!image.hasAttribute('data-handout-logo-fallback')){
-    image.setAttribute('data-handout-logo-fallback','');image.alt='Handout';image.src='/handout-logo.svg';return;
+    image.setAttribute('data-handout-logo-fallback','');image.alt='Handout';image.src='${HANDOUT_LOGO_MARK_PATH}';return;
   }
   removeLogoTile(tile);
 }

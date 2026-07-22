@@ -3,7 +3,10 @@ import { isIP } from "node:net";
 import type { Browser, BrowserContext } from "playwright";
 import { chromium } from "playwright";
 import { normalizePublishedSitePayload } from "@handout/content-schema";
-import { buildPublicPreviewVersion } from "@handout/site-document";
+import {
+  buildPublicPreviewVersion,
+  HANDOUT_LOGO_MARK_PATH,
+} from "@handout/site-document";
 import { renderPublicSiteScreenshotHtmlDocument } from "./html";
 
 export const PUBLIC_SITE_SCREENSHOT_WIDTH = 1200;
@@ -159,7 +162,7 @@ export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreen
           timeout: PAGE_RENDER_TIMEOUT_MS,
           waitUntil: "load",
         });
-        await page.evaluate(async (timeoutMs) => {
+        await page.evaluate(async ({ timeoutMs, workspaceFallbackPath }) => {
           const assetsReady = Promise.all([
             document.fonts?.ready ?? Promise.resolve(),
             ...Array.from(document.images).map((image) => image.complete
@@ -196,7 +199,7 @@ export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreen
                 return;
               }
               image.alt = "Handout";
-              image.src = "/handout-logo.svg";
+              image.src = workspaceFallbackPath;
               workspaceFallbacks.push(image);
             });
 
@@ -210,7 +213,10 @@ export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreen
             });
           }
           window.scrollTo(0, 0);
-        }, ASSET_SETTLE_TIMEOUT_MS);
+        }, {
+          timeoutMs: ASSET_SETTLE_TIMEOUT_MS,
+          workspaceFallbackPath: HANDOUT_LOGO_MARK_PATH,
+        });
 
         return await page.screenshot({
           animations: "disabled",

@@ -41,7 +41,7 @@ describe("canonical site document", () => {
     payload.workspace.logoUrl = "/api/workspaces/logo-assets/55555555-5555-4555-8555-555555555555";
     const uploadedLogoVersion = buildPublicPreviewVersion(payload);
 
-    expect(initialVersion).toMatch(/^33333333-3333-4333-8333-333333333333\.1\.w[a-z0-9]+$/);
+    expect(initialVersion).toMatch(/^33333333-3333-4333-8333-333333333333\.1\.r2\.w[a-z0-9]+$/);
     expect(initialPath).toContain(`embed.jpg?v=${encodeURIComponent(initialVersion)}`);
     expect(uploadedLogoVersion).not.toBe(initialVersion);
     expect(buildPublicScreenshotPath(payload)).toContain(
@@ -760,7 +760,7 @@ describe("canonical site document", () => {
     expect(html).toContain('src="/api/workspaces/logo-preview/image?domain=acme.io&amp;size=128&amp;theme=dark"');
     expect(html).toContain('src="/api/workspaces/logo-preview/image?domain=linear.app&amp;size=128&amp;theme=dark"');
     expect(html).not.toContain(PUBLIC_SITE_LOGO_ENDPOINT);
-    expect(PUBLIC_SITE_RUNTIME).toContain("image.src='/handout-logo.svg'");
+    expect(PUBLIC_SITE_RUNTIME).toContain("image.src='/handout-logo-icon.svg'");
     expect(PUBLIC_SITE_RUNTIME).toContain("removeLogoTile(tile)");
     expect(PUBLIC_SITE_RUNTIME).toContain("setSidebarOpen(false,restoreMenuFocus)");
     expect(PUBLIC_SITE_RUNTIME).toContain(".handout-sidebar-backdrop");
