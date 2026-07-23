@@ -18,6 +18,10 @@ import {
 
 import { AuthFlowShell } from "./components/auth-flow-shell"
 import { authClient } from "./auth-client"
+import {
+  getAuthSubmissionState,
+  type AuthSubmission,
+} from "./auth-submission-state"
 
 type AuthMode = "sign-in" | "sign-up"
 type AuthStep = "email" | "otp"
@@ -36,11 +40,17 @@ export function AuthPage() {
   const [email, setEmail] = useState("")
   const [otp, setOtp] = useState("")
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [activeSubmission, setActiveSubmission] = useState<AuthSubmission | null>(null)
   const [resent, setResent] = useState(false)
 
   const normalizedEmail = normalizeEmail(email)
   const emailValidation = validateEmail(email)
+  const {
+    isSubmitting,
+    isGoogleSubmitting,
+    isEmailSubmitting,
+    isOtpSubmitting,
+  } = getAuthSubmissionState(activeSubmission)
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode)
@@ -55,14 +65,17 @@ export function AuthPage() {
     window.history.replaceState(null, "", `/auth${params.size ? `?${params}` : ""}`)
   }
 
-  const sendOtp = async (event?: React.FormEvent<HTMLFormElement>) => {
+  const sendOtp = async (
+    event?: React.FormEvent<HTMLFormElement>,
+    submission: Extract<AuthSubmission, "email" | "resend"> = "email",
+  ) => {
     event?.preventDefault()
     setSubmitError(null)
     setResent(false)
 
     if (!emailValidation.ok || isSubmitting) return false
 
-    setIsSubmitting(true)
+    setActiveSubmission(submission)
     try {
       const result = await authClient.emailOtp.sendVerificationOtp({
         email: normalizedEmail,
@@ -75,7 +88,7 @@ export function AuthPage() {
       setSubmitError(getAuthErrorMessage(error, "We could not send a verification code."))
       return false
     } finally {
-      setIsSubmitting(false)
+      setActiveSubmission(null)
     }
   }
 
@@ -84,7 +97,7 @@ export function AuthPage() {
     setSubmitError(null)
     if (otp.length !== 6 || isSubmitting) return
 
-    setIsSubmitting(true)
+    setActiveSubmission("otp")
     try {
       const result = await authClient.signIn.emailOtp({
         email: normalizedEmail,
@@ -102,7 +115,7 @@ export function AuthPage() {
     } catch (error) {
       setSubmitError(getAuthErrorMessage(error, "That code is invalid or expired."))
     } finally {
-      setIsSubmitting(false)
+      setActiveSubmission(null)
     }
   }
 
@@ -110,7 +123,7 @@ export function AuthPage() {
     setSubmitError(null)
     if (isSubmitting) return
 
-    setIsSubmitting(true)
+    setActiveSubmission("google")
     try {
       const callbackURL = returnTo ?? "/onboarding"
       const result = await authClient.signIn.social({
@@ -121,7 +134,7 @@ export function AuthPage() {
       if (result?.error) throw new Error(result.error.message)
     } catch (error) {
       setSubmitError(getAuthErrorMessage(error, "Google sign-in could not be started."))
-      setIsSubmitting(false)
+      setActiveSubmission(null)
     }
   }
 
@@ -154,7 +167,7 @@ export function AuthPage() {
                 disabled={isSubmitting}
                 onClick={() => void signInWithGoogle()}
               >
-                {isSubmitting ? (
+                {isGoogleSubmitting ? (
                   <Spinner data-icon="inline-start" />
                 ) : (
                   <img
@@ -197,7 +210,7 @@ export function AuthPage() {
                   ) : null}
                 </Field>
                 <Button type="submit" size="lg" className="w-full" disabled={!emailValidation.ok || isSubmitting}>
-                  {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+                  {isEmailSubmitting ? <Spinner data-icon="inline-start" /> : null}
                   Sign in with email
                 </Button>
               </FieldGroup>
@@ -256,7 +269,7 @@ export function AuthPage() {
                 </InputOTP>
               </Field>
               <Button type="submit" size="lg" className="w-full" disabled={otp.length !== 6 || isSubmitting}>
-                {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+                {isOtpSubmitting ? <Spinner data-icon="inline-start" /> : null}
                 Verify
               </Button>
             </div>
@@ -270,7 +283,7 @@ export function AuthPage() {
                 className="underline disabled:opacity-50"
                 disabled={isSubmitting}
                 onClick={() => {
-                  void sendOtp().then((sent) => {
+                  void sendOtp(undefined, "resend").then((sent) => {
                     if (sent) setResent(true)
                   })
                 }}
