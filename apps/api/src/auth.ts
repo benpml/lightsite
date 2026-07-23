@@ -9,6 +9,7 @@ import * as databaseSchema from "@handout/db";
 import { claimWorkspaceInvitationsForUser } from "./team/repository";
 import { createVerificationEmailSender } from "./email/verification-email";
 import { createTransactionalEmailSender } from "./email/transactional-email";
+import { accountLinkingPolicy } from "./auth/account-linking";
 
 const sendVerificationEmail = createVerificationEmailSender({
   apiKey: env.RESEND_API_KEY,
@@ -29,6 +30,9 @@ export const auth = betterAuth({
     provider: "pg",
     schema: databaseSchema,
   }),
+  account: {
+    accountLinking: accountLinkingPolicy,
+  },
   ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
     ? {
         socialProviders: {
