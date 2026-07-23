@@ -27,6 +27,6 @@ export const editorVariableValues = {
   default: {
     "recipient-name": "you",
     "recipient-company": "your company",
-    recipient_website: "linear.app",
+    recipient_website: "",
   },
 }

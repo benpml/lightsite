@@ -333,6 +333,7 @@ function ReadyEditorPage({
       editorVariableValues,
       "default",
       {
+        workspaceId: activeWorkspace.id,
         workspaceLogoUrl: activeWorkspace.logoUrl,
         workspaceName: activeWorkspace.name,
         workspaceWebsiteDomain: activeWorkspace.websiteDomain,
@@ -342,6 +343,7 @@ function ReadyEditorPage({
     [
       activeWorkspace.logoUrl,
       activeWorkspace.name,
+      activeWorkspace.id,
       activeWorkspace.websiteDomain,
       collaborationEditorConfig,
     ],

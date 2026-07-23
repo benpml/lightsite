@@ -1,5 +1,7 @@
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain"
 
+import { apiRequest } from "@/lib/api/client"
+
 export type HandoutImageAttrs = {
   alt: string
   height: number
@@ -15,7 +17,26 @@ const maximumRasterWidth = 1_224
 const minimumRasterDimension = 64
 const webpQualitySteps = [0.86, 0.74, 0.62, 0.5]
 
-export function readImageFileAsAttrs(file: File) {
+export async function uploadImageFileAsAttrs(file: File, workspaceId: string) {
+  const attrs = await readImageFileAsAttrs(file)
+  const source = parseUploadableImageDataUrl(attrs.src)
+  const response = await apiRequest(`/api/workspaces/${workspaceId}/assets/import`, {
+    method: "POST",
+    body: {
+      fileName: file.name,
+      purpose: "image",
+      source,
+    },
+    responseSchema: workspaceAssetImportResponseSchema,
+  })
+
+  return {
+    ...attrs,
+    src: response.asset.url,
+  }
+}
+
+function readImageFileAsAttrs(file: File) {
   return new Promise<HandoutImageAttrs>((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
       reject(new Error("The selected file is not an image."))
@@ -65,6 +86,44 @@ export function readImageFileAsAttrs(file: File) {
 
     reader.readAsDataURL(file)
   })
+}
+
+function parseUploadableImageDataUrl(src: string) {
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([a-z0-9+/=\s]+)$/i.exec(src)
+
+  if (!match?.[1] || !match[2]) {
+    throw new Error("Images must be PNG, JPEG, or WebP files.")
+  }
+
+  return {
+    kind: "base64" as const,
+    contentType: match[1].toLowerCase() as "image/jpeg" | "image/png" | "image/webp",
+    dataBase64: match[2].replace(/\s/g, ""),
+  }
+}
+
+const workspaceAssetImportResponseSchema = {
+  parse(value: unknown) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("Invalid workspace asset response.")
+    }
+
+    const asset = "asset" in value ? value.asset : null
+
+    if (!asset || typeof asset !== "object" || Array.isArray(asset) || !("url" in asset)) {
+      throw new Error("Invalid workspace asset response.")
+    }
+
+    if (typeof asset.url !== "string" || !asset.url) {
+      throw new Error("Invalid workspace asset response.")
+    }
+
+    return {
+      asset: {
+        url: asset.url,
+      },
+    }
+  },
 }
 
 async function prepareEmbeddedImageDataUrl({

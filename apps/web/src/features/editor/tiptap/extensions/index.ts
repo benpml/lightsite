@@ -78,6 +78,7 @@ export function createEditorExtensions(
   variableValues: HandoutVariableValueMap = {},
   activeVariantId = "default",
   pageTitleContext: {
+    workspaceId?: string
     workspaceLogoUrl?: string | null
     workspaceName?: string
     workspaceWebsiteDomain?: string
@@ -232,6 +233,7 @@ export function createEditorExtensions(
       suggestion: createHandoutNextEmojiSuggestion(),
     }),
     HandoutImage.configure({
+      workspaceId: pageTitleContext.workspaceId ?? "",
       HTMLAttributes: {
         class: "handout-editor-image",
         loading: "lazy",

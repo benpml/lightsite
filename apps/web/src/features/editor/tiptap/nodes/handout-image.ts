@@ -8,9 +8,13 @@ import type { ImageOptions } from "@tiptap/extension-image"
 import { SiteImage } from "@handout/site-document"
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
 
-import { readImageFileAsAttrs } from "../image-utils"
+import { uploadImageFileAsAttrs } from "../image-utils"
 
-export const HandoutImage = SiteImage.extend<ImageOptions>({
+type HandoutImageOptions = ImageOptions & {
+  workspaceId: string
+}
+
+export const HandoutImage = SiteImage.extend<HandoutImageOptions>({
   addNodeView() {
     const { directions, minWidth, minHeight, alwaysPreserveAspectRatio } =
       this.options.resize && this.options.resize.enabled
@@ -29,6 +33,7 @@ export const HandoutImage = SiteImage.extend<ImageOptions>({
           editor,
           getPos,
           nodeTypeName: this.name,
+          workspaceId: this.options.workspaceId,
         })
       }
 
@@ -97,10 +102,12 @@ function createEmptyImageNodeView({
   editor,
   getPos,
   nodeTypeName,
+  workspaceId,
 }: {
   editor: Editor
   getPos: () => number | undefined
   nodeTypeName: string
+  workspaceId: string
 }) {
   const dom = document.createElement("div")
   const input = document.createElement("input")
@@ -135,7 +142,7 @@ function createEmptyImageNodeView({
         return
       }
 
-      const attrs = await readImageFileAsAttrs(file)
+      const attrs = await uploadImageFileAsAttrs(file, workspaceId)
 
       editor
         .chain()

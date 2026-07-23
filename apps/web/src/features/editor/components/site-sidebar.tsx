@@ -166,7 +166,7 @@ export function EditorSiteSidebar(props: EditorSiteSidebarProps) {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <SidebarContent {...props} isEditing={isEditing} />
         </div>
-        <BuiltWithHandoutFooter />
+        {isEditing ? null : <BuiltWithHandoutFooter />}
       </aside>
     </TooltipProvider>
   )
@@ -222,9 +222,11 @@ function MobileSiteSidebar({
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5">
             <SidebarContent {...sidebarProps} isEditing={isEditing} />
           </div>
-          <div className="px-4 pb-5">
-            <BuiltWithHandoutFooter />
-          </div>
+          {isEditing ? null : (
+            <div className="px-4 pb-5">
+              <BuiltWithHandoutFooter />
+            </div>
+          )}
         </SheetContent>
       </Sheet>
       <div className="min-w-0 truncate text-base leading-6 font-medium text-foreground">

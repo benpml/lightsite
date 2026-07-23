@@ -23,11 +23,12 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
+import { useActiveWorkspace } from "@/features/app-bootstrap/app-bootstrap-hooks"
 import { cn } from "@/lib/utils"
 import { getDevAuthBypassHeaders } from "@/lib/api/dev-auth-bypass"
 
 import { useFloatingEditorPopoverPosition } from "../../components/use-floating-editor-popover-position"
-import { fitImageDimensions, loadImageDimensions, readImageFileAsAttrs } from "../image-utils"
+import { fitImageDimensions, loadImageDimensions, uploadImageFileAsAttrs } from "../image-utils"
 import { getHandoutVariableValue } from "../variable-state"
 
 const iconListOptions = SITE_ICON_OPTIONS
@@ -411,11 +412,11 @@ function buildLogoPreviewImageSrc(input: string | null | undefined, theme: "ligh
 }
 
 type LogoGridPreviewResult = {
-  dataUrl: string
   domain: string
+  file: File
 }
 
-async function fetchLogoPreviewDataUrl({
+async function fetchLogoPreviewFile({
   theme,
   website,
 }: {
@@ -456,8 +457,12 @@ async function fetchLogoPreviewDataUrl({
   }
 
   return {
-    dataUrl: await blobToDataUrl(await imageResponse.blob()),
     domain: previewBody.domain,
+    file: new File(
+      [await imageResponse.blob()],
+      `${previewBody.domain || "company"}-logo.webp`,
+      { type: imageResponse.headers.get("content-type") ?? "image/webp" },
+    ),
   }
 }
 
@@ -487,23 +492,6 @@ async function parseLogoGridPreviewResponse(response: Response) {
           ? record.message
           : null,
   }
-}
-
-function blobToDataUrl(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result)
-        return
-      }
-
-      reject(new Error("Could not read the logo image."))
-    }
-    reader.onerror = () => reject(new Error("Could not read the logo image."))
-    reader.readAsDataURL(blob)
-  })
 }
 
 function normalizeLogoDomain(input: string | null | undefined) {
@@ -539,6 +527,7 @@ function createLogoFallback(name: string) {
 }
 
 export function ImageCardView({ editor, getPos, node, updateAttributes }: NodeViewProps) {
+  const activeWorkspace = useActiveWorkspace()
   const [uploadError, setUploadError] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -602,7 +591,7 @@ export function ImageCardView({ editor, getPos, node, updateAttributes }: NodeVi
   const setImageFromFile = useCallback(
     async (file: File) => {
       try {
-        const attrs = await readImageFileAsAttrs(file)
+        const attrs = await uploadImageFileAsAttrs(file, activeWorkspace.id)
 
         updateAttributes({
           alt: attrs.alt,
@@ -615,7 +604,7 @@ export function ImageCardView({ editor, getPos, node, updateAttributes }: NodeVi
         setUploadError(true)
       }
     },
-    [updateAttributes]
+    [activeWorkspace.id, updateAttributes]
   )
 
   const openFilePicker = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -807,6 +796,7 @@ export function LogoGridView() {
 }
 
 export function LogoGridItemView({ editor, getPos, node, updateAttributes }: NodeViewProps) {
+  const activeWorkspace = useActiveWorkspace()
   const [uploadError, setUploadError] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [logoMenuOpen, setLogoMenuOpen] = useState(false)
@@ -859,7 +849,7 @@ export function LogoGridItemView({ editor, getPos, node, updateAttributes }: Nod
   const setLogoFromFile = useCallback(
     async (file: File) => {
       try {
-        const attrs = await readImageFileAsAttrs(file)
+        const attrs = await uploadImageFileAsAttrs(file, activeWorkspace.id)
 
         updateAttributes({
           alt: attrs.alt || file.name.replace(/\.[^.]+$/, "") || "Logo",
@@ -872,7 +862,7 @@ export function LogoGridItemView({ editor, getPos, node, updateAttributes }: Nod
         setUploadError(true)
       }
     },
-    [updateAttributes]
+    [activeWorkspace.id, updateAttributes]
   )
 
   const toggleLogoMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -951,14 +941,15 @@ export function LogoGridItemView({ editor, getPos, node, updateAttributes }: Nod
       setDomainError(null)
 
       try {
-        const image = await fetchLogoPreviewDataUrl({
+        const image = await fetchLogoPreviewFile({
           website: domain,
           theme: getCurrentLogoTheme(),
         })
+        const attrs = await uploadImageFileAsAttrs(image.file, activeWorkspace.id)
 
         updateAttributes({
           alt: image.domain,
-          src: image.dataUrl,
+          src: attrs.src,
         })
         setDomainInput(image.domain)
         setLogoMenuOpen(false)
@@ -973,7 +964,7 @@ export function LogoGridItemView({ editor, getPos, node, updateAttributes }: Nod
         setDomainLoading(false)
       }
     },
-    [domainInput, updateAttributes]
+    [activeWorkspace.id, domainInput, updateAttributes]
   )
 
   const removeItem = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -1174,6 +1165,7 @@ export function LogoGridItemView({ editor, getPos, node, updateAttributes }: Nod
 }
 
 export function TestimonialCardView({ editor, node, updateAttributes }: NodeViewProps) {
+  const activeWorkspace = useActiveWorkspace()
   const [uploadError, setUploadError] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -1183,7 +1175,7 @@ export function TestimonialCardView({ editor, node, updateAttributes }: NodeView
   const setAvatarFromFile = useCallback(
     async (file: File) => {
       try {
-        const attrs = await readImageFileAsAttrs(file)
+        const attrs = await uploadImageFileAsAttrs(file, activeWorkspace.id)
 
         updateAttributes({
           alt: attrs.alt,
@@ -1196,7 +1188,7 @@ export function TestimonialCardView({ editor, node, updateAttributes }: NodeView
         setUploadError(true)
       }
     },
-    [updateAttributes]
+    [activeWorkspace.id, updateAttributes]
   )
 
   const openFilePicker = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {

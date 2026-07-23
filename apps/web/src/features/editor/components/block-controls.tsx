@@ -63,9 +63,10 @@ import {
 
 import { Field, FieldError } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useActiveWorkspace } from "@/features/app-bootstrap/app-bootstrap-hooks"
 import { cn } from "@/lib/utils"
 
-import { fitImageDimensions, loadImageDimensions, readImageFileAsAttrs } from "../tiptap/image-utils"
+import { fitImageDimensions, loadImageDimensions, uploadImageFileAsAttrs } from "../tiptap/image-utils"
 import {
   getCachedHandoutBlockClipboard,
   readHandoutBlockClipboard,
@@ -124,6 +125,7 @@ const compactBlockHandlePositionConfig = {
 }
 
 export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
+  const activeWorkspace = useActiveWorkspace()
   const [activeBlock, setActiveBlock] = useState<BlockTarget | null>(null)
   const lastActiveBlockRef = useRef<BlockTarget | null>(null)
   const [menuTarget, setMenuTarget] = useState<BlockTarget | null>(null)
@@ -484,7 +486,7 @@ export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
 
       try {
         setImageReplaceError(null)
-        const attrs = await readImageFileAsAttrs(file)
+        const attrs = await uploadImageFileAsAttrs(file, activeWorkspace.id)
 
         const updated =
           target.node.type.name === "image"
@@ -500,7 +502,15 @@ export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
         setImageReplaceError("This image could not be loaded.")
       }
     },
-    [closeMenu, editor, menuTarget, updateImageBlock, updateImageCardBlock, updateTestimonialCardBlock]
+    [
+      activeWorkspace.id,
+      closeMenu,
+      editor,
+      menuTarget,
+      updateImageBlock,
+      updateImageCardBlock,
+      updateTestimonialCardBlock,
+    ]
   )
 
   const replaceImageFromUrl = useCallback(

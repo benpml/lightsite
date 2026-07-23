@@ -354,17 +354,20 @@ export function createSiteService(
 
       const limit = SITE_PLAN_LIMITS[input.workspace.plan];
 
-      const existingSite = await repository.findByWorkspaceAndSlug({
-        workspaceId: input.workspace.id,
-        slug: slugResult.slug,
-      });
+      const [existingSite, rawDefaults] = await Promise.all([
+        repository.findByWorkspaceAndSlug({
+          workspaceId: input.workspace.id,
+          slug: slugResult.slug,
+        }),
+        repository.findUserSiteDefaults(input.userId),
+      ]);
 
       if (existingSite) {
         throw new SiteConflictError(slugResult.slug);
       }
 
       try {
-        const defaults = normalizeSiteDefaults(await repository.findUserSiteDefaults(input.userId));
+        const defaults = normalizeSiteDefaults(rawDefaults);
         const recordingEnabled =
           input.workspace.plan === "pro" &&
           defaults.recordingEnabled &&

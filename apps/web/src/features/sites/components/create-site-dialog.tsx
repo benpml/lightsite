@@ -45,16 +45,24 @@ export function CreateSiteDialog({
   const setOpen = onOpenChange ?? setUncontrolledOpen
   const [name, setName] = useState("")
   const slug = slugify(name) || "new-site"
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      void preloadEditorPage()
+    }
+    setOpen(nextOpen)
+  }
   const createSiteMutation = useMutation({
     mutationFn: createSite,
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.sites(workspaceId) })
       setOpen(false)
       setName("")
-      await navigate({
-        to: "/edit/$siteId",
-        params: { siteId: data.site.id },
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.sites(workspaceId) }),
+        navigate({
+          to: "/edit/$siteId",
+          params: { siteId: data.site.id },
+        }),
+      ])
     },
   })
   const nameError = getApiFieldError(createSiteMutation.error, "name")
@@ -63,7 +71,7 @@ export function CreateSiteDialog({
     isApiClientError(createSiteMutation.error) && createSiteMutation.error.code === "site.limit_reached"
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ?? (
           <Button size="compact">
@@ -144,6 +152,10 @@ export function CreateSiteDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+function preloadEditorPage() {
+  return import("@/features/editor/editor-page")
 }
 
 function slugify(value: string) {
