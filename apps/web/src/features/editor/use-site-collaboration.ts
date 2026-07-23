@@ -42,6 +42,12 @@ type SavedMessage = {
   stateVector: string
 }
 
+type SaveFailedMessage = {
+  type: "site.save-failed"
+  requestId?: string
+  message: string
+}
+
 type PendingSave = {
   reject: (error: Error) => void
   resolve: (message: SavedMessage) => void
@@ -114,6 +120,19 @@ export function useSiteCollaboration(input: {
       setCollaborators(nextCollaborators)
     },
     onStateless: ({ payload }) => {
+      const failed = parseSaveFailedMessage(payload)
+      if (failed) {
+        if (failed.requestId) {
+          const pending = pendingSaves.current.get(failed.requestId)
+          if (pending) {
+            clearTimeout(pending.timeout)
+            pendingSaves.current.delete(failed.requestId)
+            pending.reject(new Error(failed.message))
+          }
+        }
+        return
+      }
+
       const message = parseSavedMessage(payload)
       if (!message) {
         if (isSiteChangedMessage(payload)) {
@@ -419,6 +438,23 @@ function parseSavedMessage(payload: string): SavedMessage | null {
       draftRevision: value.draftRevision,
       savedAt: value.savedAt,
       stateVector: value.stateVector,
+      ...(typeof value.requestId === "string" ? { requestId: value.requestId } : {}),
+    }
+  } catch {
+    return null
+  }
+}
+
+function parseSaveFailedMessage(payload: string): SaveFailedMessage | null {
+  try {
+    const value = JSON.parse(payload) as Record<string, unknown>
+    if (value.type !== "site.save-failed" || typeof value.message !== "string") {
+      return null
+    }
+
+    return {
+      type: "site.save-failed",
+      message: value.message,
       ...(typeof value.requestId === "string" ? { requestId: value.requestId } : {}),
     }
   } catch {

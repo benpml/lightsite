@@ -19,6 +19,7 @@ import type { SiteCollaborationRepository } from "./repository"
 
 const SAVE_MESSAGE_TYPE = "site.save"
 const SAVED_MESSAGE_TYPE = "site.saved"
+const SAVE_FAILED_MESSAGE_TYPE = "site.save-failed"
 export const MAX_COLLABORATION_MESSAGE_BYTES = 512 * 1024
 export const MAX_COLLABORATION_STATE_BYTES = 5 * 1024 * 1024
 export const MAX_LOADED_COLLABORATION_DOCUMENTS = 100
@@ -104,12 +105,16 @@ export function createSiteCollaborationServer(options: {
     },
 
     async onStoreDocument({ document, documentName, lastContext }) {
-      await persistDocument({
-        document,
-        siteId: requireSiteId(documentName),
-        updatedByUserId: lastContext?.userId ?? null,
-        workspaceId: lastContext?.workspaceId,
-      })
+      try {
+        await persistDocument({
+          document,
+          siteId: requireSiteId(documentName),
+          updatedByUserId: lastContext?.userId ?? null,
+          workspaceId: lastContext?.workspaceId,
+        })
+      } catch (error) {
+        reportCollaborationSaveFailure("onStoreDocument", error)
+      }
     },
 
     async onChange({ document }) {
@@ -128,17 +133,26 @@ export function createSiteCollaborationServer(options: {
         return
       }
 
-      const saved = await persistDocument({
-        document,
-        siteId: requireSiteId(documentName),
-        updatedByUserId: connection.context.userId,
-        workspaceId: connection.context.workspaceId,
-      })
+      try {
+        const saved = await persistDocument({
+          document,
+          siteId: requireSiteId(documentName),
+          updatedByUserId: connection.context.userId,
+          workspaceId: connection.context.workspaceId,
+        })
 
-      connection.sendStateless(JSON.stringify({
-        ...saved,
-        requestId: message.requestId,
-      }))
+        connection.sendStateless(JSON.stringify({
+          ...saved,
+          requestId: message.requestId,
+        }))
+      } catch (error) {
+        reportCollaborationSaveFailure("onStateless", error)
+        connection.sendStateless(JSON.stringify({
+          type: SAVE_FAILED_MESSAGE_TYPE,
+          requestId: message.requestId,
+          message: getCollaborationSaveFailureMessage(error),
+        }))
+      }
     },
   })
 
@@ -346,6 +360,17 @@ export function attachSiteCollaborationWebSocketServer(
     hocuspocus.closeConnections()
     hocuspocus.flushPendingStores()
   }
+}
+
+function getCollaborationSaveFailureMessage(error: unknown) {
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : "Site could not be saved."
+}
+
+function reportCollaborationSaveFailure(source: "onStateless" | "onStoreDocument", error: unknown) {
+  const message = getCollaborationSaveFailureMessage(error)
+  console.error(`[${source}] ${message}`)
 }
 
 export function parseSiteSavedMessage(payload: string): {
