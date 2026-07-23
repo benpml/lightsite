@@ -1561,6 +1561,13 @@ describe("editor architecture", () => {
     expect(headerSource).toContain("IconWorldLongitude")
     expect(headerSource).toContain("Last published")
     expect(headerSource).toContain("isPublishing")
+    expect(headerSource).toContain('className="flex min-w-0 items-center gap-2 overflow-hidden"')
+    expect(headerSource).toContain('<EditorCollaborators collaborators={collaborators} />')
+    expect(headerSource).toContain('<TooltipContent>{label}</TooltipContent>')
+    expect(headerSource).toContain(
+      'Switch editor to {editorTheme === "dark" ? "light" : "dark"} mode'
+    )
+    expect(headerSource.match(/shadow-none/g)).toHaveLength(2)
     expect(headerSource).toContain('className="-space-x-1 shrink-0 *:data-[slot=avatar]:ring-1"')
     expect(headerSource).toContain('size="sm"')
     expect(headerSource).toContain("border-border")

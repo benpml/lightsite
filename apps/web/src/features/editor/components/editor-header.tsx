@@ -150,28 +150,35 @@ export function EditorHeader({
               <IconChevronLeft />
             </Link>
           </Button>
-          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-              <h1 className="min-w-0 flex-1 truncate text-sm leading-5 font-medium tracking-normal text-foreground">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+            <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+              <h1 className="min-w-0 truncate text-sm leading-5 font-medium tracking-normal text-foreground">
                 {siteName}
               </h1>
-              <EditorSaveStatusBadge status={saveStatus} />
+              <EditorCollaborators collaborators={collaborators} />
             </div>
-            <EditorCollaborators collaborators={collaborators} />
+            <EditorSaveStatusBadge status={saveStatus} />
           </div>
 
           <div className="flex min-w-max flex-1 items-center justify-end gap-2">
             <div className="flex shrink-0 items-center gap-1.5">
               <EditorModeToggle mode={mode} onModeChange={onModeChange} />
-              <Button
-                variant="ghost"
-                size="icon-compact"
-                className="text-tertiary-foreground shadow-xs hover:text-accent-foreground"
-                aria-label={`Switch editor to ${editorTheme === "dark" ? "light" : "dark"} mode`}
-                onClick={onToggleEditorTheme}
-              >
-                {editorTheme === "dark" ? <IconSun /> : <IconMoon />}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-compact"
+                    className="text-tertiary-foreground shadow-none hover:text-accent-foreground"
+                    aria-label={`Switch editor to ${editorTheme === "dark" ? "light" : "dark"} mode`}
+                    onClick={onToggleEditorTheme}
+                  >
+                    {editorTheme === "dark" ? <IconSun /> : <IconMoon />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Switch editor to {editorTheme === "dark" ? "light" : "dark"} mode
+                </TooltipContent>
+              </Tooltip>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
               <Tooltip>
@@ -515,16 +522,20 @@ function EditorModeToggle({
   const label = isPreview ? "Edit site" : "Preview site"
 
   return (
-    <Button
-      aria-label={label}
-      className="shadow-xs"
-      size="icon-compact"
-      title={label}
-      type="button"
-      variant="ghost"
-      onClick={() => onModeChange(isPreview ? "edit" : "preview")}
-    >
-      {isPreview ? <IconPencil /> : <IconEye />}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          aria-label={label}
+          className="shadow-none"
+          size="icon-compact"
+          type="button"
+          variant="ghost"
+          onClick={() => onModeChange(isPreview ? "edit" : "preview")}
+        >
+          {isPreview ? <IconPencil /> : <IconEye />}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
