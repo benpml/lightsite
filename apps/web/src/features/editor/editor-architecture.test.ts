@@ -221,6 +221,18 @@ describe("editor architecture", () => {
     expect(SITE_DOCUMENT_CSS).toContain("--handout-primary")
   })
 
+  it("migrates legacy inline editor images before publishing", () => {
+    const pageSource = editorModules["./editor-page.tsx"] as string
+    const imageUtilsSource = editorModules["./tiptap/image-utils.ts"] as string
+
+    expect(pageSource).toContain("await legacyInlineImageMigrationRef.current")
+    expect(pageSource).toContain("migrateLegacyInlineImages(activeEditor, activeWorkspace.id)")
+    expect(pageSource).toContain('src.startsWith("data:image/")')
+    expect(pageSource).toContain('setMeta("handoutLegacyImageMigration", true)')
+    expect(pageSource).toContain('setMeta("addToHistory", false)')
+    expect(imageUtilsSource).toContain("export async function uploadEmbeddedImageDataUrl")
+  })
+
   it("places the editor loading sidebar on the left", () => {
     expect(internalRouteFrameSource).toContain(
       "grid-cols-[303px_minmax(0,1fr)]",
