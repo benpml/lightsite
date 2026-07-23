@@ -847,7 +847,7 @@ function SidebarItemHoverActions({
             <IconPencil data-icon />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right">Edit {itemKind}</TooltipContent>
+        <TooltipContent side="top">Edit {itemKind}</TooltipContent>
       </Tooltip>
       <SidebarItemDeleteConfirmation
         actionClassName={actionClassName}
@@ -886,7 +886,7 @@ function SidebarItemDeleteConfirmation({
             </AlertDialogTrigger>
           </span>
         </TooltipTrigger>
-        <TooltipContent side="right">Delete {itemKind}</TooltipContent>
+        <TooltipContent side="top">Delete {itemKind}</TooltipContent>
       </Tooltip>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>

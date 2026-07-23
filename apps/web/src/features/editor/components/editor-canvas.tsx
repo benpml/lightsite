@@ -3,6 +3,7 @@ import type { Editor } from "@tiptap/react"
 import { SITE_DOCUMENT_CSS } from "@handout/site-document"
 import { useLayoutEffect, useRef } from "react"
 
+import { EditorBlockContextMenu } from "./block-context-menu"
 import { EditorBlockControls } from "./block-controls"
 import { EditorButtonSettingsPopover } from "./button-settings-popover"
 import { EditorCalendarEmbedSettingsMenu } from "./calendar-embed-settings-menu"
@@ -67,42 +68,44 @@ export function EditorCanvas({
   }, [activePageId])
 
   return (
-    <div
-      ref={canvasRef}
-      data-editor-canvas=""
-      data-editor-mode={mode}
-      data-has-page-navigation={hasPageNavigation ? "" : undefined}
-      className="handout-document-editor relative h-full min-h-0 min-w-0 overflow-auto bg-background text-foreground"
-    >
-      <style data-handout-site-document-styles="">{SITE_DOCUMENT_CSS}</style>
-      <EditorContent
-        editor={editor}
-        className="handout-editor min-h-full min-w-0 w-full"
-        data-empty-state-active={isEditing && emptyStateKind ? "" : undefined}
+    <EditorBlockContextMenu editor={editor} enabled={isEditing}>
+      <div
+        ref={canvasRef}
+        data-editor-canvas=""
         data-editor-mode={mode}
-      />
-      {isEditing ? (
-        <EditorPageNavigation
-          nextPage={nextPage}
-          previousPage={previousPage}
-          onSelectPage={onSelectPage}
+        data-has-page-navigation={hasPageNavigation ? "" : undefined}
+        className="handout-document-editor relative h-full min-h-0 min-w-0 overflow-auto bg-background text-foreground"
+      >
+        <style data-handout-site-document-styles="">{SITE_DOCUMENT_CSS}</style>
+        <EditorContent
+          editor={editor}
+          className="handout-editor min-h-full min-w-0 w-full"
+          data-empty-state-active={isEditing && emptyStateKind ? "" : undefined}
+          data-editor-mode={mode}
         />
-      ) : null}
-      {isEditing && emptyStateKind ? (
-        <EditorPageEmptyState editor={editor} kind={emptyStateKind} />
-      ) : null}
-      {isEditing ? (
-        <>
-          <EditorBlockControls editor={editor} />
-          <EditorButtonSettingsPopover editor={editor} />
-          <EditorCalendarEmbedSettingsMenu editor={editor} />
-          <EditorVideoEmbedSettingsMenu editor={editor} />
-          <EditorImageCardButtonSettingsPopover editor={editor} />
-          <EditorVariableCreatePopover editor={editor} />
-          <EditorTextBubbleMenu editor={editor} />
-          <EditorGifPickerDialog editor={editor} />
-        </>
-      ) : null}
-    </div>
+        {isEditing ? (
+          <EditorPageNavigation
+            nextPage={nextPage}
+            previousPage={previousPage}
+            onSelectPage={onSelectPage}
+          />
+        ) : null}
+        {isEditing && emptyStateKind ? (
+          <EditorPageEmptyState editor={editor} kind={emptyStateKind} />
+        ) : null}
+        {isEditing ? (
+          <>
+            <EditorBlockControls editor={editor} />
+            <EditorButtonSettingsPopover editor={editor} />
+            <EditorCalendarEmbedSettingsMenu editor={editor} />
+            <EditorVideoEmbedSettingsMenu editor={editor} />
+            <EditorImageCardButtonSettingsPopover editor={editor} />
+            <EditorVariableCreatePopover editor={editor} />
+            <EditorTextBubbleMenu editor={editor} />
+            <EditorGifPickerDialog editor={editor} />
+          </>
+        ) : null}
+      </div>
+    </EditorBlockContextMenu>
   )
 }

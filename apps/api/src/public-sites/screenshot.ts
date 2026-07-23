@@ -17,8 +17,17 @@ export const PUBLIC_SITE_SCREENSHOT_JPEG_QUALITY = 75;
 
 const MAX_SCREENSHOT_CACHE_ENTRIES = 24;
 const MAX_SCREENSHOT_CACHE_BYTES = 48 * 1024 * 1024;
+export const MAX_PUBLIC_SITE_SCREENSHOT_BYTES = 2 * 1024 * 1024;
 const PAGE_RENDER_TIMEOUT_MS = 12_000;
 const ASSET_SETTLE_TIMEOUT_MS = 3_000;
+const MAX_SCREENSHOT_RESOURCE_REQUESTS = 100;
+
+export class PublicSiteScreenshotCapacityError extends Error {
+  constructor() {
+    super("Public site screenshot capacity is temporarily unavailable.");
+    this.name = "PublicSiteScreenshotCapacityError";
+  }
+}
 
 export type PublicSiteScreenshotRenderInput = {
   html: string;
@@ -79,18 +88,19 @@ export function createPublicSiteScreenshotService(
         return { bytes: cached, cacheKey };
       }
 
-      let pending = inFlight.get(cacheKey);
-      if (!pending) {
-        pending = renderer.render({ html, origin: input.origin });
-        inFlight.set(cacheKey, pending);
+      if (inFlight.has(cacheKey)) {
+        throw new PublicSiteScreenshotCapacityError();
       }
+      const pending = renderer.render({ html, origin: input.origin });
+      inFlight.set(cacheKey, pending);
 
       try {
         const bytes = await pending;
-        if (bytes.byteLength <= MAX_SCREENSHOT_CACHE_BYTES) {
-          cache.set(cacheKey, bytes);
-          cacheBytes += bytes.byteLength;
+        if (bytes.byteLength === 0 || bytes.byteLength > MAX_PUBLIC_SITE_SCREENSHOT_BYTES) {
+          throw new Error("Public site screenshot output exceeded the safe size limit.");
         }
+        cache.set(cacheKey, bytes);
+        cacheBytes += bytes.byteLength;
         while (cache.size > MAX_SCREENSHOT_CACHE_ENTRIES || cacheBytes > MAX_SCREENSHOT_CACHE_BYTES) {
           const oldestKey = cache.keys().next().value;
           if (typeof oldestKey !== "string") break;
@@ -107,7 +117,7 @@ export function createPublicSiteScreenshotService(
 
 export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreenshotRenderer {
   let browserPromise: Promise<Browser> | null = null;
-  const acquireRenderSlot = createAsyncSemaphore(2);
+  const tryAcquireRenderSlot = createTrySemaphore(1);
 
   const getBrowser = () => {
     browserPromise ??= chromium.launch({
@@ -125,12 +135,16 @@ export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreen
 
   return {
     async close() {
-      const browser = await browserPromise;
+      const pendingBrowser = browserPromise;
       browserPromise = null;
+      const browser = await pendingBrowser;
       await browser?.close();
     },
     async render(input) {
-      const releaseRenderSlot = await acquireRenderSlot();
+      const releaseRenderSlot = tryAcquireRenderSlot();
+      if (!releaseRenderSlot) {
+        throw new PublicSiteScreenshotCapacityError();
+      }
       let browser: Browser | null = null;
       let context: BrowserContext | null = null;
 
@@ -147,8 +161,21 @@ export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreen
           },
         });
         const page = await context.newPage();
+        let resourceRequests = 0;
+        const resourceDecisions = new Map<string, Promise<boolean>>();
         await page.route("**/*", async (route) => {
-          if (await isAllowedScreenshotResourceUrl(route.request().url(), input.origin)) {
+          resourceRequests += 1;
+          if (resourceRequests > MAX_SCREENSHOT_RESOURCE_REQUESTS) {
+            await route.abort("blockedbyclient");
+            return;
+          }
+          const resourceUrl = route.request().url();
+          let decision = resourceDecisions.get(resourceUrl);
+          if (!decision) {
+            decision = isAllowedScreenshotResourceUrl(resourceUrl, input.origin);
+            resourceDecisions.set(resourceUrl, decision);
+          }
+          if (await decision) {
             await route.continue();
           } else {
             await route.abort("blockedbyclient");
@@ -241,21 +268,17 @@ export function createPlaywrightPublicSiteScreenshotRenderer(): PublicSiteScreen
   };
 }
 
-function createAsyncSemaphore(limit: number) {
+function createTrySemaphore(limit: number) {
   let active = 0;
-  const waiters: Array<() => void> = [];
 
-  return async () => {
-    if (active >= limit) {
-      await new Promise<void>((resolve) => waiters.push(resolve));
-    }
+  return () => {
+    if (active >= limit) return null;
     active += 1;
     let released = false;
     return () => {
       if (released) return;
       released = true;
       active -= 1;
-      waiters.shift()?.();
     };
   };
 }

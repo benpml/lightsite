@@ -145,6 +145,74 @@ describe("tracking v2 recording service", () => {
     });
   });
 
+  it("does not advertise metadata-only chunks as a playable replay", async () => {
+    const { recordings, service } = harness();
+    const started = await service.start(startInput(validConsent()));
+    if (!started.enabled) throw new Error("Expected replay to start.");
+
+    await expect(service.uploadChunk({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      upload: {
+        ...recordingChunk(started.recordingId, [{
+          type: 4,
+          timestamp: now.getTime(),
+          data: { width: 1280, height: 720 },
+        }]),
+        completion: terminalCompletion(0),
+      },
+    })).resolves.toEqual({ duplicate: false, sequence: 0 });
+
+    expect(recordings.get(started.recordingId)).toMatchObject({
+      status: "failed",
+      finalSequence: 0,
+      errorCode: "missing_snapshot",
+    });
+    await expect(service.getManifest({
+      workspaceId,
+      sessionId: session().publicSessionId,
+    })).resolves.toBeNull();
+  });
+
+  it("requires the full snapshot to be inside the completed contiguous prefix", async () => {
+    const { recordings, service } = harness();
+    const started = await service.start(startInput(validConsent()));
+    if (!started.enabled) throw new Error("Expected replay to start.");
+
+    await service.uploadChunk({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      upload: {
+        ...recordingChunk(started.recordingId, [{
+          type: 2,
+          timestamp: now.getTime() + 1,
+          data: {},
+        }]),
+        sequence: 1,
+      },
+    });
+    await service.uploadChunk({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      upload: recordingChunk(started.recordingId, [{
+        type: 4,
+        timestamp: now.getTime(),
+        data: { width: 1280, height: 720 },
+      }]),
+    });
+
+    await expect(service.complete({
+      recordingId: started.recordingId,
+      uploadToken: started.uploadToken,
+      complete: completion(started.recordingId, 0),
+    })).resolves.toEqual({ status: "failed" });
+    expect(recordings.get(started.recordingId)).toMatchObject({
+      status: "failed",
+      finalSequence: 0,
+      errorCode: "missing_snapshot",
+    });
+  });
+
   it("settles a replay when terminal metadata retries an already stored chunk", async () => {
     const { recordings, service } = harness();
     const started = await service.start(startInput(validConsent()));

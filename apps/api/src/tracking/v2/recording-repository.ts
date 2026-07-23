@@ -47,6 +47,7 @@ export type TrackingV2RecordingChunkRecord = {
   eventCount: number;
   compressedBytes: number;
   uncompressedBytes: number;
+  hasFullSnapshot: boolean | null;
   checksumSha256: string;
   firstEventAt: Date;
   lastEventAt: Date;
@@ -83,6 +84,7 @@ export type TrackingV2InsertRecordingChunkInput = {
   eventCount: number;
   compressedBytes: number;
   uncompressedBytes: number;
+  hasFullSnapshot: boolean;
   checksumSha256: string;
   firstEventAt: Date;
   lastEventAt: Date;
@@ -200,6 +202,7 @@ const chunkSelection = {
   eventCount: trackingRecordingChunks.eventCount,
   compressedBytes: trackingRecordingChunks.compressedBytes,
   uncompressedBytes: trackingRecordingChunks.uncompressedBytes,
+  hasFullSnapshot: trackingRecordingChunks.hasFullSnapshot,
   checksumSha256: trackingRecordingChunks.checksumSha256,
   firstEventAt: trackingRecordingChunks.firstEventAt,
   lastEventAt: trackingRecordingChunks.lastEventAt,
@@ -313,6 +316,7 @@ export function createDbTrackingV2RecordingRepository(database: Database): Track
           eventCount: input.eventCount,
           compressedBytes: input.compressedBytes,
           uncompressedBytes: input.uncompressedBytes,
+          hasFullSnapshot: input.hasFullSnapshot,
           checksumSha256: input.checksumSha256,
           firstEventAt: input.firstEventAt,
           lastEventAt: input.lastEventAt,
@@ -465,7 +469,9 @@ export function createDbTrackingV2RecordingRepository(database: Database): Track
         const lastChunk = contiguous.at(-1);
         const endedAt = lastChunk?.lastEventAt ?? candidate.startedAt;
         const durationMs = Math.max(0, Math.min(candidate.maxDurationMs, endedAt.getTime() - candidate.startedAt.getTime()));
-        const status = lastChunk ? "truncated" as const : "failed" as const;
+        const status = hasReplayableSnapshot(contiguous)
+          ? "truncated" as const
+          : "failed" as const;
         const updated = await database.transaction(async (transaction) => {
           const rows = await transaction.update(trackingRecordings).set({
             status,
@@ -719,7 +725,7 @@ export function createMemoryTrackingV2RecordingRepository() {
         const endedAt = last?.lastEventAt ?? recording.startedAt;
         recordings.set(recording.id, {
           ...recording,
-          status: last ? "truncated" : "failed",
+          status: hasReplayableSnapshot(prefix) ? "truncated" : "failed",
           endedAt,
           durationMs: Math.min(recording.maxDurationMs, Math.max(0, endedAt.getTime() - recording.startedAt.getTime())),
           finalSequence: last?.sequence ?? null,
@@ -844,14 +850,15 @@ function endedSessionSettlement(
   if (requestedCompletion && requestedChunksPresent) {
     const stopReason = recording.stopReason;
     if (stopReason === null) throw new Error("Completion settlement requires a stop reason.");
+    const hasSnapshot = hasReplayableSnapshot(prefix);
     return {
       recordingId: recording.id,
-      status: completionStatus(stopReason, prefix.length),
+      status: completionStatus(stopReason, prefix),
       endedAt: recording.endedAt!,
       durationMs: recording.durationMs,
       stopReason,
       finalSequence: recording.finalSequence,
-      errorCode: recording.errorCode,
+      errorCode: !hasSnapshot ? "missing_snapshot" : recording.errorCode,
       updatedAt: now,
     };
   }
@@ -860,7 +867,7 @@ function endedSessionSettlement(
   const endedAt = last?.lastEventAt ?? session.endedAt;
   return {
     recordingId: recording.id,
-    status: last ? "truncated" : "failed",
+    status: hasReplayableSnapshot(prefix) ? "truncated" : "failed",
     endedAt,
     durationMs: Math.max(0, Math.min(recording.maxDurationMs, endedAt.getTime() - recording.startedAt.getTime())),
     stopReason: recording.stopReason ?? recordingStopReasonForSession(session.endReason),
@@ -870,10 +877,14 @@ function endedSessionSettlement(
   };
 }
 
-function completionStatus(stopReason: string, chunkCount: number) {
-  if (chunkCount === 0 || stopReason === "error") return "failed" as const;
+function completionStatus(stopReason: string, chunks: TrackingV2RecordingChunkRecord[]) {
+  if (!hasReplayableSnapshot(chunks) || stopReason === "error") return "failed" as const;
   if (["duration_cap", "size_cap", "event_cap", "daily_cap"].includes(stopReason)) return "truncated" as const;
   return "available" as const;
+}
+
+function hasReplayableSnapshot(chunks: TrackingV2RecordingChunkRecord[]) {
+  return chunks.some((chunk) => chunk.hasFullSnapshot === true);
 }
 
 function recordingStopReasonForSession(endReason: TrackingV2EndedRecordingSession["endReason"]) {

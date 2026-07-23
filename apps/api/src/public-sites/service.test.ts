@@ -18,7 +18,7 @@ function createRecordingRepository(record: { payload: unknown } | null) {
     async findPublishedSiteByShortCode() {
       return null;
     },
-    async resolveOrCreateRecipientLink() {
+    async resolveExistingRecipientLink() {
       return null;
     },
   };
@@ -38,7 +38,7 @@ describe("public site service", () => {
       async findPublishedSiteByShortCode(shortCode) {
         return { shortCode, payload };
       },
-      async resolveOrCreateRecipientLink() {
+      async resolveExistingRecipientLink() {
         return null;
       },
     };
@@ -63,7 +63,7 @@ describe("public site service", () => {
         calls += 1;
         return null;
       },
-      async resolveOrCreateRecipientLink() {
+      async resolveExistingRecipientLink() {
         calls += 1;
         return null;
       },

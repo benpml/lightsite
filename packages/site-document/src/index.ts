@@ -1,5 +1,7 @@
 export * from "./model";
+export * from "./primary-color";
 export * from "./collaboration";
+export * from "./content-safety";
 export * from "./document-constants";
 export * from "./document-catalog";
 export * from "./site-icons";

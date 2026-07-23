@@ -24,6 +24,7 @@ import { SITE_DOCUMENT_PROSEMIRROR_SCHEMA } from "./tiptap/site-extensions";
 export { SITE_DOCUMENT_SCHEMA_VERSION, SITE_PRIMARY_COLOR_OPTIONS } from "./document-constants";
 export const PUBLIC_SITE_PAYLOAD_SCHEMA_VERSION = 2 as const;
 export const HANDOUT_PRIVACY_POLICY_URL = "https://www.handout.link/privacy" as const;
+export const HANDOUT_TERMS_OF_SERVICE_URL = "https://www.handout.link/terms" as const;
 
 export const SUPPORTED_SITE_DOCUMENT_NODE_TYPES = new Set([
   "doc",
@@ -220,6 +221,10 @@ export const siteVariableDefinitionSchema = z.object({
 });
 
 export const sitePrimaryColorSchema = z.enum(SITE_PRIMARY_COLOR_OPTIONS);
+export const siteCustomPrimaryColorSchema = z.string()
+  .trim()
+  .regex(/^#[0-9a-f]{6}$/i)
+  .transform((value) => value.toLowerCase());
 
 export const siteTrackingConsentPopupSchema = z.enum(["popup-a", "popup-b", "none"]);
 
@@ -287,6 +292,7 @@ export const siteContentSchema = z.object({
     siteTitle: limitedString(HANDOUT_TEXT_LIMITS.siteName).default(""),
     siteDescription: limitedString(HANDOUT_TEXT_LIMITS.variableDescription).default(""),
     primaryColor: sitePrimaryColorSchema.default("neutral"),
+    customPrimaryColor: siteCustomPrimaryColorSchema.optional(),
     trackingConsentPopup: siteTrackingConsentPopupSchema.default("popup-a"),
     trackingPrivacyPolicyUrl: handoutPrivacyPolicyUrlSchema,
   }),
@@ -354,6 +360,7 @@ export const RESERVED_SITE_VARIABLE_LABELS = new Set(["name", "company", "websit
 export const siteDefaultsSchema = z.object({
   themeMode: z.enum(["light", "dark", "system"]),
   primaryColor: sitePrimaryColorSchema,
+  customPrimaryColor: siteCustomPrimaryColorSchema.optional(),
   trackingEnabled: z.boolean(),
   recordingEnabled: z.boolean(),
   recordingDisclosureAccepted: z.boolean(),
@@ -429,7 +436,7 @@ const recipientWebsiteVariable: SiteVariableDefinition = {
   key: "website",
   label: "Website",
   type: "url",
-  description: "The recipient company's website.",
+  description: "Recipient company website domain",
   defaultValue: "",
 };
 
@@ -494,6 +501,9 @@ export function createSiteContentFromDefaults(
     settings: {
       ...content.settings,
       primaryColor: defaults.primaryColor,
+      ...(defaults.customPrimaryColor
+        ? { customPrimaryColor: defaults.customPrimaryColor }
+        : {}),
       trackingConsentPopup: defaults.trackingConsentPopup,
       trackingPrivacyPolicyUrl: defaults.trackingPrivacyPolicyUrl,
     },

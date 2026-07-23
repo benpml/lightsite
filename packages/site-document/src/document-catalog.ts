@@ -1,8 +1,15 @@
 import { Fragment, type ContentMatch, type MarkType, type Node as ProseMirrorNode, type NodeType } from "@tiptap/pm/model";
 
-import { SITE_DOCUMENT_SCHEMA_VERSION, SITE_PRIMARY_COLOR_OPTIONS } from "./document-constants";
+import {
+  SITE_DOCUMENT_SCHEMA_VERSION,
+  SITE_PRIMARY_COLOR_PRESET_OPTIONS,
+} from "./document-constants";
 import type { TiptapNode } from "./model";
-import { SITE_ICON_COLOR_OPTIONS, SITE_ICON_OPTIONS } from "./site-icons";
+import {
+  SITE_ICON_COLOR_OPTIONS,
+  SITE_ICON_COLOR_PRESET_OPTIONS,
+  SITE_ICON_OPTIONS,
+} from "./site-icons";
 import { SITE_DOCUMENT_PROSEMIRROR_SCHEMA } from "./tiptap/site-extensions";
 
 export const SITE_DOCUMENT_CATALOG_VERSION = 1 as const;
@@ -133,11 +140,11 @@ const NODE_ATTRIBUTE_HINTS: Record<string, Record<string, AttributeHint>> = {
   },
   iconListItem: {
     icon: { type: "string", optionsCatalog: "icons", description: "Icon name from the icon catalog." },
-    iconColor: { type: "string", optionsCatalog: "iconColors", description: "Semantic icon color." },
+    iconColor: { type: "string", optionsCatalog: "iconColors", description: "Semantic icon color or custom six-digit hex color." },
   },
   iconCard: {
     icon: { type: "string", optionsCatalog: "icons", description: "Icon name from the icon catalog." },
-    iconColor: { type: "string", optionsCatalog: "iconColors", description: "Semantic icon color." },
+    iconColor: { type: "string", optionsCatalog: "iconColors", description: "Semantic icon color or custom six-digit hex color." },
   },
   gridBlock: {
     columns: { type: "number", integer: true, allowedValues: [1, 2, 3], minimum: 1, maximum: 3, description: "Number of equal-width columns." },
@@ -195,10 +202,10 @@ const MARK_ATTRIBUTE_HINTS: Record<string, Record<string, AttributeHint>> = {
     title: { type: "string", description: "Optional accessible link title." },
   },
   textStyle: {
-    color: { type: "string", format: "css-color", optionsCatalog: "textColors", description: "Text color token from the design options catalog." },
+    color: { type: "string", format: "css-color", optionsCatalog: "textColors", description: "Text color token from the design options catalog or custom six-digit hex color." },
   },
   highlight: {
-    color: { type: "string", format: "css-color", optionsCatalog: "highlightColors", description: "Highlight color token from the design options catalog." },
+    color: { type: "string", format: "css-color", optionsCatalog: "highlightColors", description: "Highlight color token from the design options catalog or custom six-digit hex color." },
   },
 };
 
@@ -219,8 +226,8 @@ export const SITE_DOCUMENT_DESIGN_OPTIONS = {
   pageTitleAlignments: ["center", "left"],
   headingLevels: [1, 2, 3],
   gridColumns: [1, 2, 3],
-  primaryColors: [...SITE_PRIMARY_COLOR_OPTIONS],
-  iconColors: SITE_ICON_COLOR_OPTIONS.map(({ name, label }) => ({ name, label })),
+  primaryColors: [...SITE_PRIMARY_COLOR_PRESET_OPTIONS],
+  iconColors: SITE_ICON_COLOR_PRESET_OPTIONS.map(({ name, label }) => ({ name, label })),
   textColors: [
     { label: "Default", value: null },
     ...paletteColors.map(({ label, name }) => ({ label, value: `var(--${name}-foreground)` })),
@@ -488,14 +495,16 @@ function validateAttributeValue(label: string, entry: SiteDocumentAttributeCatal
   if (entry.optionsCatalog === "iconColors" && typeof value === "string") {
     const current = SITE_ICON_COLOR_OPTIONS.some((option) => option.name === value);
     const legacy = ["indigo", "sky", "emerald", "amber", "rose"].includes(value);
-    if (!current && !legacy) return `${label} must be a color from handout://catalog/design-options.`;
+    const custom = /^#[0-9a-f]{6}$/i.test(value);
+    if (!current && !legacy && !custom) return `${label} must be a color from handout://catalog/design-options or a six-digit hex color.`;
   }
   if ((entry.optionsCatalog === "textColors" || entry.optionsCatalog === "highlightColors") && typeof value === "string") {
     const options = entry.optionsCatalog === "textColors"
       ? SITE_DOCUMENT_DESIGN_OPTIONS.textColors
       : SITE_DOCUMENT_DESIGN_OPTIONS.highlightColors;
-    if (!options.some((option) => option.value === value)) {
-      return `${label} must be a ${entry.optionsCatalog} value from handout://catalog/design-options.`;
+    const custom = /^#[0-9a-f]{6}$/i.test(value);
+    if (!options.some((option) => option.value === value) && !custom) {
+      return `${label} must be a ${entry.optionsCatalog} value from handout://catalog/design-options or a six-digit hex color.`;
     }
   }
 

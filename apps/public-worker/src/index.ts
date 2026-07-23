@@ -1,24 +1,19 @@
 import {
   DEFAULT_HTML_CACHE_SECONDS,
-  DEFAULT_R2_SNAPSHOT_SECONDS,
   DEFAULT_UNAVAILABLE_CACHE_SECONDS,
-  MAX_R2_SNAPSHOT_SECONDS,
-  buildPublicHtmlSnapshotKey,
-  buildRecipientPreviewKey,
   classifyPublicRoute,
+  isPublicPreviewVersion,
   isShortPublicSitePath,
-  isSnapshotFresh,
+  isShortPublicSiteScreenshotPath,
   readPositiveInteger,
 } from "./cache-policy";
 
 export interface Env {
   API_ORIGIN: string;
+  ORIGIN_AUTH_SECRET: string;
   PUBLIC_ORIGIN?: string;
   EDGE_CACHE_HTML_SECONDS?: string;
   EDGE_CACHE_UNAVAILABLE_SECONDS?: string;
-  EDGE_R2_SNAPSHOT_SECONDS?: string;
-  SNAPSHOT_BUCKET?: R2Bucket;
-  PREVIEW_BUCKET?: R2Bucket;
 }
 
 const ORIGIN_TIMEOUT_MS = 8000;
@@ -57,7 +52,7 @@ export default {
 
     if (routeKind === "recipient-link") {
       return withEdgeHeader(
-        withNoStore(await fetchOrigin(request, env), request.method),
+        withNoStore(await fetchPublicOrigin(request, env), request.method),
         "proxy",
         request.method,
       );
@@ -94,9 +89,23 @@ async function servePublicHtml(request: Request, env: Env, ctx: ExecutionContext
     ? url.searchParams.get("v")
     : null;
   if (isShortPublicSitePath(url.pathname) && !shortLinkVersion) {
-    return withEdgeHeader(await fetchOrigin(request, env), "proxy", request.method);
+    return withEdgeHeader(
+      withNoStore(await fetchPublicOrigin(request, env), request.method),
+      "proxy",
+      request.method,
+    );
   }
-  if (!shortLinkVersion) url.search = "";
+  if (shortLinkVersion) {
+    if (!isPublicPreviewVersion(shortLinkVersion)) {
+      return invalidPublicVersion();
+    }
+    return withEdgeHeader(
+      withNoStore(await fetchPublicOrigin(request, env), request.method),
+      "proxy",
+      request.method,
+    );
+  }
+  url.search = "";
   const cacheKey = new Request(publicUrlFor(env, url.pathname), {
     method: "GET",
     headers: {
@@ -110,20 +119,8 @@ async function servePublicHtml(request: Request, env: Env, ctx: ExecutionContext
     return withEdgeHeader(cached, "hit", request.method);
   }
 
-  const snapshotKey = buildPublicHtmlSnapshotKey(url.pathname, shortLinkVersion);
-  const r2SnapshotSeconds = readPositiveInteger(
-    env.EDGE_R2_SNAPSHOT_SECONDS,
-    DEFAULT_R2_SNAPSHOT_SECONDS,
-    MAX_R2_SNAPSHOT_SECONDS,
-  );
-  const r2Snapshot = await readR2Snapshot(env, snapshotKey, r2SnapshotSeconds, new Date());
-
-  if (r2Snapshot) {
-    ctx.waitUntil(cache.put(cacheKey, r2Snapshot.clone()));
-    return withEdgeHeader(r2Snapshot, "r2", request.method);
-  }
-
-  const originResponse = await fetchOrigin(request, env, { forceGet: true });
+  const canonicalRequest = new Request(cacheKey.url, request);
+  const originResponse = await fetchPublicOrigin(canonicalRequest, env, { forceGet: true });
   const cacheSeconds = originResponse.ok
     ? readHtmlCacheSeconds(env)
     : readUnavailableCacheSeconds(env);
@@ -131,55 +128,36 @@ async function servePublicHtml(request: Request, env: Env, ctx: ExecutionContext
 
   if (isCacheableHtml(edgeResponse)) {
     ctx.waitUntil(cache.put(cacheKey, edgeResponse.clone()));
-    ctx.waitUntil(writeR2Snapshot(env, snapshotKey, edgeResponse.clone()));
-  }
-
-  if (!originResponse.ok) {
-    const staleSnapshot = await readR2Snapshot(env, snapshotKey, Number.POSITIVE_INFINITY, new Date());
-
-    if (staleSnapshot) {
-      return withEdgeHeader(staleSnapshot, "stale-r2", request.method);
-    }
   }
 
   return withEdgeHeader(edgeResponse, "miss", request.method);
 }
 
-async function servePublicScreenshot(request: Request, env: Env, ctx: ExecutionContext) {
+async function servePublicScreenshot(request: Request, env: Env, _ctx: ExecutionContext) {
   const url = new URL(request.url);
-  const previewKey = buildRecipientPreviewKey(url.pathname, url.searchParams.get("v"));
-
-  if (request.method !== "GET" || !previewKey || !env.PREVIEW_BUCKET) {
-    return withEdgeHeader(
-      await fetchScreenshotOrigin(request, env),
-      "proxy",
-      request.method,
-    );
+  const suppliedVersion = url.searchParams.get("v");
+  if (
+    isShortPublicSiteScreenshotPath(url.pathname) &&
+    suppliedVersion &&
+    !isPublicPreviewVersion(suppliedVersion)
+  ) {
+    return invalidPublicVersion();
   }
+  return withEdgeHeader(
+    await fetchScreenshotOrigin(request, env),
+    "proxy",
+    request.method,
+  );
+}
 
-  const storedPreview = await readRecipientPreview(env, previewKey).catch(() => null);
-  if (storedPreview) {
-    if (isSlackPreviewRequest(request)) {
-      ctx.waitUntil(
-        fetchOrigin(new Request(request, { method: "HEAD" }), env, {
-          timeoutMs: SCREENSHOT_ORIGIN_TIMEOUT_MS,
-        })
-          .then((response) => response.body?.cancel())
-          .catch(() => undefined),
-      );
-    }
-    return withEdgeHeader(storedPreview, "r2", request.method);
-  }
-
-  const originResponse = await fetchScreenshotOrigin(request, env);
-  if (!isCacheableRecipientPreview(originResponse)) {
-    return withEdgeHeader(originResponse, "miss", request.method);
-  }
-
-  const bytes = await originResponse.arrayBuffer();
-  const response = recipientPreviewResponse(bytes);
-  ctx.waitUntil(writeRecipientPreview(env, previewKey, bytes));
-  return withEdgeHeader(response, "miss", request.method);
+function invalidPublicVersion() {
+  return new Response("Not found", {
+    status: 404,
+    headers: securityHeaders({
+      "cache-control": "no-store",
+      "content-type": "text/plain; charset=utf-8",
+    }),
+  });
 }
 
 async function fetchScreenshotOrigin(request: Request, env: Env) {
@@ -191,55 +169,10 @@ async function fetchScreenshotOrigin(request: Request, env: Env) {
       headers: securityHeaders({
         "cache-control": "no-store",
         "content-type": "text/plain; charset=utf-8",
+        "retry-after": "5",
       }),
     });
   }
-}
-
-async function readRecipientPreview(env: Env, key: string) {
-  const object = await env.PREVIEW_BUCKET?.get(key);
-  if (!object) return null;
-
-  return new Response(object.body, {
-    status: 200,
-    headers: securityHeaders({
-      "cache-control": "no-store",
-      "content-length": String(object.size),
-      "content-type": object.httpMetadata?.contentType ?? JPEG_CONTENT_TYPE,
-      etag: object.httpEtag,
-    }),
-  });
-}
-
-async function writeRecipientPreview(env: Env, key: string, bytes: ArrayBuffer) {
-  await env.PREVIEW_BUCKET?.put(key, bytes, {
-    customMetadata: {
-      storedAt: new Date().toISOString(),
-    },
-    httpMetadata: {
-      contentType: JPEG_CONTENT_TYPE,
-    },
-  });
-}
-
-function recipientPreviewResponse(bytes: ArrayBuffer) {
-  return new Response(bytes, {
-    status: 200,
-    headers: securityHeaders({
-      "cache-control": "no-store",
-      "content-length": String(bytes.byteLength),
-      "content-type": JPEG_CONTENT_TYPE,
-    }),
-  });
-}
-
-function isCacheableRecipientPreview(response: Response) {
-  return response.status === 200
-    && (response.headers.get("content-type") ?? "").toLowerCase().startsWith(JPEG_CONTENT_TYPE);
-}
-
-function isSlackPreviewRequest(request: Request) {
-  return /\bslack(?:bot|-imgproxy)?\b/i.test(request.headers.get("user-agent") ?? "");
 }
 
 async function proxyOrigin(
@@ -250,18 +183,25 @@ async function proxyOrigin(
   },
 ) {
   if (options.cache === "none" || request.method !== "GET") {
-    return withEdgeHeader(await fetchOrigin(request, env), "proxy", request.method);
+    return withEdgeHeader(await fetchPublicOrigin(request, env), "proxy", request.method);
   }
 
   const cache = await caches.open(EDGE_CACHE_NAME);
-  const cacheKey = new Request(request.url, request);
+  const requestUrl = new URL(request.url);
+  const cacheKey = new Request(publicUrlFor(env, requestUrl.pathname), {
+    method: "GET",
+    headers: {
+      accept: request.headers.get("accept") ?? "*/*",
+    },
+  });
   const cached = await cache.match(cacheKey);
 
   if (cached) {
     return withEdgeHeader(cached, "hit", request.method);
   }
 
-  const originResponse = await fetchOrigin(request, env);
+  const canonicalRequest = new Request(cacheKey.url, request);
+  const originResponse = await fetchPublicOrigin(canonicalRequest, env);
   const cacheSeconds = shouldCacheOriginResponse(originResponse)
     ? readHtmlCacheSeconds(env)
     : readUnavailableCacheSeconds(env);
@@ -274,9 +214,36 @@ async function proxyOrigin(
   return withEdgeHeader(edgeResponse, "miss", request.method);
 }
 
+async function fetchPublicOrigin(
+  request: Request,
+  env: Env,
+  options: { forceGet?: boolean } = {},
+) {
+  try {
+    return await fetchOrigin(request, env, options);
+  } catch {
+    return new Response("Temporarily unavailable", {
+      status: 503,
+      headers: securityHeaders({
+        "cache-control": "no-store",
+        "content-type": "text/plain; charset=utf-8",
+        "retry-after": "5",
+      }),
+    });
+  }
+}
+
 async function fetchOrigin(
   request: Request,
   env: Env,
+  options: { forceGet?: boolean; timeoutMs?: number } = {},
+) {
+  return fetch(buildOriginRequest(request, env, options));
+}
+
+export function buildOriginRequest(
+  request: Request,
+  env: Pick<Env, "API_ORIGIN" | "ORIGIN_AUTH_SECRET">,
   options: { forceGet?: boolean; timeoutMs?: number } = {},
 ) {
   const originUrl = new URL(request.url);
@@ -286,9 +253,10 @@ async function fetchOrigin(
 
   const headers = new Headers(request.headers);
   headers.set("x-handout-edge", "cloudflare-worker");
+  headers.set("x-handout-origin-auth", env.ORIGIN_AUTH_SECRET);
   headers.set("x-forwarded-host", new URL(request.url).host);
 
-  return fetch(originUrl, {
+  return new Request(originUrl, {
     body: options.forceGet || request.method === "GET" || request.method === "HEAD"
       ? undefined
       : request.body,
@@ -296,6 +264,7 @@ async function fetchOrigin(
     method: options.forceGet ? "GET" : request.method,
     redirect: "manual",
     signal: AbortSignal.timeout(options.timeoutMs ?? ORIGIN_TIMEOUT_MS),
+    ...(request.body ? { duplex: "half" } : {}),
   });
 }
 
@@ -321,52 +290,6 @@ function sanitizeCacheableResponse(response: Response, cacheSeconds: number) {
     headers: securityHeaders(headers),
     status: response.status,
     statusText: response.statusText,
-  });
-}
-
-async function readR2Snapshot(
-  env: Env,
-  key: string,
-  ttlSeconds: number,
-  now: Date,
-) {
-  if (!env.SNAPSHOT_BUCKET) {
-    return null;
-  }
-
-  const object = await env.SNAPSHOT_BUCKET.get(key);
-
-  if (!object || !isSnapshotFresh(object.customMetadata?.storedAt, now, ttlSeconds)) {
-    return null;
-  }
-
-  return new Response(object.body, {
-    headers: securityHeaders({
-      "cache-control": cacheControl(readHtmlCacheSeconds(env)),
-      "content-type": object.httpMetadata?.contentType ?? HTML_CONTENT_TYPE,
-      etag: object.httpEtag,
-    }),
-  });
-}
-
-async function writeR2Snapshot(env: Env, key: string, response: Response) {
-  if (!env.SNAPSHOT_BUCKET || response.status !== 200) {
-    return;
-  }
-
-  const html = await response.text();
-
-  if (html.length === 0) {
-    return;
-  }
-
-  await env.SNAPSHOT_BUCKET.put(key, html, {
-    customMetadata: {
-      storedAt: new Date().toISOString(),
-    },
-    httpMetadata: {
-      contentType: response.headers.get("content-type") ?? HTML_CONTENT_TYPE,
-    },
   });
 }
 

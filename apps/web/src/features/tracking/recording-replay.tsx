@@ -60,6 +60,7 @@ type RrwebReplayerConstructor = new (
   config: {
     UNSAFE_replayCanvas?: boolean
     logger?: Pick<Console, "debug" | "error" | "info" | "log" | "warn">
+    inactivePeriodThreshold?: number
     mouseTail?: false
     root: HTMLElement
     showDebug?: boolean
@@ -253,6 +254,7 @@ function RrwebReplayPlayer({
         const replayer = new Replayer(replay.events, {
           UNSAFE_replayCanvas: false,
           logger: quietReplayLogger,
+          inactivePeriodThreshold: 2_000,
           mouseTail: false,
           root,
           showDebug: false,

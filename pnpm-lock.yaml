@@ -282,6 +282,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      colorjs.io:
+        specifier: ^0.7.0
+        version: 0.7.0
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -472,6 +475,10 @@ importers:
         version: 6.0.3
 
   packages/design-tokens:
+    dependencies:
+      colorjs.io:
+        specifier: ^0.7.0
+        version: 0.7.0
     devDependencies:
       typescript:
         specifier: ~6.0.2
@@ -4001,6 +4008,9 @@ packages:
 
   code-block-writer@13.0.3:
     resolution: {integrity: sha512-Oofo0pq3IKnsFtuHqSF7TqBfr71aeyZDVJ0HpmqB7FBM2qEigL0iPONSCZSO9pE9dZTAxANe5XHG9Uy0YMv8cg==}
+
+  colorjs.io@0.7.0:
+    resolution: {integrity: sha512-JfLy3aZW1Xp2iwSFzGlLn0XSMnIdItH3BmzsXtwHVFEWwVUJIwKBWNzjQq2Tgf3998OY7qW2R6klrlYo8vmEGg==}
 
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
@@ -9533,6 +9543,8 @@ snapshots:
       - '@types/react-dom'
 
   code-block-writer@13.0.3: {}
+
+  colorjs.io@0.7.0: {}
 
   combined-stream@1.0.8:
     dependencies:

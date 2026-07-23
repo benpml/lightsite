@@ -30,10 +30,13 @@ export const apiEnvSchema = z.object({
   BETTER_AUTH_URL: z.string().url().default("http://localhost:5173"),
   DATABASE_POOL_MAX: z.coerce.number().int().positive().max(50).default(10),
   DATABASE_URL: z.string().url(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   LOGO_DEV_TOKEN: z.string().min(1).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(3).default("Handout <noreply@handout.link>"),
   ...trackingReplayStorageShape,
+  ORIGIN_AUTH_SECRET: z.string().min(32).optional(),
   PUBLIC_SITE_ORIGIN: z.string().url().optional(),
   STRIPE_CORE_ANNUAL_PRICE_ID: z.string().min(1).optional(),
   STRIPE_CORE_MONTHLY_PRICE_ID: z.string().min(1).optional(),
@@ -57,6 +60,18 @@ export const apiEnvSchema = z.object({
   }
   if (config.NODE_ENV === "production" && config.AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS) {
     context.addIssue({ code: "custom", path: ["AUTOMATIONS_ALLOW_LOCAL_DESTINATIONS"], message: "Local webhook destinations cannot be enabled in production" });
+  }
+  if (config.NODE_ENV === "production" && !config.ORIGIN_AUTH_SECRET) {
+    context.addIssue({ code: "custom", path: ["ORIGIN_AUTH_SECRET"], message: "Required in production to prevent direct origin access" });
+  }
+  const hasGoogleClientId = Boolean(config.GOOGLE_CLIENT_ID);
+  const hasGoogleClientSecret = Boolean(config.GOOGLE_CLIENT_SECRET);
+  if (hasGoogleClientId !== hasGoogleClientSecret) {
+    context.addIssue({
+      code: "custom",
+      path: [hasGoogleClientId ? "GOOGLE_CLIENT_SECRET" : "GOOGLE_CLIENT_ID"],
+      message: "Google OAuth credentials must be provided together",
+    });
   }
 });
 

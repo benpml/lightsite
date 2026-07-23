@@ -81,6 +81,15 @@ const server = createServer(app)
 const destroyCollaboration = attachSiteCollaborationWebSocketServer(
   server,
   collaboration.hocuspocus,
+  {
+    allowedOrigins: new Set([
+      new URL(env.WEB_ORIGIN).origin,
+      ...(env.WEB_ORIGINS ?? "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ].map((origin) => new URL(origin).origin)),
+  },
 )
 let stopTrackingRetentionJob = () => {}
 let stopAutomationWorker = () => {}

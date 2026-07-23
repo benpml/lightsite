@@ -6,6 +6,7 @@ import type {
   WorkspaceSlugAvailabilityResponse,
   WorkspaceSummary,
 } from "@handout/contracts"
+import { uploadProfileImageResponseSchema } from "@handout/contracts"
 
 import { apiRequest } from "@/lib/api/client"
 
@@ -39,6 +40,26 @@ export function createWorkspace(input: CreateWorkspaceRequest) {
     method: "POST",
     body: normalizeCreateWorkspaceRequest(input),
     responseSchema: createWorkspaceResponseSchema,
+  })
+}
+
+export function uploadOnboardingProfileImage(input: {
+  contentType: string
+  dataBase64: string
+  fileName: string
+}) {
+  return apiRequest("/api/me/profile-image", {
+    method: "PUT",
+    body: input,
+    responseSchema: uploadProfileImageResponseSchema,
+  })
+}
+
+export function redeemWorkspaceInviteCode(code: string) {
+  return apiRequest("/api/workspace-invitations/redeem", {
+    method: "POST",
+    body: { code: code.trim() },
+    responseSchema: redeemWorkspaceInviteResponseSchema,
   })
 }
 
@@ -112,6 +133,16 @@ const createWorkspaceResponseSchema = {
       },
       requestId: object.requestId,
     }
+  },
+}
+
+const redeemWorkspaceInviteResponseSchema = {
+  parse(value: unknown): { workspaceId: string; requestId: string } {
+    const object = asRecord(value)
+    if (typeof object.workspaceId !== "string" || typeof object.requestId !== "string") {
+      throw new Error("Invalid workspace invitation response.")
+    }
+    return { workspaceId: object.workspaceId, requestId: object.requestId }
   },
 }
 

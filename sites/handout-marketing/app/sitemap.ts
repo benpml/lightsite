@@ -10,6 +10,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${siteUrl}/pricing`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${siteUrl}/examples`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${siteUrl}/blog`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${siteUrl}/privacy`, changeFrequency: "yearly", priority: 0.4 },
+    { url: `${siteUrl}/terms`, changeFrequency: "yearly", priority: 0.4 },
   ]
 
   const postRoutes: MetadataRoute.Sitemap = getPublishedBlogPosts().map(

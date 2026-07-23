@@ -246,10 +246,12 @@ export function useSiteCollaboration(input: {
     }
   }, [document])
 
-  const isReady = (
-    isRemoteSynced ||
-    (isIndexedDbSynced && isSiteCollaborationDocumentInitialized(document))
-  ) && !authenticationFailed
+  const isReady = isSiteCollaborationReady({
+    authenticationFailed,
+    document,
+    isIndexedDbSynced,
+    isRemoteSynced,
+  })
 
   const siteDraft = useMemo(
     () => isReady ? readSiteCollaborationContent(document) : null,
@@ -471,6 +473,19 @@ export function collaboratorsAreEqual(
         currentCollaborator.name === nextCollaborator.name &&
         currentCollaborator.color === nextCollaborator.color
     })
+}
+
+export function isSiteCollaborationReady(input: {
+  authenticationFailed: boolean
+  document: Y.Doc
+  isIndexedDbSynced: boolean
+  isRemoteSynced: boolean
+}) {
+  return (
+    (input.isRemoteSynced || input.isIndexedDbSynced) &&
+    isSiteCollaborationDocumentInitialized(input.document) &&
+    !input.authenticationFailed
+  )
 }
 
 function bytesToBase64(bytes: Uint8Array) {

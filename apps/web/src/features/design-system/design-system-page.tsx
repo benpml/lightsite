@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { IconArrowRight, IconArrowUpRight, IconPalette } from "@tabler/icons-react"
+import { IconArrowRight, IconArrowUpRight, IconColorPicker, IconPalette } from "@tabler/icons-react"
 
 import {
   baseColorTokens,
@@ -40,12 +40,20 @@ export function DesignSystemPage() {
             sites. Hex values resolve each token through its current inheritance chain.
           </p>
         </div>
-        <Button variant="outline" size="compact" asChild>
-          <Link to="/design-system/audit">
-            Audit sheet
-            <IconArrowRight data-icon="inline-end" />
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="compact" asChild>
+            <Link to="/design-system/colors">
+              <IconColorPicker data-icon="inline-start" />
+              Color playground
+            </Link>
+          </Button>
+          <Button variant="outline" size="compact" asChild>
+            <Link to="/design-system/audit">
+              Audit sheet
+              <IconArrowRight data-icon="inline-end" />
+            </Link>
+          </Button>
+        </div>
       </section>
       <section className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
         <Card className="bg-primary text-primary-foreground">

@@ -1,10 +1,9 @@
 export const DEFAULT_HTML_CACHE_SECONDS = 60;
 export const DEFAULT_UNAVAILABLE_CACHE_SECONDS = 15;
-export const DEFAULT_R2_SNAPSHOT_SECONDS = 300;
-export const MAX_R2_SNAPSHOT_SECONDS = 3600;
 
 const PUBLIC_SITE_SEGMENT_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,94}[a-z0-9])?$/;
-const RECIPIENT_PREVIEW_VERSION_PATTERN = /^[a-zA-Z0-9._:-]{1,200}$/;
+const PUBLIC_PREVIEW_VERSION_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.\d+(?:\.r[1-9]\d*\.w[a-z0-9]{1,16})?$/i;
 const SITE_RUNTIME_PATH_PATTERN = /^\/site-runtime\.v[1-9]\d*\.js$/;
 const RESERVED_FIRST_SEGMENTS = new Set([
   "api",
@@ -68,6 +67,13 @@ export function isPublicSiteScreenshotPath(pathname: string) {
     publicSegments.every((segment) => PUBLIC_SITE_SEGMENT_PATTERN.test(segment));
 }
 
+export function isShortPublicSiteScreenshotPath(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  return segments.length === 2
+    && segments[1] === "embed.jpg"
+    && isShortPublicCode(segments[0] ?? "");
+}
+
 export function isPublicSitePath(pathname: string) {
   const segments = pathname
     .split("/")
@@ -100,6 +106,10 @@ export function isShortPublicSitePath(pathname: string) {
   return segments.length === 1 && isShortPublicCode(segments[0] ?? "");
 }
 
+export function isPublicPreviewVersion(value: string | null) {
+  return Boolean(value && value.length <= 96 && PUBLIC_PREVIEW_VERSION_PATTERN.test(value));
+}
+
 export function readPositiveInteger(value: string | undefined, fallback: number, max = Number.MAX_SAFE_INTEGER) {
   const parsed = Number.parseInt(value ?? "", 10);
 
@@ -108,42 +118,6 @@ export function readPositiveInteger(value: string | undefined, fallback: number,
   }
 
   return Math.min(parsed, max);
-}
-
-export function buildPublicHtmlSnapshotKey(pathname: string, version?: string | null) {
-  const normalizedPathname = pathname.replace(/^\/+/, "").replace(/\/+$/, "") || "index";
-
-  return version && RECIPIENT_PREVIEW_VERSION_PATTERN.test(version)
-    ? `public-html/v2/${normalizedPathname}/${version}/index.html`
-    : `public-html/v1/${normalizedPathname}/index.html`;
-}
-
-export function buildRecipientPreviewKey(pathname: string, version: string | null) {
-  if (!version || !RECIPIENT_PREVIEW_VERSION_PATTERN.test(version) || !isPublicSiteScreenshotPath(pathname)) {
-    return null;
-  }
-
-  const normalizedPathname = pathname.replace(/^\/+/, "");
-  if (!normalizedPathname.endsWith("/embed.jpg")) {
-    return null;
-  }
-
-  const publicPath = normalizedPathname.slice(0, -"/embed.jpg".length);
-  return `recipient-previews/v1/${publicPath}/${version}/embed.jpg`;
-}
-
-export function isSnapshotFresh(storedAt: string | undefined, now: Date, ttlSeconds: number) {
-  if (!storedAt) {
-    return false;
-  }
-
-  const storedAtMs = Date.parse(storedAt);
-
-  if (!Number.isFinite(storedAtMs)) {
-    return false;
-  }
-
-  return now.getTime() - storedAtMs <= ttlSeconds * 1000;
 }
 
 function isShortPublicCode(value: string) {

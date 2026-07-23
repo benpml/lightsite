@@ -70,7 +70,13 @@ export interface TeamRepository {
     invitedByUserId: string;
     expiresAt: Date;
     now: Date;
-  }): Promise<void>;
+  }): Promise<{ id: string }>;
+  claimInvitationByIdForUser(input: {
+    invitationId: string;
+    userId: string;
+    email: string;
+    now: Date;
+  }): Promise<string | null>;
   markInvitationAccepted(input: {
     workspaceId: string;
     email: string;
@@ -226,7 +232,7 @@ export function createDbTeamRepository(database: Database = defaultDb): TeamRepo
     },
 
     async upsertInvitation(input) {
-      await database
+      const [invitation] = await database
         .insert(workspaceInvitations)
         .values({
           workspaceId: input.workspaceId,
@@ -249,7 +255,76 @@ export function createDbTeamRepository(database: Database = defaultDb): TeamRepo
             revokedAt: null,
             updatedAt: input.now,
           },
-        });
+        })
+        .returning({ id: workspaceInvitations.id });
+
+      if (!invitation) throw new Error("Workspace invitation was not saved.");
+      return invitation;
+    },
+
+    async claimInvitationByIdForUser(input) {
+      return database.transaction(async (transaction) => {
+        const [invitation] = await transaction
+          .select({
+            id: workspaceInvitations.id,
+            workspaceId: workspaceInvitations.workspaceId,
+            role: workspaceInvitations.role,
+            status: workspaceInvitations.status,
+            acceptedByUserId: workspaceInvitations.acceptedByUserId,
+            expiresAt: workspaceInvitations.expiresAt,
+          })
+          .from(workspaceInvitations)
+          .where(and(
+            eq(workspaceInvitations.id, input.invitationId),
+            eq(workspaceInvitations.email, input.email.toLowerCase()),
+          ))
+          .limit(1);
+
+        if (!invitation) return null;
+        if (
+          invitation.status === "accepted" &&
+          invitation.acceptedByUserId === input.userId
+        ) {
+          return invitation.workspaceId;
+        }
+        if (
+          invitation.status !== "pending" ||
+          invitation.expiresAt <= input.now
+        ) {
+          return null;
+        }
+
+        await transaction
+          .insert(workspaceMembers)
+          .values({
+            workspaceId: invitation.workspaceId,
+            userId: input.userId,
+            role: invitation.role,
+            status: "active",
+            updatedAt: input.now,
+          })
+          .onConflictDoUpdate({
+            target: [workspaceMembers.workspaceId, workspaceMembers.userId],
+            set: {
+              role: invitation.role,
+              status: "active",
+              removedAt: null,
+              updatedAt: input.now,
+            },
+          });
+
+        await transaction
+          .update(workspaceInvitations)
+          .set({
+            status: "accepted",
+            acceptedByUserId: input.userId,
+            acceptedAt: input.now,
+            updatedAt: input.now,
+          })
+          .where(eq(workspaceInvitations.id, invitation.id));
+
+        return invitation.workspaceId;
+      });
     },
 
     async markInvitationAccepted(input) {
@@ -437,9 +512,9 @@ export function createMemoryTeamRepository(input: {
         existing.role = invitation.role;
         existing.status = "pending";
         existing.expiresAt = invitation.expiresAt;
-        return;
+        return { id: existing.id };
       }
-      invitations.push({
+      const created: TeamInvitationRecord = {
         id: randomUUID(),
         workspaceId: invitation.workspaceId,
         email: invitation.email,
@@ -448,7 +523,33 @@ export function createMemoryTeamRepository(input: {
         invitedByName: null,
         createdAt: invitation.now,
         expiresAt: invitation.expiresAt,
+      };
+      invitations.push(created);
+      return { id: created.id };
+    },
+    async claimInvitationByIdForUser(claim) {
+      const invitation = invitations.find((candidate) =>
+        candidate.id === claim.invitationId &&
+        candidate.email === claim.email.toLowerCase()
+      );
+      if (!invitation) return null;
+      if (invitation.status === "accepted") {
+        const membership = members.find((candidate) =>
+          candidate.workspaceId === invitation.workspaceId &&
+          candidate.userId === claim.userId
+        );
+        return membership ? invitation.workspaceId : null;
+      }
+      if (invitation.status !== "pending" || invitation.expiresAt <= claim.now) return null;
+
+      await this.upsertMember({
+        workspaceId: invitation.workspaceId,
+        userId: claim.userId,
+        role: invitation.role,
+        now: claim.now,
       });
+      invitation.status = "accepted";
+      return invitation.workspaceId;
     },
     async markInvitationAccepted(accepted) {
       const invitation = invitations.find((candidate) =>

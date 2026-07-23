@@ -17,17 +17,6 @@
     "API_ORIGIN": "https://api.handout.link",
     "PUBLIC_ORIGIN": "https://handout.link",
     "EDGE_CACHE_HTML_SECONDS": "60",
-    "EDGE_CACHE_UNAVAILABLE_SECONDS": "15",
-    "EDGE_R2_SNAPSHOT_SECONDS": "300"
-  },
-  "r2_buckets": [
-    {
-      "binding": "SNAPSHOT_BUCKET",
-      "bucket_name": "handout-public-snapshots"
-    },
-    {
-      "binding": "PREVIEW_BUCKET",
-      "bucket_name": "handout-recipient-previews"
-    }
-  ]
+    "EDGE_CACHE_UNAVAILABLE_SECONDS": "15"
+  }
 }

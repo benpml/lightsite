@@ -41,6 +41,21 @@ describe("public recipient links", () => {
     expect(result?.variableValues["var-company-logo"]).toContain("domain=linear.app");
   });
 
+  it("preserves br-separated bullet values from cadence URLs for rendering", () => {
+    const result = normalizePublicRecipientLink(contentWithPainPoints(), {
+      recipientName: "John",
+      recipientCompany: "Linear",
+      recipientWebsite: "linear.app",
+      searchParams: new URLSearchParams(
+        "pain-points=-%20Point%20A<br>-%20Point%20B",
+      ),
+    });
+
+    expect(result?.variableValues["var-pain-points-1234"]).toBe(
+      "- Point A<br>- Point B",
+    );
+  });
+
   it("ignores unrelated cadence parameters when deriving recipient identity", () => {
     const first = normalizePublicRecipientLink(contentWithPainPoints(), {
       recipientName: "John",

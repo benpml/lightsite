@@ -4,6 +4,7 @@ import { IconLock } from "@tabler/icons-react"
 import type { WorkspacePlan } from "@handout/contracts"
 import {
   HANDOUT_PRIVACY_POLICY_URL,
+  HANDOUT_TERMS_OF_SERVICE_URL,
   type SiteContent,
   type SiteTrackingConsentPopup,
 } from "@handout/site-document"
@@ -23,7 +24,13 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldContent, FieldDescription, FieldTitle } from "@/components/ui/field"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -213,19 +220,21 @@ export function TrackingSettings({
             </span>
           </SelectTrigger>
           <SelectContent align="end" className="w-[336px]" position="popper">
-            {trackingConsentOptions.map((option) => (
-              <SelectItem
-                key={option.value}
-                className="py-2"
-                disabled={replayEnabled && option.value === "none"}
-                value={option.value}
-              >
-                <span className="flex flex-col items-start">
-                  <span>{option.label}</span>
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
-                </span>
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {trackingConsentOptions.map((option) => (
+                <SelectItem
+                  key={option.value}
+                  className="py-2"
+                  disabled={replayEnabled && option.value === "none"}
+                  value={option.value}
+                >
+                  <span className="flex flex-col items-start">
+                    <span>{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
         {content.settings.trackingConsentPopup === "none" ? null : (
@@ -346,7 +355,7 @@ export function ReplayAgreementDialog({
         if (!nextOpen) setAgreed(false)
       }}
     >
-      <DialogContent className="h-[549px] max-h-[calc(100svh-24px)] grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-3 rounded-2xl px-4 pt-2 pb-4 sm:max-w-[440px]">
+      <DialogContent className="h-[549px] max-h-[calc(100svh-24px)] grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-3 rounded-2xl px-4 pt-3 pb-4 sm:max-w-[440px]">
         <DialogHeader className="gap-0.5 pr-8">
           <DialogTitle className="leading-6">Enable session replay?</DialogTitle>
           <DialogDescription className="leading-5">
@@ -413,8 +422,25 @@ export function ReplayAgreementDialog({
             onCheckedChange={(checked) => setAgreed(checked === true)}
           />
           <span>
-            I’m authorized to act for my organization and agree to the above, Session Replay
-            Addendum, and Terms of Service.
+            I’m authorized to act for my organization and agree to the above, the{" "}
+            <a
+              className="underline underline-offset-2"
+              href={`${HANDOUT_TERMS_OF_SERVICE_URL}#tracking-replay`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Session Replay Addendum
+            </a>
+            , and the{" "}
+            <a
+              className="underline underline-offset-2"
+              href={HANDOUT_TERMS_OF_SERVICE_URL}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Terms of Service
+            </a>
+            .
           </span>
         </label>
         <DialogFooter className="-mx-4 -mb-4 rounded-b-2xl bg-transparent px-4 pt-3 pb-4 sm:flex-col">

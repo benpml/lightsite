@@ -99,6 +99,46 @@ describe("site-document agent catalog", () => {
     }
   });
 
+  it("accepts custom six-digit hex colors for color-aware icons", () => {
+    const document = {
+      type: "doc",
+      content: [{
+        type: "iconCard",
+        attrs: { icon: "bolt", iconColor: "#fff5d2" },
+        content: [{ type: "iconCardTitle" }, { type: "iconCardBody" }],
+      }],
+    };
+
+    expect(tiptapDocumentSchema.safeParse(document).success).toBe(true);
+  });
+
+  it("accepts custom six-digit hex text and highlight colors", () => {
+    const document = {
+      type: "doc",
+      content: [{
+        type: "paragraph",
+        content: [{
+          type: "text",
+          text: "Custom colors",
+          marks: [
+            { type: "textStyle", attrs: { color: "#755bde" } },
+            { type: "highlight", attrs: { color: "#fff5d2" } },
+          ],
+        }],
+      }],
+    };
+
+    expect(tiptapDocumentSchema.safeParse(document).success).toBe(true);
+  });
+
+  it("omits teal from selectable primary and icon presets", () => {
+    expect(SITE_DOCUMENT_DESIGN_OPTIONS.primaryColors).not.toContain("teal");
+    expect(SITE_DOCUMENT_DESIGN_OPTIONS.iconColors).not.toContainEqual({
+      name: "teal",
+      label: "Teal",
+    });
+  });
+
   it("reports the exact nested node and mark paths for repair", () => {
     const result = tiptapDocumentSchema.safeParse({
       type: "doc",

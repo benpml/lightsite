@@ -494,7 +494,7 @@ function InviteMemberDialog({
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="gap-0.5">
           <DialogTitle>Invite a teammate</DialogTitle>
           <DialogDescription>
             Invite someone to this workspace.

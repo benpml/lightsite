@@ -8,6 +8,7 @@ import {
   sites,
   trackingSettings,
   userProfiles,
+  workspaces,
   type Database,
   type SiteDefaults,
   type SiteContent,
@@ -60,6 +61,7 @@ export type CreateSiteInput = {
   trackingEnabled: boolean;
   recordingEnabled: boolean;
   recordingDisclosureAccepted: boolean;
+  maxWorkspaceSites: number;
 };
 
 export type UpdateSiteInput = {
@@ -78,6 +80,7 @@ export type DuplicateSiteInput = {
   name: string;
   slug: string;
   draftContent: SiteContent;
+  maxWorkspaceSites: number;
 };
 
 export type UpdateSiteContentInput = {
@@ -226,6 +229,28 @@ export class SiteSlugConflictError extends Error {
   }
 }
 
+export class SiteWorkspaceCapacityError extends Error {
+  constructor(readonly limit: number) {
+    super(`Workspace site capacity reached: ${limit}`);
+    this.name = "SiteWorkspaceCapacityError";
+  }
+}
+
+async function lockWorkspaceSiteCapacity(
+  transaction: Parameters<Parameters<Database["transaction"]>[0]>[0],
+  workspaceId: string,
+) {
+  const [workspace] = await transaction
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId))
+    .for("update")
+    .limit(1);
+  if (!workspace) {
+    throw new Error("Workspace is not available.");
+  }
+}
+
 export function createDbSiteRepository(database: Database = defaultDb): SiteRepository {
   return {
     async listAccessibleSites(input) {
@@ -320,6 +345,14 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
     async createSite(input) {
       try {
         return await database.transaction(async (transaction) => {
+          await lockWorkspaceSiteCapacity(transaction, input.workspaceId);
+          const [usage] = await transaction
+            .select({ value: count() })
+            .from(sites)
+            .where(eq(sites.workspaceId, input.workspaceId));
+          if ((usage?.value ?? 0) >= input.maxWorkspaceSites) {
+            throw new SiteWorkspaceCapacityError(input.maxWorkspaceSites);
+          }
           const [site] = await transaction
             .insert(sites)
             .values({
@@ -425,6 +458,14 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
     async duplicateSite(input) {
       try {
         return await database.transaction(async (transaction) => {
+          await lockWorkspaceSiteCapacity(transaction, input.workspaceId);
+          const [usage] = await transaction
+            .select({ value: count() })
+            .from(sites)
+            .where(eq(sites.workspaceId, input.workspaceId));
+          if ((usage?.value ?? 0) >= input.maxWorkspaceSites) {
+            throw new SiteWorkspaceCapacityError(input.maxWorkspaceSites);
+          }
           const [site] = await transaction
             .insert(sites)
             .values({
@@ -596,10 +637,27 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
             eq(sites.workspaceId, input.workspaceId),
             eq(sites.id, input.siteId),
           ))
+          .for("update")
           .limit(1);
 
         if (!site || site.status === "archived") {
           return null;
+        }
+        if (site.status === "published" && site.publishedVersionId) {
+          const [currentVersion] = await transaction
+            .select()
+            .from(siteVersions)
+            .where(and(
+              eq(siteVersions.id, site.publishedVersionId),
+              eq(siteVersions.siteId, site.id),
+            ))
+            .limit(1);
+          if (
+            currentVersion &&
+            currentVersion.metadata.draftRevision === site.draftRevision
+          ) {
+            return { site, version: currentVersion };
+          }
         }
 
         const [latestVersion] = await transaction
@@ -784,6 +842,7 @@ export function createDbSiteRepository(database: Database = defaultDb): SiteRepo
             eq(sites.workspaceId, input.workspaceId),
             eq(sites.id, input.siteId),
           ))
+          .for("update")
           .limit(1);
 
         const [versionToRestore] = await transaction
@@ -971,6 +1030,12 @@ export function createMemorySiteRepository(
       if (existingSite) {
         throw new SiteSlugConflictError(input.slug);
       }
+      if (
+        Array.from(siteById.values()).filter((site) => site.workspaceId === input.workspaceId).length
+        >= input.maxWorkspaceSites
+      ) {
+        throw new SiteWorkspaceCapacityError(input.maxWorkspaceSites);
+      }
 
       const now = new Date();
       const site: SiteRecord = {
@@ -1053,6 +1118,12 @@ export function createMemorySiteRepository(
     },
 
     async duplicateSite(input) {
+      if (
+        Array.from(siteById.values()).filter((site) => site.workspaceId === input.workspaceId).length
+        >= input.maxWorkspaceSites
+      ) {
+        throw new SiteWorkspaceCapacityError(input.maxWorkspaceSites);
+      }
       const existingSite = findByWorkspaceAndSlug({
         workspaceId: input.workspaceId,
         slug: input.slug,

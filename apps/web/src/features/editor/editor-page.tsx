@@ -8,7 +8,9 @@ import type { Transaction } from "@tiptap/pm/state"
 import type { ListSitesResponse } from "@handout/contracts"
 import { useTheme } from "next-themes"
 import {
+  getSitePrimaryColorVariables,
   getSitePageCollaborationField,
+  RESERVED_SITE_VARIABLE_IDS,
   type SiteVariableDefinition,
 } from "@handout/site-document"
 import {
@@ -459,7 +461,7 @@ function ReadyEditorPage({
   }, [editor, setVariableDefinitions, updateSiteDraft])
 
   const deleteSiteVariable = useCallback((variableId: string) => {
-    if (!editor || editor.isDestroyed || systemShareVariableIds.has(variableId)) return
+    if (!editor || editor.isDestroyed || RESERVED_SITE_VARIABLE_IDS.has(variableId)) return
     const nextDefinitions = getHandoutVariableStorage(editor).definitions.filter(
       (definition) => definition.id !== variableId,
     )
@@ -960,7 +962,10 @@ function ReadyEditorPage({
     () => getShareVariableDefinitions(activeEditor?.state.doc ?? null, variableDefinitions),
     [activeEditor, documentRevision, variableDefinitions],
   )
-  const primaryColorStyle = getEditorPrimaryColorStyle(siteDraft.settings.primaryColor)
+  const primaryColorStyle = getSitePrimaryColorVariables(
+    siteDraft.settings.primaryColor,
+    siteDraft.settings.customPrimaryColor,
+  ) as CSSProperties
 
   return (
     <div
@@ -993,6 +998,7 @@ function ReadyEditorPage({
         onShare={openShareDialog}
         plan={activeWorkspace.plan}
         publishStatus={publishStatus}
+        publicId={currentSite?.publicId ?? ""}
         recipientCount={recipients.length}
         saveStatus={collaboration.saveStatus}
         siteId={siteId}
@@ -1087,12 +1093,6 @@ function ReadyEditorPage({
   )
 }
 
-const systemShareVariableIds = new Set([
-  "recipient-name",
-  "recipient-company",
-  "recipient_website",
-])
-
 function getShareVariableDefinitions(
   doc: ProseMirrorNode | null,
   definitions: HandoutVariableOption[]
@@ -1111,7 +1111,7 @@ function getShareVariableDefinitions(
 
   return definitions.filter(
     (definition) =>
-      systemShareVariableIds.has(definition.id) || usedVariableIds.has(definition.id)
+      RESERVED_SITE_VARIABLE_IDS.has(definition.id) || usedVariableIds.has(definition.id)
   )
 }
 
@@ -1156,12 +1156,11 @@ function mergeVariableOptions(
   const byId = new Map(base.map((variable) => [variable.id, variable]))
   overrides.forEach((variable) => {
     const systemVariable = byId.get(variable.id)
-    byId.set(variable.id, systemShareVariableIds.has(variable.id) && systemVariable
+    byId.set(variable.id, RESERVED_SITE_VARIABLE_IDS.has(variable.id) && systemVariable
       ? {
           ...variable,
           name: systemVariable.name,
           slug: systemVariable.slug,
-          description: systemVariable.description,
           type: systemVariable.type,
         }
       : variable)
@@ -1174,24 +1173,4 @@ function getVariableType(variable: HandoutVariableOption) {
   if (value.includes("logo") || value.includes("image") || value.includes("avatar")) return "image" as const
   if (value.includes("url") || value.includes("website") || value.includes("link")) return "url" as const
   return "text" as const
-}
-
-function getEditorPrimaryColorStyle(
-  color: EditorSiteDraft["settings"]["primaryColor"],
-) {
-  if (color === "neutral") {
-    return {
-      "--handout-primary": "var(--foreground)",
-      "--handout-primary-foreground": "var(--background)",
-      "--handout-primary-soft": "var(--accent)",
-      "--handout-sidebar-link-icon": "var(--blue-foreground)",
-    } as CSSProperties
-  }
-
-  return {
-    "--handout-primary": `var(--${color}-foreground)`,
-    "--handout-primary-foreground": "var(--background)",
-    "--handout-primary-soft": `var(--${color}-background-subtle)`,
-    "--handout-sidebar-link-icon": `var(--${color}-foreground)`,
-  } as CSSProperties
 }

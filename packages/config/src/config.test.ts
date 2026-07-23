@@ -76,6 +76,18 @@ describe("api env parsing", () => {
     })).toThrow();
   });
 
+  it("requires a dedicated origin authentication secret in production", () => {
+    expect(() => parseApiEnv({
+      ...validEnv,
+      NODE_ENV: "production",
+    })).toThrow();
+    expect(parseApiEnv({
+      ...validEnv,
+      NODE_ENV: "production",
+      ORIGIN_AUTH_SECRET: "o".repeat(32),
+    }).ORIGIN_AUTH_SECRET).toBe("o".repeat(32));
+  });
+
   it("rejects short auth secrets", () => {
     expect(() =>
       parseApiEnv({
@@ -83,6 +95,21 @@ describe("api env parsing", () => {
         BETTER_AUTH_SECRET: "short",
       }),
     ).toThrow();
+  });
+
+  it("requires complete Google OAuth credentials when either value is provided", () => {
+    expect(() => parseApiEnv({
+      ...validEnv,
+      GOOGLE_CLIENT_ID: "client.apps.googleusercontent.com",
+    })).toThrow();
+    expect(parseApiEnv({
+      ...validEnv,
+      GOOGLE_CLIENT_ID: "client.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+    })).toMatchObject({
+      GOOGLE_CLIENT_ID: "client.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+    });
   });
 });
 

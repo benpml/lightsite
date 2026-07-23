@@ -15,7 +15,7 @@ import {
 const lightPalette = {
   "purple-background": "#755bde1f", "purple-foreground": "#725bcd", "purple-border": "#755bde14",
   "blue-background": "#0085ee1f", "blue-foreground": "#218ce2", "blue-border": "#0085ee14",
-  "cyan-background": "#0588f01f", "cyan-foreground": "#0797b9", "cyan-border": "#0588f014",
+  "cyan-background": "#05c5f01f", "cyan-foreground": "#0797b9", "cyan-border": "#05c5f014",
   "teal-background": "#0d9b8a1f", "teal-foreground": "#0d9b8a", "teal-border": "#0d9b8a14",
   "green-background": "#2b9a661f", "green-foreground": "#2b9a66", "green-border": "#2b9a6614",
   "yellow-background": "#ffba181f", "yellow-foreground": "#ffba18", "yellow-border": "#ffba1814",
@@ -27,7 +27,7 @@ const lightPalette = {
 const darkPalette = {
   "purple-background": "#755bde4d", "purple-foreground": "#d4cafe", "purple-border": "#755bde29",
   "blue-background": "#0085ee4d", "blue-foreground": "#97d1ff", "blue-border": "#0085ee29",
-  "cyan-background": "#0588f04d", "cyan-foreground": "#a4e9f4", "cyan-border": "#0588f029",
+  "cyan-background": "#05c5f04d", "cyan-foreground": "#a4e9f4", "cyan-border": "#05c5f029",
   "teal-background": "#0d9b8a4d", "teal-foreground": "#99eada", "teal-border": "#0d9b8a29",
   "green-background": "#2b9a664d", "green-foreground": "#abeec6", "green-border": "#2b9a6629",
   "yellow-background": "#ffba184d", "yellow-foreground": "#f7dd84", "yellow-border": "#ffba1829",
@@ -39,7 +39,7 @@ const darkPalette = {
 const lightSubtleBackgroundPalette = {
   "purple-background-subtle": "#755bde0f",
   "blue-background-subtle": "#0085ee0f",
-  "cyan-background-subtle": "#0588f00f",
+  "cyan-background-subtle": "#05c5f00f",
   "teal-background-subtle": "#0d9b8a0f",
   "green-background-subtle": "#2b9a660f",
   "yellow-background-subtle": "#ffba180f",
@@ -51,7 +51,7 @@ const lightSubtleBackgroundPalette = {
 const darkSubtleBackgroundPalette = {
   "purple-background-subtle": "#755bde1f",
   "blue-background-subtle": "#0085ee1f",
-  "cyan-background-subtle": "#0588f01f",
+  "cyan-background-subtle": "#05c5f01f",
   "teal-background-subtle": "#0d9b8a1f",
   "green-background-subtle": "#2b9a661f",
   "yellow-background-subtle": "#ffba181f",
@@ -140,6 +140,21 @@ describe("shared design tokens", () => {
     expect(Object.keys(handoutDarkTokens).sort()).toEqual(
       Object.keys(handoutLightTokens).sort(),
     )
+  })
+
+  it("routes editor selection semantics through the blue palette", () => {
+    expect(handoutLightTokens).toMatchObject({
+      "selection-background": "var(--blue-background-subtle)",
+      "selection-border": "var(--blue-foreground)",
+      "selection-foreground": "var(--selection-border)",
+      "editing-background": "var(--selection-background)",
+    })
+    expect(handoutDarkTokens).toMatchObject({
+      "selection-background": "var(--blue-background-subtle)",
+      "selection-border": "var(--blue-foreground)",
+      "selection-foreground": "var(--selection-border)",
+      "editing-background": "var(--selection-background)",
+    })
   })
 
   it("defines the canonical site card surface in both modes", () => {

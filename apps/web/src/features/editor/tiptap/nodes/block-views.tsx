@@ -4,15 +4,19 @@ import type { NodeViewProps } from "@tiptap/react"
 import { TextSelection } from "@tiptap/pm/state"
 import { IconPhoto, IconUpload, IconWorld, IconX } from "@tabler/icons-react"
 import {
-  SITE_ICON_COLOR_OPTIONS,
+  SITE_ICON_COLOR_PRESET_OPTIONS,
   SITE_ICON_OPTIONS,
+  getSiteIconColorVariables,
   getSiteIconSvgBody,
+  isCustomSiteIconColor,
   normalizeSiteIconColor,
   normalizeSiteIconName,
 } from "@handout/site-document"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type React from "react"
 
+import { ColorPickerMenu } from "@/components/common/color-picker-menu"
+import { ColorSpectrumSwatch } from "@/components/common/color-spectrum-swatch"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
@@ -29,8 +33,9 @@ import { getHandoutVariableValue } from "../variable-state"
 const iconListOptions = SITE_ICON_OPTIONS
 const iconPickerHeight = 278
 const iconPickerWidth = 256
+const defaultCustomIconColor = "#755bde"
 
-const iconColorOptions = SITE_ICON_COLOR_OPTIONS.map((option) => ({
+const iconColorOptions = SITE_ICON_COLOR_PRESET_OPTIONS.map((option) => ({
   ...option,
   className: `handout-editor-icon-color-${option.name}`,
 }))
@@ -59,6 +64,13 @@ function useIconPickerMenu(editor: NodeViewProps["editor"]) {
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target
+
+      if (
+        target instanceof Element &&
+        target.closest("[data-handout-color-picker-menu]")
+      ) {
+        return
+      }
 
       if (target instanceof Node && wrapperRef.current?.contains(target)) {
         return
@@ -123,21 +135,26 @@ function IconSelectorMenu({
   onSelectIcon: (icon: string) => void
   position: { maxHeight: number; x: number; y: number } | null
 }) {
+  const customColorSelected = isCustomSiteIconColor(iconColor)
+  const iconColorClass = getIconColorClass(iconColor)
+  const iconColorStyle = getEditorIconColorStyle(iconColor)
+
   return (
     <div
       ref={menuRef}
       id={menuId}
-      className="handout-editor-icon-picker"
+      className={cn("handout-editor-icon-picker", iconColorClass)}
       contentEditable={false}
       role="menu"
       style={
         position
           ? {
+              ...iconColorStyle,
               left: position.x,
               maxHeight: position.maxHeight,
               top: position.y,
             }
-          : { visibility: "hidden" }
+          : { ...iconColorStyle, visibility: "hidden" }
       }
       onMouseDown={(event) => {
         event.preventDefault()
@@ -163,6 +180,24 @@ function IconSelectorMenu({
             onClick={() => onSelectColor(option.name)}
           />
         ))}
+        <ColorPickerMenu
+          align="center"
+          value={customColorSelected ? iconColor : defaultCustomIconColor}
+          onValueChange={onSelectColor}
+        >
+          <button
+            aria-label="Custom color"
+            className={cn(
+              "handout-editor-icon-color-button handout-editor-icon-color-button-custom",
+              customColorSelected && "handout-editor-icon-color-button-active"
+            )}
+            role="menuitemradio"
+            aria-checked={customColorSelected}
+            type="button"
+          >
+            <ColorSpectrumSwatch className="size-full" />
+          </button>
+        </ColorPickerMenu>
       </div>
       <div className="handout-editor-icon-scroll" aria-label="Icons">
         <div className="handout-editor-icon-picker-grid">
@@ -222,6 +257,8 @@ export function IconListItemView({ editor, node, updateAttributes }: NodeViewPro
         aria-controls={open ? menuId : undefined}
         className={cn("handout-editor-icon-bullet", iconColorClass)}
         contentEditable={false}
+        data-icon-color={iconColor}
+        style={getEditorIconColorStyle(iconColor)}
         type="button"
         onClick={openMenu}
         onKeyDown={(event) => {
@@ -1344,6 +1381,7 @@ export function IconCardView({ editor, node, updateAttributes }: NodeViewProps) 
             aria-controls={open ? menuId : undefined}
             className={cn("handout-editor-icon-card-button handout-card-icon", iconColorClass)}
             data-icon-color={iconColor}
+            style={getEditorIconColorStyle(iconColor)}
             type="button"
             onClick={openMenu}
             onKeyDown={(event) => {
@@ -1473,10 +1511,26 @@ function IconGlyph({ name, size }: { name: unknown; size: number }) {
 function getIconColorClass(color: string) {
   const normalizedColor = normalizeSiteIconColor(color)
 
+  if (isCustomSiteIconColor(normalizedColor)) {
+    return "handout-editor-icon-color-custom"
+  }
+
   return (
     iconColorOptions.find((option) => option.name === normalizedColor)?.className ??
     "handout-editor-icon-color-neutral"
   )
+}
+
+function getEditorIconColorStyle(color: string): React.CSSProperties | undefined {
+  const variables = getSiteIconColorVariables(color)
+  if (!variables) {
+    return undefined
+  }
+
+  return {
+    ...variables,
+    "--handout-editor-icon-color": variables["--handout-icon-color"],
+  } as React.CSSProperties
 }
 
 function stringAttr(value: unknown, fallback: string) {

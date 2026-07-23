@@ -1,8 +1,7 @@
-import { useId, useRef, type CSSProperties, type Ref, type SetStateAction } from "react"
-import { IconBraces, IconNotes } from "@tabler/icons-react"
+import { useId, useRef, type Ref, type SetStateAction } from "react"
+import { IconBraces } from "@tabler/icons-react"
 import type { SiteContent, SiteVariableDefinition } from "@handout/site-document"
 
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,9 +20,12 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
 
+import { PrimaryColorSelector } from "./primary-color-selector"
+import { PrimaryColorPreview } from "./primary-color-preview"
+import { getPrimaryColorPreviewStyles } from "./primary-color-preview-style"
+
 import {
   modeOptions,
-  primaryColorOptions,
   SYSTEM_SITE_VARIABLE_IDS,
   systemSiteVariables,
 } from "../model"
@@ -47,6 +49,14 @@ export function AppearanceSettings({
       ...currentContent,
       settings: { ...currentContent.settings, ...settings },
     }))
+  }
+  const updatePresetPrimaryColor = (primaryColor: SiteContent["settings"]["primaryColor"]) => {
+    onChange((currentContent) => {
+      const settings = { ...currentContent.settings, primaryColor }
+      delete settings.customPrimaryColor
+
+      return { ...currentContent, settings }
+    })
   }
 
   return (
@@ -95,7 +105,7 @@ export function AppearanceSettings({
             <ToggleGroupItem
               key={option.value}
               aria-label={`${option.label}: ${option.description}`}
-              className="h-full w-full justify-start gap-4 overflow-hidden rounded-xl border-border bg-transparent py-1.5 pr-4 pl-1.5 text-left data-[state=off]:opacity-80 data-[state=on]:border-purple-foreground data-[state=on]:bg-transparent hover:bg-transparent"
+              className="h-full w-full justify-start gap-4 overflow-hidden rounded-xl border-border bg-transparent py-1.5 pr-4 pl-1.5 text-left transition-opacity data-[state=off]:opacity-80 data-[state=off]:hover:opacity-100 data-[state=on]:border-purple-foreground data-[state=on]:bg-transparent hover:bg-transparent"
               value={option.value}
             >
               <ModePreview mode={option.value} />
@@ -119,34 +129,20 @@ export function AppearanceSettings({
             The color used for primary buttons and other elements
           </p>
         </div>
-        <ToggleGroup
-          aria-label="Primary color"
-          className="w-full justify-start gap-2.5"
-          type="single"
-          value={content.settings.primaryColor}
-          onValueChange={(value) => {
-            if (primaryColorOptions.some((option) => option.value === value)) {
-              updateSettings({ primaryColor: value as SiteContent["settings"]["primaryColor"] })
-            }
-          }}
-        >
-          {primaryColorOptions.map((option) => (
-            <ToggleGroupItem
-              key={option.value}
-              aria-label={option.label}
-              className="group size-6 min-w-6 rounded-full border border-black/15 p-0 hover:opacity-90 data-[state=on]:border-black/15 data-[state=on]:bg-transparent"
-              value={option.value}
-            >
-              <span
-                className={cn(
-                  "relative size-full rounded-full after:absolute after:top-1/2 after:left-1/2 after:hidden after:size-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white group-data-[state=on]:after:block",
-                  option.className,
-                )}
-              />
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <PrimaryColorPreview color={content.settings.primaryColor} />
+        <PrimaryColorSelector
+          ariaLabel="Primary color"
+          customColor={content.settings.customPrimaryColor}
+          primaryColor={content.settings.primaryColor}
+          onCustomColorChange={(customPrimaryColor) => updateSettings({ customPrimaryColor })}
+          onPresetColorChange={updatePresetPrimaryColor}
+        />
+        <PrimaryColorPreview
+          mode="split"
+          styles={getPrimaryColorPreviewStyles(
+            content.settings.primaryColor,
+            content.settings.customPrimaryColor,
+          )}
+        />
       </Field>
     </div>
   )
@@ -247,7 +243,7 @@ export function ModePreview({ mode }: { mode: (typeof modeOptions)[number]["valu
     return (
       <span className="flex h-full w-[100px] shrink-0 overflow-hidden rounded-lg border bg-card pl-4">
         <span className="flex h-full min-w-0 flex-1 items-end pt-4">
-          <span className="flex size-full items-start rounded-tl-md border border-r-0 border-b-0 border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm leading-5 font-medium text-neutral-900">
+          <span className="flex size-full items-start rounded-tl-md border border-r-0 border-b-0 border-neutral-200 bg-white-white px-3 py-2.5 text-sm leading-5 font-medium text-neutral-900">
             Aa
           </span>
         </span>
@@ -267,50 +263,13 @@ export function ModePreview({ mode }: { mode: (typeof modeOptions)[number]["valu
           "flex size-full items-start rounded-tl-md border border-r-0 border-b-0 px-3 py-2.5 text-sm leading-5 font-medium",
           mode === "dark"
             ? "border-neutral-600 bg-neutral-800 text-neutral-200"
-            : "border-neutral-200 bg-neutral-50 text-neutral-900",
+            : "border-neutral-200 bg-white-white text-neutral-900",
         )}
       >
         Aa
       </span>
     </span>
   )
-}
-
-function PrimaryColorPreview({ color }: { color: SiteContent["settings"]["primaryColor"] }) {
-  const style = getPreviewColorStyle(color)
-
-  return (
-    <div
-      className="flex h-20 items-center justify-center gap-3 rounded-lg border bg-card"
-      style={style}
-    >
-      <Button
-        className="bg-[var(--preview-primary)] text-[var(--preview-foreground)] hover:bg-[var(--preview-primary)]/80"
-      >
-        Button
-      </Button>
-      <span className="flex h-8 items-center gap-2 rounded-lg bg-[var(--preview-primary-soft)] px-2 text-base leading-6 text-[var(--preview-primary)]">
-        <IconNotes className="size-4 shrink-0" />
-        Tab
-      </span>
-    </div>
-  )
-}
-
-function getPreviewColorStyle(color: SiteContent["settings"]["primaryColor"]): CSSProperties {
-  if (color === "neutral") {
-    return {
-      "--preview-primary": "var(--foreground)",
-      "--preview-foreground": "var(--background)",
-      "--preview-primary-soft": "var(--accent)",
-    } as CSSProperties
-  }
-
-  return {
-    "--preview-primary": `var(--${color}-foreground)`,
-    "--preview-foreground": "var(--background)",
-    "--preview-primary-soft": `var(--${color}-background-subtle)`,
-  } as CSSProperties
 }
 
 function mergeVariables(variables: SiteVariableDefinition[]) {

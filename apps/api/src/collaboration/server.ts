@@ -2,7 +2,9 @@ import type { Server as HttpServer } from "node:http"
 import crossws from "crossws/adapters/node"
 import { Hocuspocus, type WebSocketLike } from "@hocuspocus/server"
 import {
+  analyzeSiteContentSafety,
   getSiteCollaborationDocumentName,
+  hasAddedEmbeddedImageDataUrl,
   initializeSiteCollaborationDocument,
   parseSiteCollaborationDocumentName,
   readSiteCollaborationContent,
@@ -17,6 +19,10 @@ import type { SiteCollaborationRepository } from "./repository"
 
 const SAVE_MESSAGE_TYPE = "site.save"
 const SAVED_MESSAGE_TYPE = "site.saved"
+export const MAX_COLLABORATION_MESSAGE_BYTES = 512 * 1024
+export const MAX_COLLABORATION_STATE_BYTES = 5 * 1024 * 1024
+export const MAX_LOADED_COLLABORATION_DOCUMENTS = 100
+export const MAX_COLLABORATION_CONNECTIONS = 1_000
 
 export type SiteCollaborationContext = {
   userId: string
@@ -65,6 +71,12 @@ export function createSiteCollaborationServer(options: {
       const siteId = parseSiteCollaborationDocumentName(documentName)
       if (!siteId) {
         throw new Error("Invalid collaboration document.")
+      }
+      if (
+        hocuspocus.documents.size >= MAX_LOADED_COLLABORATION_DOCUMENTS &&
+        !hocuspocus.documents.has(documentName)
+      ) {
+        throw new Error("Editor capacity is temporarily unavailable.")
       }
 
       const client = parseClientToken(token)
@@ -144,7 +156,17 @@ export function createSiteCollaborationServer(options: {
     }
 
     const draftContent = readSiteCollaborationContent(input.document)
+    const safety = analyzeSiteContentSafety(draftContent)
+    if (safety.issues[0]) {
+      throw new Error(safety.issues[0].message)
+    }
+    if (hasAddedEmbeddedImageDataUrl(snapshot?.site.draftContent, draftContent)) {
+      throw new Error("Inline image data cannot be added to site content.")
+    }
     const state = Y.encodeStateAsUpdate(input.document)
+    if (state.byteLength > MAX_COLLABORATION_STATE_BYTES) {
+      throw new Error("Collaborative document state exceeds the 5 MB safety limit.")
+    }
     const stateVector = Y.encodeStateVector(input.document)
     const site = await options.repository.persist({
       siteId: input.siteId,
@@ -255,11 +277,16 @@ export function createSiteCollaborationServer(options: {
 export function attachSiteCollaborationWebSocketServer(
   server: HttpServer,
   hocuspocus: Hocuspocus<SiteCollaborationContext>,
+  options: { allowedOrigins?: ReadonlySet<string> } = {},
 ) {
   const clientConnections = new Map<string, ReturnType<typeof hocuspocus.handleConnection>>()
   const websocket = crossws({
     hooks: {
       open(peer) {
+        if (clientConnections.size >= MAX_COLLABORATION_CONNECTIONS) {
+          peer.websocket.close?.(1013, "Editor capacity is temporarily unavailable.")
+          return
+        }
         clientConnections.set(
           peer.id,
           hocuspocus.handleConnection(
@@ -269,7 +296,17 @@ export function attachSiteCollaborationWebSocketServer(
         )
       },
       message(peer, message) {
-        clientConnections.get(peer.id)?.handleMessage(message.uint8Array())
+        const bytes = message.uint8Array()
+        if (bytes.byteLength > MAX_COLLABORATION_MESSAGE_BYTES) {
+          clientConnections.get(peer.id)?.handleClose({
+            code: 1009,
+            reason: "Editor message is too large.",
+          })
+          peer.websocket.close?.(1009, "Editor message is too large.")
+          clientConnections.delete(peer.id)
+          return
+        }
+        clientConnections.get(peer.id)?.handleMessage(bytes)
       },
       close(peer, event) {
         clientConnections.get(peer.id)?.handleClose({
@@ -279,6 +316,10 @@ export function attachSiteCollaborationWebSocketServer(
         clientConnections.delete(peer.id)
       },
       error(peer) {
+        clientConnections.get(peer.id)?.handleClose({
+          code: 1011,
+          reason: "Editor connection failed.",
+        })
         clientConnections.delete(peer.id)
       },
     },
@@ -288,6 +329,14 @@ export function attachSiteCollaborationWebSocketServer(
     const pathname = new URL(request.url ?? "/", "http://localhost").pathname
     if (pathname !== "/api/collaboration") {
       return
+    }
+    if (options.allowedOrigins) {
+      const origin = request.headers.origin
+      if (!origin || !options.allowedOrigins.has(origin)) {
+        socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n")
+        socket.destroy()
+        return
+      }
     }
 
     websocket.handleUpgrade(request, socket, head)

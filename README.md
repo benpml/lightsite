@@ -89,10 +89,10 @@ The low-cost production path is documented in [docs/deployment.md](docs/deployme
 Recommended first production split:
 
 - Web app: Cloudflare Pages.
-- Public recipient pages: Cloudflare Worker with Cache API and R2 snapshots.
+- Public pages: Cloudflare Worker with short Cache API entries for non-personalized HTML.
 - API: Render Node web service.
 - Database: Neon Postgres.
-- Files, screenshots, and public HTML snapshots: Cloudflare R2.
+- Session replay objects: private Cloudflare R2.
 
 The key rule is that public recipient links should hit Cloudflare first. Render and Neon should not be on the hot path for every repeated public page view.
 

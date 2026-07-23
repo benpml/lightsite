@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
+import { createDefaultSiteContent, initializeSiteCollaborationDocument } from "@handout/site-document"
+import * as Y from "yjs"
 
 import {
   collaboratorsAreEqual,
+  isSiteCollaborationReady,
   type EditorCollaborator,
 } from "./use-site-collaboration"
 
@@ -21,5 +24,30 @@ describe("collaboratorsAreEqual", () => {
     expect(
       collaboratorsAreEqual([collaborator], [{ ...collaborator, clientId: 12 }])
     ).toBe(false)
+  })
+})
+
+describe("isSiteCollaborationReady", () => {
+  it("does not read an empty document when the provider reports remote sync first", () => {
+    const document = new Y.Doc()
+
+    expect(isSiteCollaborationReady({
+      authenticationFailed: false,
+      document,
+      isIndexedDbSynced: false,
+      isRemoteSynced: true,
+    })).toBe(false)
+  })
+
+  it("becomes ready only after a synced document is initialized", () => {
+    const document = new Y.Doc()
+    initializeSiteCollaborationDocument(document, createDefaultSiteContent())
+
+    expect(isSiteCollaborationReady({
+      authenticationFailed: false,
+      document,
+      isIndexedDbSynced: false,
+      isRemoteSynced: true,
+    })).toBe(true)
   })
 })

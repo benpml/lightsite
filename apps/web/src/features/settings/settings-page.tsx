@@ -11,7 +11,7 @@ import {
   IconUser,
 } from "@tabler/icons-react"
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain"
-import type { SiteDefaults, SitePrimaryColor, SiteTrackingConsentPopup } from "@handout/site-document"
+import type { SiteDefaults, SiteTrackingConsentPopup } from "@handout/site-document"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/page-header"
@@ -51,6 +51,9 @@ import { useActiveWorkspace, useAppBootstrap } from "@/features/app-bootstrap/ap
 import { authClient } from "@/features/auth/auth-client"
 import { BillingSettingsTab } from "@/features/billing/billing-page"
 import { ModePreview } from "@/features/site-settings/components/appearance-settings"
+import { PrimaryColorPreview } from "@/features/site-settings/components/primary-color-preview"
+import { getPrimaryColorPreviewStyles } from "@/features/site-settings/components/primary-color-preview-style"
+import { PrimaryColorSelector } from "@/features/site-settings/components/primary-color-selector"
 import {
   ConsentPopupPreview,
   ReplayAgreementDialog,
@@ -59,7 +62,6 @@ import { VariablesSettings } from "@/features/site-settings/components/variables
 import {
   createSiteVariableDefinition,
   modeOptions,
-  primaryColorOptions,
   trackingConsentOptions,
 } from "@/features/site-settings/model"
 import { getApiErrorMessage, getApiFieldError } from "@/lib/api/errors"
@@ -466,7 +468,7 @@ function SiteDefaultsForm({ initialDefaults }: { initialDefaults: SiteDefaults }
             <ToggleGroupItem
               key={option.value}
               aria-label={`${option.label}: ${option.description}`}
-              className="h-full w-full justify-start gap-4 overflow-hidden rounded-xl border-border bg-transparent py-1.5 pr-4 pl-1.5 text-left data-[state=off]:opacity-80 data-[state=on]:border-purple-foreground data-[state=on]:bg-transparent hover:bg-transparent"
+              className="h-full w-full justify-start gap-4 overflow-hidden rounded-xl border-border bg-transparent py-1.5 pr-4 pl-1.5 text-left transition-opacity data-[state=off]:opacity-80 data-[state=off]:hover:opacity-100 data-[state=on]:border-purple-foreground data-[state=on]:bg-transparent hover:bg-transparent"
               value={option.value}
             >
               <ModePreview mode={option.value} />
@@ -486,28 +488,28 @@ function SiteDefaultsForm({ initialDefaults }: { initialDefaults: SiteDefaults }
           <FieldTitle>Primary color</FieldTitle>
           <FieldDescription className="text-sm leading-5">The color used for primary buttons and other elements</FieldDescription>
         </div>
-        <ToggleGroup
-          aria-label="Default primary color"
-          type="single"
-          value={draft.primaryColor}
-          className="w-full justify-start gap-2.5"
-          onValueChange={(value) => {
-            if (value) {
-              update((current) => ({ ...current, primaryColor: value as SitePrimaryColor }))
-            }
+        <PrimaryColorSelector
+          ariaLabel="Default primary color"
+          customColor={draft.customPrimaryColor}
+          primaryColor={draft.primaryColor}
+          onCustomColorChange={(customPrimaryColor) => {
+            update((current) => ({ ...current, customPrimaryColor }))
           }}
-        >
-          {primaryColorOptions.map((option) => (
-            <ToggleGroupItem
-              key={option.value}
-              aria-label={option.label}
-              value={option.value}
-              className="group size-6 min-w-6 rounded-full border border-black/15 p-0 hover:opacity-90 data-[state=on]:border-black/15 data-[state=on]:bg-transparent"
-            >
-              <span className={cn("relative size-full rounded-full after:absolute after:top-1/2 after:left-1/2 after:hidden after:size-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white group-data-[state=on]:after:block", option.className)} />
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+          onPresetColorChange={(primaryColor) => {
+            update((current) => {
+              const next = { ...current, primaryColor }
+              delete next.customPrimaryColor
+              return next
+            })
+          }}
+        />
+        <PrimaryColorPreview
+          mode="split"
+          styles={getPrimaryColorPreviewStyles(
+            draft.primaryColor,
+            draft.customPrimaryColor,
+          )}
+        />
       </Field>
 
       <Separator className="bg-neutral-alpha-a400" />

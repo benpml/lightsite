@@ -1,3 +1,5 @@
+import { deriveHandoutAdaptiveColorRoles } from "@handout/design-tokens/color-family"
+
 import { SITE_ICON_SVG_BODIES } from "./site-icon-svg-bodies.generated"
 
 const icon = <const TName extends string, const TLabel extends string>(
@@ -96,10 +98,20 @@ export const SITE_ICON_COLOR_OPTIONS = [
   { name: "red", label: "Red" }, { name: "pink", label: "Pink" },
 ] as const
 
+export const SITE_ICON_COLOR_PRESET_OPTIONS = SITE_ICON_COLOR_OPTIONS.filter(
+  (option) => option.name !== "teal",
+)
+
 export type SiteIconColor = (typeof SITE_ICON_COLOR_OPTIONS)[number]["name"]
+export type SiteIconColorValue = SiteIconColor | `#${string}`
+export type SiteIconColorVariables = {
+  "--handout-icon-background": string
+  "--handout-icon-color": string
+}
 
 const supportedNames = new Set<string>(SITE_ICON_OPTIONS.map((option) => option.name))
 const supportedColors = new Set<string>(SITE_ICON_COLOR_OPTIONS.map((option) => option.name))
+const customColorPattern = /^#[0-9a-f]{6}$/i
 const legacyColorNames: Readonly<Record<string, SiteIconColor>> = {
   indigo: "purple",
   sky: "cyan",
@@ -112,13 +124,34 @@ export function normalizeSiteIconName(value: unknown, fallback: SiteIconName = "
   return typeof value === "string" && supportedNames.has(value) ? value as SiteIconName : fallback
 }
 
-export function normalizeSiteIconColor(value: unknown) {
+export function normalizeSiteIconColor(value: unknown): SiteIconColorValue {
   if (typeof value !== "string") {
     return "neutral"
   }
 
   const normalized = legacyColorNames[value] ?? value
+  if (customColorPattern.test(normalized)) {
+    return normalized.toLowerCase() as `#${string}`
+  }
+
   return supportedColors.has(normalized) ? normalized as SiteIconColor : "neutral"
+}
+
+export function isCustomSiteIconColor(value: unknown): value is `#${string}` {
+  return typeof value === "string" && customColorPattern.test(value)
+}
+
+export function getSiteIconColorVariables(value: unknown): SiteIconColorVariables | null {
+  const normalized = normalizeSiteIconColor(value)
+  if (!isCustomSiteIconColor(normalized)) {
+    return null
+  }
+
+  const roles = deriveHandoutAdaptiveColorRoles(normalized)
+  return {
+    "--handout-icon-background": roles.backgroundSubtle,
+    "--handout-icon-color": roles.foreground,
+  }
 }
 
 export function getSiteIconSvgBody(value: unknown) {

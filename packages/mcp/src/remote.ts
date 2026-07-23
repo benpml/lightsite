@@ -32,6 +32,18 @@ export async function handleRemoteMcpRequest(
   }
 
   const authorization = normalizeAuthorization(request.headers.authorization);
+  const parsedBody = (request as IncomingMessage & { body?: unknown }).body;
+  if (parsedBody !== undefined && !isBoundedJsonEnvelope(parsedBody)) {
+    response.writeHead(413, {
+      "cache-control": "no-store",
+      "content-type": "application/json",
+    }).end(JSON.stringify({
+      jsonrpc: "2.0",
+      error: { code: -32600, message: "MCP request content is too deeply nested or complex." },
+      id: null,
+    }));
+    return;
+  }
 
   const server = createHandoutMcpServer({
     ...options,
@@ -52,7 +64,11 @@ export async function handleRemoteMcpRequest(
 
   try {
     await server.connect(transport);
-    await transport.handleRequest(request, response);
+    await transport.handleRequest(
+      request,
+      response,
+      parsedBody,
+    );
   } catch (error) {
     if (!response.headersSent) {
       response.writeHead(500, { "content-type": "application/json" }).end(JSON.stringify({
@@ -62,6 +78,24 @@ export async function handleRemoteMcpRequest(
       }));
     }
   }
+}
+
+function isBoundedJsonEnvelope(value: unknown) {
+  const stack: Array<{ depth: number; value: unknown }> = [{ depth: 0, value }];
+  let visitedValues = 0;
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    visitedValues += 1;
+    if (current.depth > 128 || visitedValues > 500_000) return false;
+    if (!current.value || typeof current.value !== "object") continue;
+    const children = Array.isArray(current.value)
+      ? current.value
+      : Object.values(current.value);
+    for (const child of children) {
+      stack.push({ depth: current.depth + 1, value: child });
+    }
+  }
+  return true;
 }
 
 function normalizeAuthorization(value: string | string[] | undefined) {

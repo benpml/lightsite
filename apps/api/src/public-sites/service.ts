@@ -129,7 +129,7 @@ export function createPublicSiteService(
       }
 
       return resolveShortLinkRecord(
-        await repository.resolveOrCreateRecipientLink(input),
+        await repository.resolveExistingRecipientLink(input),
         options,
       );
     },

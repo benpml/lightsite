@@ -7,6 +7,7 @@ import type { TrackingV2Service } from "../tracking/v2/service";
 import { createPublicSiteDocumentRouter } from "./document-router";
 import {
   getPublicSiteScreenshotCacheKey,
+  PublicSiteScreenshotCapacityError,
   type PublicSiteScreenshotService,
 } from "./screenshot";
 import type { PublicSiteService } from "./service";
@@ -130,10 +131,38 @@ describe("public site screenshot route", () => {
 
     expect(response.headers.location).toBe("/acme/rollout/ada/embed.jpg?v=version-7");
   });
+
+  it("returns a short no-store retry response when screenshot capacity is busy", async () => {
+    const contextTokens = createEncryptedTrackingV2ContextTokenService("test-secret-that-is-long-enough-for-tracking");
+    const bootstrap = contextTokens.issue({
+      workspaceId: "11111111-1111-4111-8111-111111111111",
+      siteId: "22222222-2222-4222-8222-222222222222",
+      publishedVersionId: "33333333-3333-4333-8333-333333333333",
+      manifestId: "55555555-5555-4555-8555-555555555555",
+      recipientId: "44444444-4444-4444-8444-444444444444",
+      recipientRevision: 7,
+      trackingMode: "events",
+    });
+    const app = createScreenshotTestApp({
+      bootstrap,
+      contextTokens,
+      recordSlackShare: vi.fn(async () => ({ recorded: true })),
+      renderScreenshot: async () => {
+        throw new PublicSiteScreenshotCapacityError();
+      },
+    });
+
+    const response = await request(app)
+      .get("/aZ7k2Qr9LmNp/embed.jpg?v=33333333-3333-4333-8333-333333333333.7")
+      .expect(503);
+
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.headers["retry-after"]).toBe("5");
+  });
 });
 
 describe("public recipient link routes", () => {
-  it("creates or reuses a recipient from a cadence URL, warms its image, and redirects to the versioned short link", async () => {
+  it("creates or reuses a recipient from a cadence URL without launching screenshot work", async () => {
     const payload = buildShortLinkPayload();
     const warm = vi.fn(async () => ({ bytes: Buffer.from("jpg"), cacheKey: "key" }));
     const publicSiteService: PublicSiteService = {
@@ -176,7 +205,8 @@ describe("public recipient link routes", () => {
       "/aZ7k2Q?v=33333333-3333-4333-8333-333333333333.3",
     );
     expect(response.headers["cache-control"]).toBe("no-store");
-    expect(warm).toHaveBeenCalledWith({ origin: "https://handout.test", payload });
+    expect(response.headers["referrer-policy"]).toBe("no-referrer");
+    expect(warm).not.toHaveBeenCalled();
   });
 
   it("resolves a deterministic cadence image URL into the immutable short-code image", async () => {
@@ -225,6 +255,7 @@ describe("public recipient link routes", () => {
       "/aZ7k2Q/embed.jpg?v=33333333-3333-4333-8333-333333333333.3",
     );
     expect(resolver.headers["cache-control"]).toBe("no-store");
+    expect(resolver.headers["referrer-policy"]).toBe("no-referrer");
     expect(render).not.toHaveBeenCalled();
     if (!imageLocation) throw new Error("Expected deterministic image redirect location.");
 

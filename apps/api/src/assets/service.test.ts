@@ -48,6 +48,20 @@ describe("workspace asset service", () => {
       purpose: "image",
       source: { kind: "base64", contentType: "image/png", dataBase64: Buffer.alloc(5_242_881).toString("base64") },
     })).rejects.toThrow("no larger than 5 MB");
+
+    const excessivePixels = Buffer.from(ONE_PIXEL_PNG, "base64");
+    excessivePixels.writeUInt32BE(8_000, 16);
+    excessivePixels.writeUInt32BE(8_000, 20);
+    await expect(service.import({
+      workspaceId: "workspace-1",
+      userId: "user-1",
+      purpose: "image",
+      source: {
+        kind: "base64",
+        contentType: "image/png",
+        dataBase64: excessivePixels.toString("base64"),
+      },
+    })).rejects.toThrow("25 megapixel");
   });
 });
 

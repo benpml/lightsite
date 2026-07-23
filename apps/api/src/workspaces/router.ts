@@ -196,6 +196,18 @@ export function createWorkspaceRouter(options: WorkspaceRouterOptions) {
         creatorEmail: actor.email,
         ...(actor.name ? { creatorName: actor.name } : {}),
       });
+      if (!result.data.logoAssetId) {
+        const detectedLogo = await persistDetectedWorkspaceLogo({
+          actorUserId: actor.userId,
+          domain: created.workspace.websiteDomain,
+          logoPreviewService: options.logoPreviewService,
+          workspaceId: created.workspace.id,
+          workspaceService: options.workspaceService,
+        });
+        if (detectedLogo) {
+          created.workspace.logoAssetId = detectedLogo.logoAssetId;
+        }
+      }
 
       response.status(201).json(createWorkspaceResponseSchema.parse({
         ...created,
@@ -294,4 +306,41 @@ export function createWorkspaceRouter(options: WorkspaceRouterOptions) {
   }));
 
   return router;
+}
+
+async function persistDetectedWorkspaceLogo(input: {
+  actorUserId: string;
+  domain: string;
+  logoPreviewService: WorkspaceLogoPreviewService;
+  workspaceId: string;
+  workspaceService: WorkspaceService;
+}) {
+  try {
+    const image = await input.logoPreviewService.fetchImage({
+      domain: input.domain,
+      size: 256,
+      theme: "light",
+    });
+    if (!image) return null;
+
+    const contentType = normalizeLogoContentType(image.contentType);
+    if (!contentType) return null;
+
+    return await input.workspaceService.uploadWorkspaceLogo({
+      actorUserId: input.actorUserId,
+      workspaceId: input.workspaceId,
+      fileName: `${input.domain}-logo.${contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1]}`,
+      contentType,
+      dataBase64: Buffer.from(image.body).toString("base64"),
+    });
+  } catch {
+    return null;
+  }
+}
+
+function normalizeLogoContentType(contentType: string) {
+  const normalized = contentType.split(";")[0]?.trim().toLowerCase();
+  return normalized === "image/png" || normalized === "image/jpeg" || normalized === "image/webp"
+    ? normalized
+    : null;
 }

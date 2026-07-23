@@ -258,6 +258,13 @@ export function createDbBootstrapRepository(database: Database = defaultDb): Boo
 
     async saveUserProfileImage(input) {
       return database.transaction(async (transaction) => {
+        const [profileOwner] = await transaction
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.id, input.userId))
+          .for("update")
+          .limit(1);
+        if (!profileOwner) throw new Error("User was not found.");
         const [asset] = await transaction
           .insert(userProfileImageAssets)
           .values({
@@ -278,6 +285,12 @@ export function createDbBootstrapRepository(database: Database = defaultDb): Boo
             updatedAt: new Date(),
           })
           .where(eq(user.id, input.userId));
+        await transaction
+          .delete(userProfileImageAssets)
+          .where(and(
+            eq(userProfileImageAssets.userId, input.userId),
+            ne(userProfileImageAssets.id, asset.id),
+          ));
         return asset;
       });
     },

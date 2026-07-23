@@ -12,6 +12,7 @@ import {
 describe("site collaboration document", () => {
   it("round-trips the canonical site document without losing page content", () => {
     const content = createDefaultSiteContent("Collaborative page")
+    content.settings.customPrimaryColor = "#fff5d2"
     content.pages[0]!.document = {
       type: "doc",
       content: [{ type: "paragraph", content: [{ type: "text", text: "Hello team" }] }],

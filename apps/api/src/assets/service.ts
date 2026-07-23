@@ -4,6 +4,8 @@ import type { WorkspaceAssetPurpose, WorkspaceAssetRecord, WorkspaceAssetReposit
 
 const ALLOWED_CONTENT_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 const MAX_BYTES = 5_242_880;
+const MAX_DIMENSION = 8_192;
+const MAX_PIXELS = 25_000_000;
 
 export type WorkspaceAsset = ReturnType<typeof serializeAsset>;
 
@@ -68,8 +70,15 @@ export function createWorkspaceAssetService(repository: WorkspaceAssetRepository
         throw new WorkspaceAssetValidationError("Assets must be non-empty and no larger than 5 MB.");
       }
       const dimensions = readImageDimensions(content, contentType);
-      if (!dimensions || dimensions.width > 12_000 || dimensions.height > 12_000) {
-        throw new WorkspaceAssetValidationError("The image is invalid or exceeds 12,000 pixels in either dimension.");
+      if (
+        !dimensions ||
+        dimensions.width > MAX_DIMENSION ||
+        dimensions.height > MAX_DIMENSION ||
+        dimensions.width * dimensions.height > MAX_PIXELS
+      ) {
+        throw new WorkspaceAssetValidationError(
+          "The image is invalid or exceeds the 8,192 pixel / 25 megapixel safety limit.",
+        );
       }
       if ((input.purpose === "logo" || input.purpose === "avatar") && dimensions.width !== dimensions.height) {
         throw new WorkspaceAssetValidationError(`${input.purpose === "logo" ? "Logos" : "Avatars"} must be square.`);

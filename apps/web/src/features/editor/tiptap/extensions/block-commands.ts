@@ -152,7 +152,7 @@ export const HandoutNextBlockCommands = Extension.create({
 
           if (dispatch) {
             const insertionPos = pos + node.nodeSize
-            const copiedNode = state.schema.nodeFromJSON(stripUniqueIds(node.toJSON()))
+            const copiedNode = state.schema.nodeFromJSON(stripHandoutUniqueIds(node.toJSON()))
             const tr = state.tr.insert(insertionPos, copiedNode)
             dispatch(setSelectionInsideInsertedNode(tr, insertionPos))
           }
@@ -319,13 +319,13 @@ function isEmojiTriggerParagraph(node: import("@tiptap/pm/model").Node) {
   )
 }
 
-function stripUniqueIds(content: JSONContent): JSONContent {
+export function stripHandoutUniqueIds(content: JSONContent): JSONContent {
   return {
     ...content,
     attrs: content.attrs
       ? Object.fromEntries(Object.entries(content.attrs).filter(([key]) => key !== "id"))
       : undefined,
-    content: content.content?.map(stripUniqueIds),
+    content: content.content?.map(stripHandoutUniqueIds),
   }
 }
 

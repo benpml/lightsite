@@ -62,6 +62,11 @@ const OnboardingPage = lazyWithReload(() =>
     default: module.OnboardingPage,
   }))
 )
+const JoinWorkspacePage = lazyWithReload(() =>
+  import("@/features/onboarding/join-workspace-page").then((module) => ({
+    default: module.JoinWorkspacePage,
+  }))
+)
 const AuthPage = lazyWithReload(() =>
   import("@/features/auth/auth-page").then((module) => ({
     default: module.AuthPage,
@@ -90,6 +95,11 @@ const DesignSystemPage = lazyWithReload(() =>
 const DesignSystemAuditPage = lazyWithReload(() =>
   import("@/features/design-system/design-system-audit-page").then((module) => ({
     default: module.DesignSystemAuditPage,
+  }))
+)
+const ColorPlaygroundPage = lazyWithReload(() =>
+  import("@/features/design-system/color-playground-page").then((module) => ({
+    default: module.ColorPlaygroundPage,
   }))
 )
 const ComponentIndexPage = lazyWithReload(() =>
@@ -212,6 +222,12 @@ const onboardingRoute = createRoute({
   component: OnboardingPage,
 })
 
+const joinWorkspaceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/onboarding/join",
+  component: JoinWorkspacePage,
+})
+
 const authRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth",
@@ -259,6 +275,12 @@ const designSystemAuditRoute = createRoute({
   component: DesignSystemAuditPage,
 })
 
+const colorPlaygroundRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/design-system/colors",
+  component: ColorPlaygroundPage,
+})
+
 const componentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/components",
@@ -289,6 +311,7 @@ const routeTree = rootRoute.addChildren([
   billingRoute,
   settingsRoute,
   onboardingRoute,
+  joinWorkspaceRoute,
   authRoute,
   resetPasswordRoute,
   extensionConnectRoute,
@@ -296,6 +319,7 @@ const routeTree = rootRoute.addChildren([
   editRoute,
   designSystemRoute,
   designSystemAuditRoute,
+  colorPlaygroundRoute,
   componentsRoute,
   publicSiteRoute,
   publicVariantRoute,

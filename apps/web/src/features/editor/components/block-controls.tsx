@@ -12,12 +12,14 @@ import {
   IconCalendarEvent,
   IconCheck,
   IconChecklist,
+  IconClipboard,
   IconClick,
   IconCode,
   IconColumnInsertLeft,
   IconColumnInsertRight,
   IconColumnRemove,
   IconCopy,
+  IconCopyPlus,
   IconGif,
   IconGridDots,
   IconGripVertical,
@@ -64,6 +66,12 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 import { fitImageDimensions, loadImageDimensions, readImageFileAsAttrs } from "../tiptap/image-utils"
+import {
+  getCachedHandoutBlockClipboard,
+  readHandoutBlockClipboard,
+  writeSelectedHandoutBlocksToClipboard,
+  type HandoutBlockClipboardPayload,
+} from "../tiptap/extensions/block-clipboard"
 import type { HandoutNextBlockType } from "../tiptap/schema"
 
 type EditorBlockControlsProps = {
@@ -125,6 +133,10 @@ export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
   const [imageUrlDraft, setImageUrlDraft] = useState("")
   const [imageUrlFormOpen, setImageUrlFormOpen] = useState(false)
   const [imageReplaceError, setImageReplaceError] = useState<string | null>(null)
+  const [clipboardPayload, setClipboardPayload] =
+    useState<HandoutBlockClipboardPayload | null>(() =>
+      getCachedHandoutBlockClipboard()
+    )
   const imageUploadInputRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const menuOpen = menuPosition !== null && menuTarget !== null
@@ -306,6 +318,39 @@ export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
     editor.chain().focus().deleteHandoutNextBlock(target.pos).run()
     closeMenu()
   }, [closeMenu, editor, menuTarget])
+
+  const runCopyBlockCommand = useCallback(() => {
+    const target = resolveStoredBlockTarget(editor, menuTarget)
+
+    if (!target) {
+      closeMenu()
+      return
+    }
+
+    closeMenu()
+    void writeSelectedHandoutBlocksToClipboard(editor, target.pos).then(
+      (copied) => {
+        if (copied) {
+          setClipboardPayload(getCachedHandoutBlockClipboard())
+        }
+      }
+    )
+  }, [closeMenu, editor, menuTarget])
+
+  const runPasteBlockCommand = useCallback(() => {
+    const target = resolveStoredBlockTarget(editor, menuTarget)
+
+    if (!target || !clipboardPayload) {
+      closeMenu()
+      return
+    }
+
+    editor.commands.insertHandoutNextBlockClipboard(
+      clipboardPayload,
+      target.pos
+    )
+    closeMenu()
+  }, [clipboardPayload, closeMenu, editor, menuTarget])
 
   const runTableCommand = useCallback(
     (command: () => boolean) => {
@@ -539,6 +584,8 @@ export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
 
       setMenuAnchorRect(anchorRect)
       setMenuPosition(computeBlockMenuPosition(anchorRect, blockMenuMaxHeight))
+      setClipboardPayload(getCachedHandoutBlockClipboard())
+      void readHandoutBlockClipboard().then(setClipboardPayload)
     },
     [activeBlock, editor]
   )
@@ -1129,6 +1176,18 @@ export function EditorBlockControls({ editor }: EditorBlockControlsProps) {
           ) : null}
           <BlockMenuItem
             icon={IconCopy}
+            label="Copy"
+            onClick={runCopyBlockCommand}
+          />
+          {clipboardPayload ? (
+            <BlockMenuItem
+              icon={IconClipboard}
+              label="Paste"
+              onClick={runPasteBlockCommand}
+            />
+          ) : null}
+          <BlockMenuItem
+            icon={IconCopyPlus}
             label="Duplicate"
             onClick={() => {
               runBlockCommand((pos) => {

@@ -44,8 +44,28 @@ const appearanceSettingsSource = readFileSync(
   new URL("../site-settings/components/appearance-settings.tsx", import.meta.url),
   "utf8",
 )
+const internalRouteFrameSource = readFileSync(
+  new URL("../../components/layout/internal-route-frame.tsx", import.meta.url),
+  "utf8",
+)
+const siteSettingsModelSource = readFileSync(
+  new URL("../site-settings/model.ts", import.meta.url),
+  "utf8",
+)
+const variablesSettingsSource = readFileSync(
+  new URL("../site-settings/components/variables-settings.tsx", import.meta.url),
+  "utf8",
+)
 const sharedSiteExtensionSource = readFileSync(
   new URL("../../../../../packages/site-document/src/tiptap/site-extensions.ts", import.meta.url),
+  "utf8",
+)
+const primaryColorSource = readFileSync(
+  new URL("../../../../../packages/site-document/src/primary-color.ts", import.meta.url),
+  "utf8",
+)
+const colorPickerMenuSource = readFileSync(
+  new URL("../../components/common/color-picker-menu.tsx", import.meta.url),
   "utf8",
 )
 
@@ -82,7 +102,7 @@ describe("editor architecture", () => {
       ".handout-grid-cell,.handout-document-editor .handout-grid-cell{min-width:0;padding:0;border:0;background:transparent;box-shadow:none}"
     )
     expect(SITE_DOCUMENT_CSS).toContain(
-      "--handout-icon-color:var(--color-purple-foreground,var(--purple-foreground));--handout-icon-background:var(--color-purple-background,var(--purple-background))"
+      "--handout-icon-color:var(--color-purple-foreground,var(--purple-foreground));--handout-icon-background:var(--color-purple-background-subtle,var(--purple-background-subtle))"
     )
     expect(SITE_DOCUMENT_CSS).toContain(".handout-testimonial{display:grid")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-title{display:flex")
@@ -119,6 +139,25 @@ describe("editor architecture", () => {
     expect(blockViewsSource).toContain("maxHeight: position.maxHeight")
     expect(blockViewsSource).toContain('visibility: "hidden"')
     expect(blockViewsSource).toContain("data-icon-color={iconColor}")
+    expect(blockViewsSource).toContain("ColorPickerMenu")
+    expect(blockViewsSource).toContain("ColorSpectrumSwatch")
+    expect(blockViewsSource).toContain("getSiteIconColorVariables")
+    expect(blockViewsSource).toContain("customColorSelected")
+    expect(blockViewsSource).toContain('aria-label="Custom color"')
+    expect(blockViewsSource).toContain('<ColorPickerMenu\n          align="center"')
+    expect(colorPickerMenuSource).toContain("<Popover open={open} onOpenChange={setOpen}>")
+    expect(colorPickerMenuSource).toContain('<PopoverHeader className="gap-0">')
+    expect(colorPickerMenuSource).toContain(
+      "onMouseDown={(event) => event.stopPropagation()}",
+    )
+    expect(colorPickerMenuSource).toContain('onClick={() => setOpen(false)}')
+    expect(colorPickerMenuSource).toContain("Done")
+    expect(stylesheetSource).toContain(
+      "color: var(--handout-editor-icon-color, var(--tertiary-foreground))",
+    )
+    expect(stylesheetSource).toContain(
+      "background: var(--handout-icon-background, var(--accent))",
+    )
     expect(iconPickerStyles).toContain("@apply fixed")
     expect(iconPickerStyles).toContain("min-h-0")
     expect(iconPickerStyles).not.toContain("@apply absolute")
@@ -158,8 +197,9 @@ describe("editor architecture", () => {
     expect(sidebarSource).toContain('sectionKey === "nextSteps" ? "gap-2.5" : "gap-2"')
     expect(sidebarSource).toContain("IconWorldLongitude")
     expect(sidebarSource).toContain('text-[var(--handout-sidebar-link-icon)]')
-    expect(pageSource).toContain('"--handout-sidebar-link-icon": "var(--blue-foreground)"')
-    expect(pageSource).toContain('"--handout-sidebar-link-icon": `var(--${color}-foreground)`')
+    expect(pageSource).toContain("getSitePrimaryColorVariables")
+    expect(primaryColorSource).toContain('"--handout-sidebar-link-icon": "var(--blue-foreground,var(--link))"')
+    expect(primaryColorSource).toContain('"--handout-sidebar-link-icon": `var(--${color}-foreground,var(--link))`')
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-inner{display:flex;width:241px;min-height:0;flex:1;flex-direction:column;gap:24px;overflow-y:auto}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar{position:sticky;top:0;display:flex;width:289px;height:100svh;flex:none;flex-direction:column;gap:24px;padding:26px 24px 20px;background:var(--background)")
     expect(SITE_DOCUMENT_CSS).not.toContain("padding:26px 24px;border-right")
@@ -174,6 +214,15 @@ describe("editor architecture", () => {
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-row.is-active svg{color:inherit}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-mobile-title{min-width:0;flex:1;overflow:hidden;color:var(--tertiary-foreground);font-size:16px;font-weight:500")
     expect(SITE_DOCUMENT_CSS).toContain("--handout-primary")
+  })
+
+  it("places the editor loading sidebar on the left", () => {
+    expect(internalRouteFrameSource).toContain(
+      "grid-cols-[303px_minmax(0,1fr)]",
+    )
+    expect(internalRouteFrameSource).not.toContain(
+      "grid-cols-[minmax(0,1fr)_303px]",
+    )
   })
 
   it("offers sidebar button icons without icon color controls", () => {
@@ -220,6 +269,13 @@ describe("editor architecture", () => {
     expect(appearanceSettingsSource).not.toContain('"h-9"')
   })
 
+  it("keeps light theme mode previews white in every editor theme", () => {
+    expect(appearanceSettingsSource.match(/bg-white-white/g)).toHaveLength(2)
+    expect(appearanceSettingsSource).not.toContain(
+      'border-neutral-200 bg-neutral-50 text-neutral-900',
+    )
+  })
+
   it("composes editor menu fields from canonical form primitives", () => {
     const buttonSettingsSource =
       editorModules["./components/button-settings-popover.tsx"] as string
@@ -263,6 +319,33 @@ describe("editor architecture", () => {
     )
   })
 
+  it("locks recipient identity variable names while keeping their details editable", () => {
+    const variableTokenSource =
+      editorModules["./tiptap/nodes/variable-token-view.tsx"] as string
+    const suggestionMenuSource =
+      editorModules["./tiptap/extensions/suggestion-menu.ts"] as string
+
+    expect(variableTokenSource).toContain(
+      "RESERVED_SITE_VARIABLE_IDS.has(variableId)",
+    )
+    expect(variableTokenSource).toContain("systemVariable ? null")
+    expect(variableTokenSource.match(/disabled=\{systemVariable\}/g)).toHaveLength(2)
+    expect(variableTokenSource).toContain(
+      "disabled={!draft.name.trim()}",
+    )
+    expect(suggestionMenuSource).toContain(
+      "const systemVariable = RESERVED_SITE_VARIABLE_IDS.has(variableId)",
+    )
+    expect(suggestionMenuSource).toContain(
+      "systemVariable || attrs.name === undefined",
+    )
+    expect(siteSettingsModelSource).toContain(
+      "SYSTEM_SITE_VARIABLE_IDS = RESERVED_SITE_VARIABLE_IDS",
+    )
+    expect(variablesSettingsSource).toContain('onEdit={scope === "site"')
+    expect(variablesSettingsSource).toContain("disabled={nameLocked}")
+  })
+
   it("keeps tabs, links, and buttons independently sortable in the sidebar", () => {
     const sidebarSource = editorModules["./components/site-sidebar.tsx"] as string
     const pageSource = editorModules["./editor-page.tsx"] as string
@@ -296,8 +379,12 @@ describe("editor architecture", () => {
     expect(sidebarSource).not.toContain("rounded-lg px-2.5 pr-[62px]")
     expect(sidebarSource).not.toContain("rounded-[10px] px-[62px]")
     expect(sidebarSource).toContain("min-w-0 flex-1 truncate")
-    expect(sidebarSource).toContain('>Edit {itemKind}</TooltipContent>')
-    expect(sidebarSource).toContain('>Delete {itemKind}</TooltipContent>')
+    expect(sidebarSource).toContain(
+      '<TooltipContent side="top">Edit {itemKind}</TooltipContent>'
+    )
+    expect(sidebarSource).toContain(
+      '<TooltipContent side="top">Delete {itemKind}</TooltipContent>'
+    )
     expect(sidebarSource).toContain(
       'tooltipLabel={showTriggerTooltip === false || link ? undefined : "Add link"}'
     )
@@ -769,6 +856,8 @@ describe("editor architecture", () => {
   })
 
   it("keeps block selection behavior in Tiptap extensions", () => {
+    const blockClipboardSource =
+      editorModules["./tiptap/extensions/block-clipboard.ts"]
     const blockSelectionSource =
       editorModules["./tiptap/extensions/block-selection.ts"]
     const blockMarqueeSelectionSource =
@@ -785,6 +874,13 @@ describe("editor architecture", () => {
     expect(blockSelectionSource).toContain("TextSelection.near")
     expect(blockSelectionSource).toContain("createDeleteEmptyButtonBlockTransaction")
     expect(blockSelectionSource).toContain('node.type.name !== "buttonBlock"')
+    expect(blockClipboardSource).toContain("createHandoutBlockClipboardPayload")
+    expect(blockClipboardSource).toContain("createInsertHandoutBlockClipboardTransaction")
+    expect(blockClipboardSource).toContain("NodeRangeSelection.create")
+    expect(blockClipboardSource).toContain("view.serializeForClipboard")
+    expect(blockClipboardSource).toContain("handlePaste")
+    expect(blockClipboardSource).toContain("stripHandoutUniqueIds")
+    expect(blockClipboardSource).toContain("sessionStorage")
     expect(blockMarqueeSelectionSource).toContain("NodeRangeSelection")
     expect(blockMarqueeSelectionSource).toContain("new Plugin")
     expect(blockMarqueeSelectionSource).toContain("getOrCreateBlockMarqueeSelectionController")
@@ -801,6 +897,23 @@ describe("editor architecture", () => {
     expect(blockMarqueeSelectionSource).not.toContain("event.buttons === 0")
     expect(selectionCleanupSource).not.toContain(
       'querySelectorAll(".ProseMirror-selectednoderange")'
+    )
+  })
+
+  it("routes editor selection fills and borders through semantic selection tokens", () => {
+    expect(stylesheetSource).toContain("background-color: var(--selection-background)")
+    expect(stylesheetSource).toContain("background: var(--selection-background)")
+    expect(stylesheetSource).toContain("border-color: var(--selection-border)")
+    expect(stylesheetSource).toContain("background-color: var(--selection-border)")
+    expect(stylesheetSource).not.toContain("var(--color-indigo-500)")
+  })
+
+  it("keeps icon-list selection fill on the group instead of its individual items", () => {
+    expect(stylesheetSource).toContain(
+      `.handout-editor .ProseMirror-selectednode[data-handout-icon-list-item],
+  .handout-editor .ProseMirror-selectednoderange[data-handout-icon-list-item] {
+    background: transparent;
+  }`,
     )
   })
 
@@ -1070,10 +1183,13 @@ describe("editor architecture", () => {
       ".handout-document-editor .handout-prosemirror li[data-handout-icon-list-item],.handout-document-editor .handout-prosemirror li[data-handout-icon-list-item]::marker{list-style:none}",
     )
     expect(SITE_DOCUMENT_CSS).toContain(
-      "grid-template-columns:20px minmax(0,1fr);align-items:start;gap:2px;padding-left:4px"
+      "grid-template-columns:20px minmax(0,1fr);align-items:start;gap:4px;padding-left:4px"
     )
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-list:is(ol)>.handout-list-item,.handout-document-editor .handout-prosemirror>ol>li{padding-left:2px}",
+      ".handout-list-item,.handout-document-editor .handout-prosemirror>:where(ul,ol)>li{padding-left:2px}",
+    )
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-list:is(ol)>.handout-list-item,.handout-document-editor .handout-prosemirror>ol>li{padding-left:4px}",
     )
     expect(SITE_DOCUMENT_CSS).toContain("--handout-list-item-gap:4px")
     expect(SITE_DOCUMENT_CSS).toContain(
@@ -1363,11 +1479,37 @@ describe("editor architecture", () => {
       editorModules["./components/block-controls.tsx"] as string
 
     expect(blockControlsSource.indexOf('node.type.name === "image"')).toBeLessThan(
+      blockControlsSource.indexOf('label="Copy"')
+    )
+    expect(blockControlsSource.indexOf('label="Copy"')).toBeLessThan(
+      blockControlsSource.indexOf('label="Paste"')
+    )
+    expect(blockControlsSource.indexOf('label="Paste"')).toBeLessThan(
       blockControlsSource.indexOf('label="Duplicate"')
     )
     expect(blockControlsSource.indexOf('label="Duplicate"')).toBeLessThan(
       blockControlsSource.indexOf('handout-editor-block-menu-label">Turn into')
     )
+  })
+
+  it("uses the canonical context menu for block and empty-block actions", () => {
+    const contextMenuSource =
+      editorModules["./components/block-context-menu.tsx"] as string
+    const editorCanvasSource =
+      editorModules["./components/editor-canvas.tsx"] as string
+
+    expect(contextMenuSource).toContain('from "@/components/ui/context-menu"')
+    expect(contextMenuSource).toContain("NodeRangeSelection.create")
+    expect(contextMenuSource).toContain("getSelectedBlockRanges")
+    expect(contextMenuSource).toContain("Copy")
+    expect(contextMenuSource).toContain("Paste")
+    expect(contextMenuSource).toContain("Duplicate")
+    expect(contextMenuSource).toContain("Delete")
+    expect(contextMenuSource).toContain("Add block")
+    expect(contextMenuSource).toContain('variant="destructive"')
+    expect(contextMenuSource).toContain('insertContent("/")')
+    expect(editorCanvasSource).toContain("EditorBlockContextMenu")
+    expect(editorCanvasSource).toContain("enabled={isEditing}")
   })
 
   it("uses centered canonical edit/preview tabs with outline share and primary publish actions", () => {
@@ -1402,6 +1544,28 @@ describe("editor architecture", () => {
     expect(headerSource).toContain("md:hidden")
     expect(headerSource).toContain("IconUpload")
     expect(headerSource).not.toContain('<Button variant="secondary" size="compact">Publish</Button>')
+  })
+
+  it("uses semantic publish-state dots and the designed sequence modal widths", () => {
+    const headerSource =
+      editorModules["./components/editor-header.tsx"] as string
+    const sequenceDialogSource =
+      editorModules["./components/sequence-embed-dialog.tsx"] as string
+    const providerIconsSource =
+      editorModules["./components/sequence-provider-icons.tsx"] as string
+
+    expect(headerSource).toContain('dotClassName: "bg-green-foreground"')
+    expect(headerSource).toContain('dotClassName: "bg-orange-foreground"')
+    expect(headerSource).toContain('dotClassName: "bg-muted-foreground"')
+    expect(headerSource).not.toContain('dotClassName: "bg-success"')
+    expect(headerSource).not.toContain('dotClassName: "bg-warning"')
+    expect(sequenceDialogSource).toContain('"max-w-[365px] sm:max-w-[365px]"')
+    expect(sequenceDialogSource).toContain('"max-w-[400px] sm:max-w-[400px]"')
+    expect(providerIconsSource).toContain('icon-apollo.jpg')
+    expect(providerIconsSource).toContain('icon-instantly.jpg')
+    expect(providerIconsSource).toContain('icon-lemlist.jpg')
+    expect(providerIconsSource).toContain('icon-outreach.jpg')
+    expect(providerIconsSource).toContain('icon-salesloft.jpg')
   })
 
   it("only shows the editor save indicator when saving is unsuccessful", () => {
@@ -1466,6 +1630,18 @@ describe("editor architecture", () => {
     expect(suggestionMenuSource).toContain("requestExit")
     expect(suggestionMenuSource).toContain("getSuggestionMenuHost")
     expect(suggestionMenuSource).toContain('closest("[data-editor-page]")')
+    expect(suggestionMenuSource).toContain("activeSuggestionMenu")
+    expect(suggestionMenuSource).toContain(
+      "isLatestHandoutSuggestionTrigger(state, range)"
+    )
+    expect(suggestionMenuSource).toContain("exitSuggestion(editor.view, pluginKey)")
+    expect(suggestionMenuSource).toContain(
+      'document.addEventListener("pointerdown", handleOutsidePointerDown, true)'
+    )
+    expect(suggestionMenuSource).toContain(
+      'window.addEventListener("keydown", handleDismissKeyDown)'
+    )
+    expect(suggestionMenuSource).not.toContain("hasActiveSuggestion")
     expect(suggestionMenuSource).not.toContain("document.body.append")
     expect(suggestionMenuViewSource).toContain("isPointerInside")
     expect(suggestionMenuSource).not.toContain("replaceChildren")
@@ -1499,6 +1675,11 @@ describe("editor architecture", () => {
     expect(textBubbleMenuSource).toContain("setHighlight")
     expect(textBubbleMenuSource).toContain("unsetColor")
     expect(textBubbleMenuSource).toContain("unsetHighlight")
+    expect(textBubbleMenuSource).toContain("ColorPickerMenu")
+    expect(textBubbleMenuSource).toContain("ColorSpectrumSwatch")
+    expect(textBubbleMenuSource).toContain('aria-label="Custom text color"')
+    expect(textBubbleMenuSource).toContain('aria-label="Custom highlight color"')
+    expect(textBubbleMenuSource).toContain('closest("[data-handout-color-picker-menu]")')
     expect(textBubbleMenuSource).toContain("setLink")
     expect(textBubbleMenuSource).not.toContain("!state.selection.empty")
   })

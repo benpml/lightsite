@@ -174,6 +174,7 @@ describe("tracking v2 session expiration", () => {
       eventCount: 1,
       compressedBytes: 100,
       uncompressedBytes: 200,
+      hasFullSnapshot: true,
       checksumSha256: "a".repeat(64),
       firstEventAt: startedAt,
       lastEventAt: endedAt,
