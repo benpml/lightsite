@@ -4,6 +4,10 @@ import type {
 } from "@handout/tracking-schema"
 
 export const RRWEB_FULL_SNAPSHOT_EVENT_TYPE = 2
+const RRWEB_INCREMENTAL_SNAPSHOT_EVENT_TYPE = 3
+const RRWEB_FIRST_USER_SOURCE = 1
+const RRWEB_LAST_USER_SOURCE = 5
+const LEADING_IDLE_SKIP_THRESHOLD_MS = 2_000
 
 export type TrackingRrwebEvent = {
   data?: unknown
@@ -35,9 +39,22 @@ export function buildTrackingRrwebReplay(input: {
   const fullSnapshotTimestamp = events.find(
     (event) => event.type === RRWEB_FULL_SNAPSHOT_EVENT_TYPE
   )?.timestamp
-  const initialOffsetMs = fullSnapshotTimestamp === undefined
+  const firstUserActivityTimestamp = fullSnapshotTimestamp === undefined
+    ? undefined
+    : events.find(
+        (event) =>
+          event.timestamp >= fullSnapshotTimestamp &&
+          isUserActivityEvent(event)
+      )?.timestamp
+  const replayStartTimestamp =
+    fullSnapshotTimestamp !== undefined &&
+    firstUserActivityTimestamp !== undefined &&
+    firstUserActivityTimestamp - fullSnapshotTimestamp > LEADING_IDLE_SKIP_THRESHOLD_MS
+      ? firstUserActivityTimestamp
+      : fullSnapshotTimestamp
+  const initialOffsetMs = replayStartTimestamp === undefined
     ? 0
-    : Math.max(0, fullSnapshotTimestamp - firstTimestamp + 1)
+    : Math.max(0, replayStartTimestamp - firstTimestamp + 1)
 
   return {
     durationMs: eventDurationMs,
@@ -47,6 +64,20 @@ export function buildTrackingRrwebReplay(input: {
     initialOffsetMs,
     manifest: input.manifest,
   }
+}
+
+function isUserActivityEvent(event: TrackingRrwebEvent) {
+  if (
+    event.type !== RRWEB_INCREMENTAL_SNAPSHOT_EVENT_TYPE ||
+    !event.data ||
+    typeof event.data !== "object"
+  ) {
+    return false
+  }
+  const source = (event.data as { source?: unknown }).source
+  return typeof source === "number" &&
+    source >= RRWEB_FIRST_USER_SOURCE &&
+    source <= RRWEB_LAST_USER_SOURCE
 }
 
 function parseRrwebEvents(chunks: TrackingV2RecordingChunk[]) {

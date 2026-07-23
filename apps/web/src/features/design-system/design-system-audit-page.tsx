@@ -117,13 +117,13 @@ const handoutTokens: TokenRow[] = [
   semantic("site-card-border", "border", "neutral-alpha-A300", "Border for card-like blocks inside site documents."),
   semantic("tertiary-foreground", "neutral-600", "neutral-300", "Third-level labels, icons, sidebar secondary rows."),
   semantic("muted-faint", "neutral-400", "neutral-600", "Fainter block placeholder text."),
-  semantic("selection-background", "#F7F9FF", "neutral-50 at 8%", "Selected editor blocks and selection fill."),
+  semantic("selection-background", "blue-background-subtle", "blue-background-subtle", "Selected editor blocks and marquee fill."),
   semantic("selection-foreground", "selection-border", "selection-border", "Foreground for selected editor affordances and empty-state action snippets."),
-  semantic("selection-border", "indigo-600", "indigo-300", "Selection border, drop lines, marquee edge."),
-  semantic("variable-background", "#0588F01F", "#0588F04D", "Inline variable token fill."),
-  semantic("variable-background-hover", "#0588F01F", "#0588F04D", "Variable hover/active fill."),
+  semantic("selection-border", "blue-foreground", "blue-foreground", "Selection border, drop lines, and marquee edge."),
+  semantic("variable-background", "#05C5F01F", "#05C5F04D", "Inline variable token fill."),
+  semantic("variable-background-hover", "#05C5F01F", "#05C5F04D", "Variable hover/active fill."),
   semantic("variable-foreground", "#0797B9", "#A4E9F4", "Inline variable token text and variable menu icon color."),
-  semantic("variable-border", "#0588F014", "#0588F029", "Variable chip/menu border."),
+  semantic("variable-border", "#05C5F014", "#05C5F029", "Variable chip/menu border."),
 ]
 
 const sidebarTokens: TokenRow[] = [

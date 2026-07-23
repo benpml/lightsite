@@ -1,11 +1,16 @@
 import type { Editor, Range } from "@tiptap/core"
 import { Extension } from "@tiptap/core"
-import type { EmojiItem } from "@tiptap/extension-emoji"
+import { EmojiSuggestionPluginKey, type EmojiItem } from "@tiptap/extension-emoji"
 import { isChangeOrigin } from "@tiptap/extension-collaboration"
 import { Fragment } from "@tiptap/pm/model"
-import { PluginKey } from "@tiptap/pm/state"
+import { PluginKey, type EditorState } from "@tiptap/pm/state"
 import { ReactRenderer } from "@tiptap/react"
-import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion"
+import Suggestion, {
+  exitSuggestion,
+  type SuggestionKeyDownProps,
+  type SuggestionProps,
+} from "@tiptap/suggestion"
+import { RESERVED_SITE_VARIABLE_IDS } from "@handout/site-document"
 import {
   IconBlockquote,
   IconCalendarEvent,
@@ -64,6 +69,12 @@ type MenuItem = {
 
 const slashPluginKey = new PluginKey("handoutNextSlash")
 const variablePluginKey = new PluginKey("handoutNextVariable")
+let activeSuggestionMenu:
+  | {
+      close: () => void
+      owner: symbol
+    }
+  | null = null
 
 type VariableMenuItem =
   | {
@@ -304,7 +315,9 @@ export const HandoutNextSlashCommands = Extension.create({
         allowedPrefixes: null,
         startOfLine: false,
         shouldShow: ({ transaction }) => !isChangeOrigin(transaction),
-        allow: ({ state, range }) => state.doc.resolve(range.from).parent.type.name === "paragraph",
+        allow: ({ state, range }) =>
+          state.doc.resolve(range.from).parent.type.name === "paragraph" &&
+          isLatestHandoutSuggestionTrigger(state, range),
         items: ({ query }) => filterSlashItems(query),
         command: ({ editor, range, props }) => {
           replaceRangeWithBlock(editor, range, props.id)
@@ -314,6 +327,7 @@ export const HandoutNextSlashCommands = Extension.create({
           getLabel: (item) => item.label,
           getDescription: (item) => item.description,
           getIcon: (item) => item.icon,
+          pluginKey: slashPluginKey,
         }),
       }),
     ]
@@ -394,8 +408,10 @@ HandoutNextVariableStorage
             return false
           }
 
-          const nextName =
-            attrs.name === undefined ? current.name : normalizeHandoutVariableName(attrs.name)
+          const systemVariable = RESERVED_SITE_VARIABLE_IDS.has(variableId)
+          const nextName = systemVariable || attrs.name === undefined
+            ? current.name
+            : normalizeHandoutVariableName(attrs.name)
 
           if (!nextName) {
             return false
@@ -413,7 +429,7 @@ HandoutNextVariableStorage
                       : attrs.description.trim() || undefined,
                   name: nextName,
                   slug:
-                    nextName === definition.name
+                    systemVariable || nextName === definition.name
                       ? definition.slug
                       : getUniqueHandoutVariableSlug(
                           nextName,
@@ -473,6 +489,8 @@ HandoutNextVariableStorage
         allowSpaces: true,
         allowedPrefixes: null,
         shouldShow: ({ transaction }) => !isChangeOrigin(transaction),
+        allow: ({ state, range }) =>
+          isLatestHandoutSuggestionTrigger(state, range),
         items: ({ query }) => filterVariables(getHandoutVariableStorage(this.editor).definitions, query),
         command: ({ editor, range, props }) => {
           if (props.type === "create") {
@@ -507,6 +525,7 @@ HandoutNextVariableStorage
               ? item.variable.description || item.variable.defaultValue || "Variable"
               : "Create a reusable placeholder",
           getTone: (item) => (item.type === "variable" ? "variable" : "default"),
+          pluginKey: variablePluginKey,
         }),
       }),
     ]
@@ -517,6 +536,7 @@ export function createHandoutNextEmojiSuggestion() {
   return {
     allowSpaces: true,
     allowedPrefixes: null,
+    pluginKey: EmojiSuggestionPluginKey,
     shouldShow: ({ transaction }: { transaction: import("@tiptap/pm/state").Transaction }) =>
       !isChangeOrigin(transaction),
     allow: ({ state, range }: { state: import("@tiptap/pm/state").EditorState; range: Range }) => {
@@ -534,6 +554,7 @@ export function createHandoutNextEmojiSuggestion() {
       )
 
       return (
+        isLatestHandoutSuggestionTrigger(state, range) &&
         (textBeforeTrigger.length === 0 || /\s$/.test(textBeforeTrigger)) &&
         (textAfterSelection.length === 0 || /^\s/.test(textAfterSelection))
       )
@@ -545,6 +566,7 @@ export function createHandoutNextEmojiSuggestion() {
         item.shortcodes.length > 0 ? `:${item.shortcodes[0]}:` : item.group ?? "Emoji",
       getLabel: (item) => item.name.replaceAll("_", " "),
       getLeadingVisual: (item) => item.emoji ?? "",
+      pluginKey: EmojiSuggestionPluginKey,
     }),
   }
 }
@@ -771,6 +793,32 @@ function normalizeQuery(query: string) {
   return query.trim().toLowerCase()
 }
 
+export function isLatestHandoutSuggestionTrigger(
+  state: EditorState,
+  range: Range
+) {
+  const $from = state.doc.resolve(range.from)
+  const $to = state.doc.resolve(range.to)
+
+  if ($from.parent !== $to.parent) {
+    return false
+  }
+
+  const textThroughRange = $from.parent.textBetween(
+    0,
+    $to.parentOffset,
+    "\0",
+    "\0"
+  )
+  const latestTriggerOffset = Math.max(
+    textThroughRange.lastIndexOf("/"),
+    textThroughRange.lastIndexOf("{"),
+    textThroughRange.lastIndexOf(":")
+  )
+
+  return latestTriggerOffset === $from.parentOffset
+}
+
 function createSuggestionMenu<TItem>({
   getCategory,
   getDescription,
@@ -778,6 +826,7 @@ function createSuggestionMenu<TItem>({
   getLabel,
   getLeadingVisual,
   getTone,
+  pluginKey,
 }: {
   getCategory?: (item: TItem) => string | null | undefined
   getDescription: (item: TItem) => string
@@ -785,7 +834,9 @@ function createSuggestionMenu<TItem>({
   getLabel: (item: TItem) => string
   getLeadingVisual?: (item: TItem) => string
   getTone?: (item: TItem) => "default" | "primary" | "variable"
+  pluginKey: PluginKey
 }) {
+  const owner = Symbol("handoutSuggestionMenu")
   let props: SuggestionProps<TItem, TItem> | null = null
   let lastRect: DOMRect | null = null
   let renderer: ReactRenderer<
@@ -836,6 +887,14 @@ function createSuggestionMenu<TItem>({
   }
 
   function createRenderer(nextProps: SuggestionProps<TItem, TItem>) {
+    if (renderer) {
+      destroyRenderer()
+    }
+
+    if (activeSuggestionMenu?.owner !== owner) {
+      activeSuggestionMenu?.close()
+    }
+
     cancelPendingExit()
     props = nextProps
     const MenuComponent =
@@ -851,6 +910,10 @@ function createSuggestionMenu<TItem>({
     })
     renderer = nextRenderer
     getSuggestionMenuHost(nextProps.editor).append(nextRenderer.element)
+    activeSuggestionMenu = { close: destroyRenderer, owner }
+    document.addEventListener("pointerdown", handleOutsidePointerDown, true)
+    window.addEventListener("blur", dismissSuggestionMenu)
+    window.addEventListener("keydown", handleDismissKeyDown)
     updatePosition()
     window.requestAnimationFrame(updatePosition)
   }
@@ -865,10 +928,43 @@ function createSuggestionMenu<TItem>({
 
   function destroyRenderer() {
     cancelPendingExit()
+    document.removeEventListener("pointerdown", handleOutsidePointerDown, true)
+    window.removeEventListener("blur", dismissSuggestionMenu)
+    window.removeEventListener("keydown", handleDismissKeyDown)
     renderer?.destroy()
     renderer = null
     props = null
     lastRect = null
+
+    if (activeSuggestionMenu?.owner === owner) {
+      activeSuggestionMenu = null
+    }
+  }
+
+  function dismissSuggestionMenu() {
+    const editor = props?.editor
+
+    if (editor && !editor.isDestroyed) {
+      exitSuggestion(editor.view, pluginKey)
+    }
+
+    destroyRenderer()
+  }
+
+  function handleOutsidePointerDown(event: PointerEvent) {
+    const target = event.target
+
+    if (target instanceof Node && renderer?.element.contains(target)) {
+      return
+    }
+
+    dismissSuggestionMenu()
+  }
+
+  function handleDismissKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape" || event.key === "Esc") {
+      dismissSuggestionMenu()
+    }
   }
 
   function createMenuProps(
@@ -912,7 +1008,7 @@ function createSuggestionMenu<TItem>({
   }
 
   function shouldFinishExit() {
-    return !renderer?.ref?.isPointerInside() && !hasActiveSuggestion()
+    return Boolean(props?.editor.isDestroyed) || !renderer?.ref?.isPointerInside()
   }
 
   return {
@@ -933,10 +1029,6 @@ function createSuggestionMenu<TItem>({
 
 function getActiveSuggestionRect() {
   return document.querySelector(".suggestion")?.getBoundingClientRect() ?? null
-}
-
-function hasActiveSuggestion() {
-  return document.querySelector(".suggestion") !== null
 }
 
 function getSuggestionMenuHost(editor: Editor) {

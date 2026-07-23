@@ -1,13 +1,19 @@
 import { NodeViewWrapper } from "@tiptap/react"
 import type { NodeViewProps } from "@tiptap/react"
 import { HANDOUT_TEXT_LIMITS } from "@handout/domain"
+import { RESERVED_SITE_VARIABLE_IDS } from "@handout/site-document"
 import { IconBraces, IconTrash } from "@tabler/icons-react"
-import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useState } from "react"
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 import { findHandoutVariable } from "../variable-state"
 
@@ -20,12 +26,12 @@ type VariableDraft = {
 export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
   const variableId = String(node.attrs.variableId || "")
   const fallbackName = String(node.attrs.fallbackName || "Variable")
-  const wrapperRef = useRef<HTMLSpanElement>(null)
   const [open, setOpen] = useState(false)
   const [, setVersion] = useState(0)
   const nameId = useId()
   const defaultValueId = useId()
   const descriptionId = useId()
+  const systemVariable = RESERVED_SITE_VARIABLE_IDS.has(variableId)
 
   const variable = findHandoutVariable(editor, variableId)
   const [draft, setDraft] = useState<VariableDraft>(() =>
@@ -40,36 +46,6 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
       editor.off("transaction", handleTransaction)
     }
   }, [editor])
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target
-
-      if (target instanceof Node && wrapperRef.current?.contains(target)) {
-        return
-      }
-
-      setOpen(false)
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false)
-        editor.commands.focus(undefined, { scrollIntoView: false })
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown, true)
-    window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown, true)
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [editor, open])
 
   const save = useCallback(() => {
     const name = draft.name.trim()
@@ -93,18 +69,21 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
     editor.commands.focus(undefined, { scrollIntoView: false })
   }, [deleteNode, editor])
 
-  const openPopover = useCallback((event: React.MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    setDraft(
-      createDraft(
-        variable?.name ?? fallbackName,
-        variable?.description,
-        variable?.defaultValue
-      )
-    )
-    setOpen(true)
-  }, [fallbackName, variable])
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        setDraft(
+          createDraft(
+            variable?.name ?? fallbackName,
+            variable?.description,
+            variable?.defaultValue
+          )
+        )
+      }
+      setOpen(nextOpen)
+    },
+    [fallbackName, variable]
+  )
 
   const updateDraft = useCallback((field: keyof VariableDraft, value: string) => {
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }))
@@ -116,25 +95,28 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
   return (
     <NodeViewWrapper
       as="span"
-      ref={wrapperRef}
       className="handout-editor-variable-wrapper"
       contentEditable={false}
       data-handout-variable-wrapper=""
     >
-      <button
-        className="handout-editor-variable-token"
-        data-missing={variable ? "false" : "true"}
-        type="button"
-        onClick={openPopover}
-        onMouseDown={(event) => event.preventDefault()}
-      >
-        <span>{chipText}</span>
-      </button>
-      {open ? (
-        <span
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <button
+            className="handout-editor-variable-token"
+            data-missing={variable ? "false" : "true"}
+            type="button"
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            <span>{chipText}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
           className="handout-editor-variable-popover"
           role="dialog"
           aria-label={`${displayName} variable`}
+          align="start"
+          sideOffset={6}
           onMouseDown={(event) => {
             event.stopPropagation()
           }}
@@ -147,18 +129,21 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
                   <IconBraces aria-hidden />
                   Edit variable
                 </span>
-                <button
-                  className="handout-editor-variable-popover-delete"
-                  type="button"
-                  onClick={removeReference}
-                >
-                  <IconTrash aria-hidden />
-                  Remove
-                </button>
+                {systemVariable ? null : (
+                  <button
+                    className="handout-editor-variable-popover-delete"
+                    type="button"
+                    onClick={removeReference}
+                  >
+                    <IconTrash aria-hidden />
+                    Remove
+                  </button>
+                )}
               </span>
-              <VariableField id={nameId} label="Name">
+              <VariableField disabled={systemVariable} id={nameId} label="Name">
                 <Input
                   id={nameId}
+                  disabled={systemVariable}
                   maxLength={HANDOUT_TEXT_LIMITS.variableName}
                   size="lg"
                   value={draft.name}
@@ -198,7 +183,12 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
                 >
                   Cancel
                 </Button>
-                <Button type="button" size="sm" disabled={!draft.name.trim()} onClick={save}>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!draft.name.trim()}
+                  onClick={save}
+                >
                   Save
                 </Button>
               </span>
@@ -216,23 +206,25 @@ export function VariableTokenView({ deleteNode, editor, node }: NodeViewProps) {
               </span>
             </>
           )}
-        </span>
-      ) : null}
+        </PopoverContent>
+      </Popover>
     </NodeViewWrapper>
   )
 }
 
 function VariableField({
   children,
+  disabled = false,
   id,
   label,
 }: {
   children: React.ReactNode
+  disabled?: boolean
   id: string
   label: string
 }) {
   return (
-    <Field>
+    <Field data-disabled={disabled || undefined}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       {children}
     </Field>

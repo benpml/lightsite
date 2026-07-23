@@ -9,12 +9,16 @@ import {
 } from "@handout/domain";
 import { normalizeSiteContent } from "@handout/db";
 import {
+  analyzeSiteContentSafety,
   createSiteContentFromDefaults,
+  hasAddedEmbeddedImageDataUrl,
   normalizeSiteDefaults,
+  siteContentSchema,
   SITE_DOCUMENT_SCHEMA_VERSION,
 } from "@handout/site-document";
 import {
   SiteSlugConflictError,
+  SiteWorkspaceCapacityError,
   type SiteRecord,
   type SiteRepository,
   type SiteVariantRecord,
@@ -215,8 +219,10 @@ export class SiteConflictError extends Error {
 export class SitePlanLimitError extends Error {
   readonly limit: number;
 
-  constructor(limit: number) {
-    super(`Free workspaces can create up to ${limit} draft sites. Upgrade to publish more.`);
+  constructor(limit: number, plan: SiteWorkspaceContext["plan"]) {
+    super(plan === "free"
+      ? `Free workspaces can retain up to ${limit} sites. Upgrade to create another site.`
+      : `This workspace has reached the ${limit.toLocaleString("en-US")}-site safety limit. Contact support if you need additional capacity.`);
     this.name = "SitePlanLimitError";
     this.limit = limit;
   }
@@ -297,10 +303,11 @@ const LIST_SITES_LIMIT = 50;
 const LIST_SITE_VERSIONS_LIMIT = 100;
 const LIST_SITE_VARIANTS_LIMIT = 100;
 const FREE_SITE_LIMIT = 10;
-const SITE_PLAN_LIMITS: Record<SiteWorkspaceContext["plan"], number | null> = {
+const RETAINED_SITE_HARD_LIMIT = 10_000;
+const SITE_PLAN_LIMITS: Record<SiteWorkspaceContext["plan"], number> = {
   free: FREE_SITE_LIMIT,
-  core: null,
-  pro: null,
+  core: RETAINED_SITE_HARD_LIMIT,
+  pro: RETAINED_SITE_HARD_LIMIT,
 } as const;
 export function createSiteService(
   repository: SiteRepository,
@@ -347,14 +354,6 @@ export function createSiteService(
 
       const limit = SITE_PLAN_LIMITS[input.workspace.plan];
 
-      if (limit !== null) {
-        const currentSiteCount = await repository.countWorkspaceSites(input.workspace.id);
-
-        if (currentSiteCount >= limit) {
-          throw new SitePlanLimitError(limit);
-        }
-      }
-
       const existingSite = await repository.findByWorkspaceAndSlug({
         workspaceId: input.workspace.id,
         slug: slugResult.slug,
@@ -379,6 +378,7 @@ export function createSiteService(
           trackingEnabled: defaults.trackingEnabled,
           recordingEnabled,
           recordingDisclosureAccepted: recordingEnabled,
+          maxWorkspaceSites: limit,
         });
 
         return {
@@ -393,6 +393,9 @@ export function createSiteService(
       } catch (error) {
         if (error instanceof SiteSlugConflictError) {
           throw new SiteConflictError(error.slug);
+        }
+        if (error instanceof SiteWorkspaceCapacityError) {
+          throw new SitePlanLimitError(error.limit, input.workspace.plan);
         }
 
         throw error;
@@ -485,11 +488,22 @@ export function createSiteService(
         throw new SitePermissionError();
       }
 
-      const draftContent = normalizeSiteContent(input.draftContent);
+      const parsedDraftContent = siteContentSchema.safeParse(input.draftContent);
+      if (!parsedDraftContent.success) {
+        throw new SiteValidationError(
+          parsedDraftContent.error.issues[0]?.message ?? "Site content is invalid.",
+        );
+      }
+      const draftContent = parsedDraftContent.data;
       const draftIssues = validateDraftSafetyContent(draftContent);
 
       if (draftIssues.length > 0) {
         throw new SiteValidationError(draftIssues[0]?.message ?? "Site content is invalid.");
+      }
+      if (hasAddedEmbeddedImageDataUrl(site.draftContent, draftContent)) {
+        throw new SiteValidationError(
+          "Inline image data cannot be added to site content. Upload the image to the workspace first.",
+        );
       }
 
       const updatedSite = options.contentCoordinator
@@ -550,14 +564,6 @@ export function createSiteService(
 
       const limit = SITE_PLAN_LIMITS[input.workspace.plan];
 
-      if (limit !== null) {
-        const currentSiteCount = await repository.countWorkspaceSites(input.workspace.id);
-
-        if (currentSiteCount >= limit) {
-          throw new SitePlanLimitError(limit);
-        }
-      }
-
       const { name, slug } = await getAvailableCopyIdentity(repository, input.workspace.id, site);
 
       try {
@@ -568,6 +574,7 @@ export function createSiteService(
           name,
           slug,
           draftContent: normalizeSiteContent(site.draftContent),
+          maxWorkspaceSites: limit,
         });
 
         return {
@@ -582,6 +589,9 @@ export function createSiteService(
       } catch (error) {
         if (error instanceof SiteSlugConflictError) {
           throw new SiteConflictError(error.slug);
+        }
+        if (error instanceof SiteWorkspaceCapacityError) {
+          throw new SitePlanLimitError(error.limit, input.workspace.plan);
         }
 
         throw error;
@@ -1139,59 +1149,47 @@ function validateDraftSafetyContent(
   draftContent: SiteRecord["draftContent"],
   pathPrefix: Array<string | number> = [],
 ): SitePublishValidationIssue[] {
-  const issues: SitePublishValidationIssue[] = [];
-
-  draftContent.variables.forEach((variable, index) => {
-    issues.push(
-      ...validateUnknownStringFields(variable, [...pathPrefix, "variables", index]),
-    );
-  });
-
-  draftContent.pages.forEach((page, index) => {
-    issues.push(
-      ...validateUnknownStringFields(page.document, [...pathPrefix, "pages", index, "document"]),
-    );
-  });
-
-  issues.push(
-    ...validateUnknownStringFields(draftContent.sidebar, [...pathPrefix, "sidebar"]),
-  );
-
-  return issues;
+  return analyzeSiteContentSafety(draftContent).issues.map((issue) => ({
+    path: pathPrefix,
+    message: issue.message,
+  }));
 }
 
 function validateUnknownStringFields(
   value: unknown,
-  path: Array<string | number>,
+  rootPath: Array<string | number>,
 ): SitePublishValidationIssue[] {
   const issues: SitePublishValidationIssue[] = [];
+  const stack: Array<{ path: Array<string | number>; value: unknown }> = [{
+    path: rootPath,
+    value,
+  }];
 
-  if (typeof value === "string") {
-    const limit = getHandoutDocumentStringLimit(value);
-
-    if (value.length > limit) {
-      issues.push({
-        path,
-        message: isEmbeddedImageDataUrl(value)
-          ? `Embedded image must be ${HANDOUT_TEXT_LIMITS.embeddedImageDataUrl.toLocaleString("en-US")} characters or fewer.`
-          : `Text must be ${HANDOUT_TEXT_LIMITS.blockText.toLocaleString("en-US")} characters or fewer.`,
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    if (typeof current.value === "string") {
+      const limit = getHandoutDocumentStringLimit(current.value);
+      if (current.value.length > limit) {
+        issues.push({
+          path: current.path,
+          message: isEmbeddedImageDataUrl(current.value)
+            ? `Embedded image must be ${HANDOUT_TEXT_LIMITS.embeddedImageDataUrl.toLocaleString("en-US")} characters or fewer.`
+            : `Text must be ${HANDOUT_TEXT_LIMITS.blockText.toLocaleString("en-US")} characters or fewer.`,
+        });
+      }
+      continue;
+    }
+    if (Array.isArray(current.value)) {
+      current.value.forEach((item, index) => {
+        stack.push({ path: [...current.path, index], value: item });
+      });
+      continue;
+    }
+    if (current.value && typeof current.value === "object") {
+      Object.entries(current.value).forEach(([key, item]) => {
+        stack.push({ path: [...current.path, key], value: item });
       });
     }
-
-    return issues;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      issues.push(...validateUnknownStringFields(item, [...path, index]));
-    });
-    return issues;
-  }
-
-  if (value && typeof value === "object") {
-    Object.entries(value).forEach(([key, item]) => {
-      issues.push(...validateUnknownStringFields(item, [...path, key]));
-    });
   }
 
   return issues;

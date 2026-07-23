@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildPublicHtmlSnapshotKey,
-  buildRecipientPreviewKey,
   classifyPublicRoute,
   isPublicSiteScreenshotPath,
   isPublicSitePath,
-  isSnapshotFresh,
+  isPublicPreviewVersion,
+  isShortPublicSiteScreenshotPath,
   readPositiveInteger,
 } from "./cache-policy";
 
@@ -26,7 +25,7 @@ describe("public worker cache policy", () => {
     expect(classifyPublicRoute("/fonts/geist-latin-wght-normal.woff2")).toBe("asset");
     expect(classifyPublicRoute("/handout-logo-icon.svg")).toBe("asset");
     expect(classifyPublicRoute("/handout-logo.svg")).toBe("asset");
-    expect(classifyPublicRoute("/site-runtime.v6.js")).toBe("asset");
+    expect(classifyPublicRoute("/site-runtime.v7.js")).toBe("asset");
     expect(classifyPublicRoute("/site-runtime.v99.js")).toBe("asset");
     expect(classifyPublicRoute("/site-runtime.latest.js")).toBe("not-found");
     expect(classifyPublicRoute("/health")).toBe("health");
@@ -45,6 +44,8 @@ describe("public worker cache policy", () => {
     expect(isPublicSiteScreenshotPath("/workspace/site/recipient/embed.png")).toBe(true);
     expect(isPublicSiteScreenshotPath("/workspace/site/recipient/other.png")).toBe(false);
     expect(isPublicSiteScreenshotPath("/api/site/embed.png")).toBe(false);
+    expect(isShortPublicSiteScreenshotPath("/aZ7k2Qr9LmNp/embed.jpg")).toBe(true);
+    expect(isShortPublicSiteScreenshotPath("/workspace/site/embed.jpg")).toBe(false);
   });
 
   it("allows only stable public site segments", () => {
@@ -55,40 +56,6 @@ describe("public worker cache policy", () => {
     expect(isPublicSitePath("/-workspace/site")).toBe(false);
   });
 
-  it("builds bounded R2 snapshot keys from public paths", () => {
-    expect(buildPublicHtmlSnapshotKey("/acme/overview")).toBe(
-      "public-html/v1/acme/overview/index.html",
-    );
-    expect(buildPublicHtmlSnapshotKey("/acme/overview/")).toBe(
-      "public-html/v1/acme/overview/index.html",
-    );
-    expect(buildPublicHtmlSnapshotKey("/aZ7k2Qr9LmNp", "version-7.3")).toBe(
-      "public-html/v2/aZ7k2Qr9LmNp/version-7.3/index.html",
-    );
-  });
-
-  it("builds immutable recipient preview keys only for valid versioned JPEGs", () => {
-    expect(buildRecipientPreviewKey(
-      "/acme/overview/ada/embed.jpg",
-      "2026-07-11T17:00:00.000Z.4",
-    )).toBe(
-      "recipient-previews/v1/acme/overview/ada/2026-07-11T17:00:00.000Z.4/embed.jpg",
-    );
-    expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", "version-7")).toBe(
-      "recipient-previews/v1/acme/overview/version-7/embed.jpg",
-    );
-    expect(buildRecipientPreviewKey("/aZ7k2Qr9LmNp/embed.jpg", "version-7.3")).toBe(
-      "recipient-previews/v1/aZ7k2Qr9LmNp/version-7.3/embed.jpg",
-    );
-    expect(buildRecipientPreviewKey(
-      "/Ab3dE5fG7hJ9/john/linear/linear.app/embed.jpg",
-      "version-7.3",
-    )).toBeNull();
-    expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", null)).toBeNull();
-    expect(buildRecipientPreviewKey("/acme/overview/embed.png", "version-7")).toBeNull();
-    expect(buildRecipientPreviewKey("/acme/overview/embed.jpg", "../version-7")).toBeNull();
-  });
-
   it("parses cache seconds defensively", () => {
     expect(readPositiveInteger("120", 60)).toBe(120);
     expect(readPositiveInteger("-1", 60)).toBe(60);
@@ -96,12 +63,16 @@ describe("public worker cache policy", () => {
     expect(readPositiveInteger("999", 60, 300)).toBe(300);
   });
 
-  it("rejects stale or malformed R2 snapshot metadata", () => {
-    const now = new Date("2026-07-07T00:00:00.000Z");
-
-    expect(isSnapshotFresh("2026-07-06T23:59:30.000Z", now, 60)).toBe(true);
-    expect(isSnapshotFresh("2026-07-06T23:58:30.000Z", now, 60)).toBe(false);
-    expect(isSnapshotFresh("not-a-date", now, 60)).toBe(false);
-    expect(isSnapshotFresh(undefined, now, 60)).toBe(false);
+  it("accepts only canonical bounded preview versions", () => {
+    expect(isPublicPreviewVersion(
+      "33333333-3333-4333-8333-333333333333.7.r2.w1a2b3c",
+    )).toBe(true);
+    expect(isPublicPreviewVersion(
+      "33333333-3333-4333-8333-333333333333.7",
+    )).toBe(true);
+    expect(isPublicPreviewVersion("version-7.3")).toBe(false);
+    expect(isPublicPreviewVersion("x".repeat(200))).toBe(false);
+    expect(isPublicPreviewVersion(null)).toBe(false);
   });
+
 });

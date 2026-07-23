@@ -9,7 +9,7 @@ const signupHref = "https://app.handout.link/auth?mode=sign-up"
 
 const footerGroups = [
   {
-    title: "Company",
+    title: "Product",
     links: [
       { href: "/#features", label: "Product" },
       { href: "/examples", label: "Examples" },
@@ -17,7 +17,7 @@ const footerGroups = [
     ],
   },
   {
-    title: "Company",
+    title: "Capabilities",
     links: [
       { href: "/#docs", label: "AI agents" },
       { href: "/#features", label: "Features" },
@@ -32,6 +32,13 @@ const footerGroups = [
       { href: "/blog", label: "Blog" },
     ],
   },
+  {
+    title: "Legal",
+    links: [
+      { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms" },
+    ],
+  },
 ] as const
 
 function SiteFooter() {
@@ -40,7 +47,7 @@ function SiteFooter() {
       <SectionFrame innerClassName="min-h-[359px] px-8 pt-14 pb-[100px]">
         <div className="flex w-full flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <Logo size="footer" />
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-4 md:contents">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:contents">
             {footerGroups.map((group) => (
               <div
                 key={`${group.title}-${group.links[0].label}`}

@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest"
 import {
   getDefaultAccountName,
   getDefaultWorkspaceName,
+  getDefaultWorkspaceWebsite,
   resolveOnboardingStep,
+  splitAccountName,
 } from "./onboarding-state"
 import type { AppBootstrapResponse } from "@handout/contracts"
 
@@ -53,5 +55,16 @@ describe("onboarding state helpers", () => {
   it("derives a workspace name from valid work email domains only", () => {
     expect(getDefaultWorkspaceName("mira@acme-co.com")).toBe("Acme Co")
     expect(getDefaultWorkspaceName("mira@gmail.com")).toBe("My Workspace")
+    expect(getDefaultWorkspaceWebsite("mira@acme-co.com")).toBe("acme-co.com")
+    expect(getDefaultWorkspaceWebsite("mira+handout@acme-co.com")).toBe("acme-co.com")
+    expect(getDefaultWorkspaceWebsite("mira@gmail.com")).toBe("")
+  })
+
+  it("splits account names without losing compound surnames", () => {
+    expect(splitAccountName("Mira Chen")).toEqual({ firstName: "Mira", lastName: "Chen" })
+    expect(splitAccountName("Ada Lovelace Byron")).toEqual({
+      firstName: "Ada",
+      lastName: "Lovelace Byron",
+    })
   })
 })

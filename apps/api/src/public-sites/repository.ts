@@ -16,8 +16,6 @@ import {
   type PublishedSitePayload,
 } from "@handout/site-document";
 import type { TrackingV2TrackingMode } from "@handout/tracking-schema";
-import { isPostgresUniqueViolation } from "../lib/postgres-errors";
-import { allocateRecipientShortCode } from "../sites/public-identifiers";
 import {
   normalizePublicRecipientLink,
   type PublicRecipientLinkInput,
@@ -40,7 +38,7 @@ export type PublicRecipientLinkRecord = PublicSiteRecord & {
 export interface PublicSiteRepository {
   findPublishedSite(input: PublicSiteLookupInput): Promise<PublicSiteRecord | null>;
   findPublishedSiteByShortCode(shortCode: string): Promise<PublicRecipientLinkRecord | null>;
-  resolveOrCreateRecipientLink(input: PublicRecipientLinkInput & {
+  resolveExistingRecipientLink(input: PublicRecipientLinkInput & {
     sitePublicId: string;
   }): Promise<PublicRecipientLinkRecord | null>;
 }
@@ -178,113 +176,68 @@ export function createDbPublicSiteRepository(
       };
     },
 
-    async resolveOrCreateRecipientLink(input) {
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        try {
-          return await database.transaction(async (transaction) => {
-            const [record] = await transaction
-              .select({
-                workspace: {
-                  id: workspaces.id,
-                  slug: workspaces.slug,
-                  name: workspaces.name,
-                  websiteDomain: workspaces.websiteDomain,
-                  logoAssetId: workspaces.logoAssetId,
-                },
-                site: {
-                  id: sites.id,
-                  slug: sites.slug,
-                  name: sites.name,
-                  publishedVersionId: sites.publishedVersionId,
-                  publishedAt: sites.publishedAt,
-                },
-                version: {
-                  id: siteVersions.id,
-                  versionNumber: siteVersions.versionNumber,
-                  content: siteVersions.content,
-                  createdAt: siteVersions.createdAt,
-                },
-              })
-              .from(sites)
-              .innerJoin(workspaces, eq(sites.workspaceId, workspaces.id))
-              .innerJoin(siteVersions, eq(sites.publishedVersionId, siteVersions.id))
-              .where(and(
-                eq(sites.publicId, input.sitePublicId),
-                eq(workspaces.status, "active"),
-                eq(sites.status, "published"),
-                isNotNull(sites.publishedVersionId),
-                eq(siteVersions.kind, "publish"),
-              ))
-              .limit(1);
+    async resolveExistingRecipientLink(input) {
+      const [record] = await database
+        .select({
+          workspace: {
+            id: workspaces.id,
+            slug: workspaces.slug,
+            name: workspaces.name,
+            websiteDomain: workspaces.websiteDomain,
+            logoAssetId: workspaces.logoAssetId,
+          },
+          site: {
+            id: sites.id,
+            slug: sites.slug,
+            name: sites.name,
+            publishedVersionId: sites.publishedVersionId,
+            publishedAt: sites.publishedAt,
+          },
+          version: {
+            id: siteVersions.id,
+            versionNumber: siteVersions.versionNumber,
+            content: siteVersions.content,
+            createdAt: siteVersions.createdAt,
+          },
+        })
+        .from(sites)
+        .innerJoin(workspaces, eq(sites.workspaceId, workspaces.id))
+        .innerJoin(siteVersions, eq(sites.publishedVersionId, siteVersions.id))
+        .where(and(
+          eq(sites.publicId, input.sitePublicId),
+          eq(workspaces.status, "active"),
+          eq(sites.status, "published"),
+          isNotNull(sites.publishedVersionId),
+          eq(siteVersions.kind, "publish"),
+        ))
+        .limit(1);
 
-            if (!record || !record.site.publishedAt) return null;
+      if (!record || !record.site.publishedAt) return null;
 
-            const content = normalizeSiteContent(record.version.content, record.site.name);
-            const normalized = normalizePublicRecipientLink(content, input);
-            if (!normalized) return null;
+      const content = normalizeSiteContent(record.version.content, record.site.name);
+      const normalized = normalizePublicRecipientLink(content, input);
+      if (!normalized) return null;
 
-            const [existing] = await transaction
-              .select()
-              .from(siteVariants)
-              .where(and(
-                eq(siteVariants.siteId, record.site.id),
-                eq(siteVariants.publicLinkKey, normalized.publicLinkKey),
-              ))
-              .limit(1);
+      const [existing] = await database
+        .select()
+        .from(siteVariants)
+        .where(and(
+          eq(siteVariants.siteId, record.site.id),
+          eq(siteVariants.publicLinkKey, normalized.publicLinkKey),
+          eq(siteVariants.status, "active"),
+        ))
+        .limit(1);
 
-            if (existing) {
-              if (existing.status !== "active") return null;
-              return {
-                shortCode: existing.shortCode,
-                payload: buildPublicSitePayload(
-                  record,
-                  existing,
-                  resolveWorkspaceLogoUrl(record.workspace, options),
-                ),
-              };
-            }
+      if (!existing) return null;
 
-            const slug = await findAvailableRecipientSlug(transaction, {
-              siteId: record.site.id,
-              slugBase: normalized.slugBase,
-              publicLinkKey: normalized.publicLinkKey,
-            });
-            const created = await allocateRecipientShortCode(async (shortCode) => {
-              const [inserted] = await transaction
-                .insert(siteVariants)
-                .values({
-                  shortCode,
-                  workspaceId: record.workspace.id,
-                  siteId: record.site.id,
-                  name: normalized.name,
-                  slug,
-                  recipientName: normalized.recipientName,
-                  recipientCompany: normalized.recipientCompany,
-                  variableValues: normalized.variableValues,
-                  publicLinkKey: normalized.publicLinkKey,
-                })
-                .onConflictDoNothing({ target: siteVariants.shortCode })
-                .returning();
-              return inserted ?? null;
-            });
-
-            if (!created) throw new Error("Public recipient insert did not return a row.");
-
-            return {
-              shortCode: created.shortCode,
-              payload: buildPublicSitePayload(
-                record,
-                created,
-                resolveWorkspaceLogoUrl(record.workspace, options),
-              ),
-            };
-          });
-        } catch (error) {
-          if (!isPostgresUniqueViolation(error) || attempt === 3) throw error;
-        }
-      }
-
-      return null;
+      return {
+        shortCode: existing.shortCode,
+        payload: buildPublicSitePayload(
+          record,
+          existing,
+          resolveWorkspaceLogoUrl(record.workspace, options),
+        ),
+      };
     },
   };
 }
@@ -297,7 +250,7 @@ export function createUnavailablePublicSiteRepository(): PublicSiteRepository {
     async findPublishedSiteByShortCode() {
       return null;
     },
-    async resolveOrCreateRecipientLink() {
+    async resolveExistingRecipientLink() {
       return null;
     },
   };
@@ -370,28 +323,6 @@ function resolveWorkspaceLogoUrl(
   return workspace.logoAssetId
     ? `/api/workspaces/logo-assets/${workspace.logoAssetId}`
     : options.resolveWorkspaceLogoUrl?.(workspace.id) ?? null;
-}
-
-async function findAvailableRecipientSlug(
-  transaction: Parameters<Parameters<Database["transaction"]>[0]>[0],
-  input: { siteId: string; slugBase: string; publicLinkKey: string },
-) {
-  const candidates = [
-    input.slugBase,
-    `${input.slugBase}-${input.publicLinkKey.slice(0, 8)}`.slice(0, 96),
-    `${input.slugBase}-${input.publicLinkKey.slice(0, 15)}`.slice(0, 96),
-  ];
-
-  for (const candidate of candidates) {
-    const [owner] = await transaction
-      .select({ id: siteVariants.id })
-      .from(siteVariants)
-      .where(and(eq(siteVariants.siteId, input.siteId), eq(siteVariants.slug, candidate)))
-      .limit(1);
-    if (!owner) return candidate;
-  }
-
-  return `recipient-${input.publicLinkKey.slice(0, 24)}`;
 }
 
 function buildPublicSitePayload(

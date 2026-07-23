@@ -1486,7 +1486,7 @@ Version history can grow quickly, so retention should be intentional.
 
 V1 decision:
 
-- Keep all publish, rollback, initial, and migration versions.
+- Keep the current published version, explicitly protected restore points, and the most recent 100 versions per site within the workspace version-storage allowance.
 - Keep autosave versions with a retention policy.
 - Collapse or prune dense autosave versions after a time window if storage becomes an issue.
 - Never prune the currently published version.
@@ -1496,12 +1496,12 @@ Initial retention policy:
 - Keep all autosave versions from the last 24 hours.
 - Keep hourly autosave versions for the last 7 days.
 - Keep daily autosave versions for the last 30 days.
-- Keep publish/rollback/manual versions indefinitely, subject to plan/retention policy later.
+- Publish/rollback/manual versions follow the same bounded recent/protected policy; they are not retained without a maximum merely because of kind.
 
 Implementation sequencing:
 
 - The schema must support retention pruning.
-- The first implementation can keep all versions until volume requires pruning.
+- The first implementation includes bounded pruning and positive-growth admission; it does not depend on future volume to introduce a ceiling.
 - Pruning must be centralized in one retention job, not scattered through editor code.
 
 ### Version And Variable Compatibility
@@ -3709,18 +3709,18 @@ Provider choice can be finalized in hosting/deployment spec.
 
 ### Upload Flow
 
-Recommended direct-upload flow:
+Direct quarantine upload flow:
 
 1. Client requests upload intent from API.
-2. Server validates workspace permission, file metadata, intended kind, and size.
-3. Server returns signed upload URL or upload token.
-4. Client uploads directly to object storage.
-5. Client notifies API upload completed.
-6. Server verifies object exists and metadata is valid.
-7. Server creates/updates asset record as `ready`.
-8. Client can attach asset ID to workspace/site/block/variable.
+2. Server validates workspace permission, intended kind, declared media type/size, active-intent limits, and aggregate storage capacity; it reserves inbound plus maximum canonical bytes and both object counts in a hidden pending row.
+3. Server returns a short-lived, create-only signed PUT for an opaque private quarantine key. The signature binds exact content length, declared media type, and the create-only condition.
+4. Client uploads directly to the quarantine key.
+5. Client requests finalize.
+6. Server verifies the observed object, then an isolated worker performs bounded format/dimension/frame/decode validation and canonical re-encoding.
+7. Server writes the canonical private object, accounts for canonical plus quarantine bytes, and marks the asset `ready`. After the signed URL expires, it confirms quarantine deletion and releases only the quarantine reservation.
+8. Client can attach the ready asset ID to workspace/site/block/variable.
 
-Decision for v1 architecture: use direct-to-object-storage uploads for production. A server-proxied upload path may exist only for local development or tests, not as the production design.
+Decision for v1 architecture: use direct-to-object-storage quarantine uploads for production. Active intents and quarantine bytes are bounded and expire; provider lifecycle is a backstop. If a browser/provider path cannot enforce exact length, type, and create-only semantics, use a bounded streaming upload gateway rather than an unrestricted signed URL. A server-proxied path may exist for local development or tests.
 
 ### File Validation
 
@@ -14348,16 +14348,16 @@ Initial v1 policy:
 | --- | --- |
 | Workspace records | Retained while workspace active |
 | Site draft content | Retained while site exists |
-| Published versions | Retained indefinitely in v1 |
-| Rollback/manual versions | Retained indefinitely in v1 |
-| Autosave versions | Retained until pruning policy implemented |
-| Variants | Soft-deleted; retained for analytics attribution |
-| Raw tracking events | Retained until plan policy is implemented; design for pruning |
+| Published versions | Current published plus recent/protected history under the protection spec |
+| Rollback/manual versions | Recent/protected history under the protection spec |
+| Autosave versions | 24-hour/hourly/daily pruning plus the version-storage ceiling |
+| Variants | Soft-deleted; variable payload purged after the recovery/reference boundary |
+| Raw tracking events | Product/privacy retention capped by the server maximum and retained row/byte ceilings |
 | Tracking summaries | Retained longer than raw events |
 | Invites | Pending until accepted/revoked/expired; expired tokens pruned |
 | Jobs | Succeeded jobs pruned after operational window |
 | Exports | Expire and delete generated file |
-| Audit logs | Retained long-term |
+| Security audit logs | 180-day normal customer maximum; separately scoped holds only |
 | Temporary uploads | Pruned quickly if unattached |
 
 Rules:

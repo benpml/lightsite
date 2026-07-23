@@ -5,6 +5,7 @@ type PagesFunctionContext = {
   }
   env?: {
     HANDOUT_API_ORIGIN?: string
+    ORIGIN_AUTH_SECRET?: string
   }
 }
 
@@ -20,6 +21,7 @@ export async function onRequest(context: PagesFunctionContext) {
   const headers = new Headers(context.request.headers)
 
   headers.delete("host")
+  headers.set("x-handout-origin-auth", context.env?.ORIGIN_AUTH_SECRET ?? "")
   headers.set("x-forwarded-host", requestUrl.host)
   headers.set("x-forwarded-proto", requestUrl.protocol.replace(":", ""))
 
@@ -30,4 +32,3 @@ export async function onRequest(context: PagesFunctionContext) {
     redirect: "manual",
   })
 }
-

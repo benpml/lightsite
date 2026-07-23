@@ -30,10 +30,16 @@ services:
         value: https://app.handout.link,https://handout.link
       - key: PUBLIC_SITE_ORIGIN
         value: https://handout.link
+      - key: ORIGIN_AUTH_SECRET
+        sync: false
       - key: BETTER_AUTH_URL
         value: https://app.handout.link
       - key: BETTER_AUTH_SECRET
         generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: EMAIL_FROM
         value: Handout <noreply@handout.link>
       - key: RESEND_API_KEY

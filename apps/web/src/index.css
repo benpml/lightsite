@@ -273,7 +273,7 @@ html.gmail-extension-panel #root {
   }
 
   .handout-document-editor .ProseMirror-dropcursor {
-    border-color: var(--color-indigo-500);
+    border-color: var(--selection-border);
     border-width: 1px;
   }
 
@@ -285,8 +285,8 @@ html.gmail-extension-panel #root {
     pointer-events: none;
     border: 1px solid var(--selection-border);
     border-radius: var(--radius-sm);
-    background-color: color-mix(in oklab, var(--selection-border) 8%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--selection-border) 12%, transparent);
+    background-color: var(--selection-background);
+    box-shadow: 0 0 0 1px var(--selection-background);
   }
 
   .handout-editor-marquee-active {
@@ -301,7 +301,7 @@ html.gmail-extension-panel #root {
     height: 1px;
     pointer-events: none;
     border-radius: var(--radius-full);
-    background-color: var(--color-indigo-500);
+    background-color: var(--selection-border);
   }
 
   .handout-editor-block-drag-active {
@@ -1152,15 +1152,15 @@ html.gmail-extension-panel #root {
 
   .handout-editor-icon-card-button {
     @apply flex size-8 items-center justify-center rounded-lg border border-transparent p-0 outline-none transition;
-    background: var(--accent);
-    color: color-mix(in oklab, var(--handout-editor-icon-color) 86%, white);
+    background: var(--handout-icon-background, var(--accent));
+    color: var(--handout-icon-color, var(--muted-foreground));
   }
 
   .handout-editor-icon-card-button:hover,
   .handout-editor-icon-card-button:focus-visible,
   .handout-editor-icon-card-button[aria-expanded="true"] {
     border-color: color-mix(in oklab, var(--handout-editor-icon-color) 32%, transparent);
-    background: color-mix(in oklab, var(--handout-editor-icon-color) 14%, var(--accent));
+    background: var(--handout-icon-background, var(--accent));
   }
 
   .handout-editor-icon-picker {
@@ -1172,7 +1172,7 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor-icon-color-rail {
-    @apply flex w-[38px] shrink-0 flex-col items-center gap-1.5 overflow-hidden py-3;
+    @apply flex w-[38px] shrink-0 flex-col items-center gap-1 overflow-hidden py-2;
     border-right: 1px solid var(--border);
   }
 
@@ -1199,14 +1199,14 @@ html.gmail-extension-panel #root {
 
   .handout-editor-icon-picker-button {
     @apply flex size-[26px] items-center justify-center rounded-md border border-transparent bg-transparent p-0 outline-none transition;
-    color: var(--tertiary-foreground);
+    color: var(--handout-editor-icon-color, var(--tertiary-foreground));
   }
 
   .handout-editor-icon-picker-button:hover,
   .handout-editor-icon-picker-button:focus-visible,
   .handout-editor-icon-picker-button-active {
     background: var(--accent);
-    color: var(--foreground);
+    color: var(--handout-editor-icon-color, var(--foreground));
   }
 
   .handout-editor-icon-picker-button-active {
@@ -1225,6 +1225,11 @@ html.gmail-extension-panel #root {
   .handout-editor-icon-color-button {
     @apply flex size-5 shrink-0 items-center justify-center rounded-full border border-transparent p-0 outline-none transition;
     background: var(--handout-editor-icon-color);
+  }
+
+  .handout-editor-icon-color-button-custom {
+    overflow: hidden;
+    background: transparent;
   }
 
   .handout-editor-icon-color-button:hover,
@@ -1283,6 +1288,10 @@ html.gmail-extension-panel #root {
 
   .handout-editor-icon-color-pink {
     --handout-editor-icon-color: var(--color-pink-foreground);
+    color: var(--handout-editor-icon-color);
+  }
+
+  .handout-editor-icon-color-custom {
     color: var(--handout-editor-icon-color);
   }
 
@@ -1870,6 +1879,11 @@ html.gmail-extension-panel #root {
     background: var(--selection-background);
   }
 
+  .handout-editor .ProseMirror-selectednode[data-handout-icon-list-item],
+  .handout-editor .ProseMirror-selectednoderange[data-handout-icon-list-item] {
+    background: transparent;
+  }
+
   .handout-editor .ProseMirror-noderangeselection::selection {
     background: transparent;
   }
@@ -1933,7 +1947,7 @@ html.gmail-extension-panel #root {
   }
 
   .handout-editor-variable-popover {
-    @apply absolute top-[calc(100%+6px)] left-0 z-50 grid w-[320px] gap-3 rounded-lg border p-3 text-sm shadow-xl;
+    @apply z-50 grid w-[320px] gap-3 rounded-lg border p-3 text-sm shadow-xl;
     background: var(--popover);
     border-color: var(--border);
     color: var(--popover-foreground);
@@ -2235,6 +2249,10 @@ html.gmail-extension-panel #root {
   .handout-editor-highlight-color-button {
     background: var(--handout-editor-highlight-swatch);
     box-shadow: inset 0 0 0 1px var(--handout-editor-highlight-border);
+  }
+
+  .handout-editor-custom-color-button {
+    @apply overflow-hidden;
   }
 
   .handout-editor-highlight-color-button[data-empty="true"] {

@@ -21,6 +21,27 @@ describe("recording replay reconstruction", () => {
     expect(replay.initialOffsetMs).toBe(101)
     expect(replay.durationMs).toBe(300)
   })
+
+  it("skips leading dead air and starts on the first recorded user activity", () => {
+    const replay = buildTrackingRrwebReplay({
+      chunks: [
+        {
+          schemaVersion: 4,
+          sessionId: "session-replay",
+          sequence: 0,
+          events: [
+            { type: 4, timestamp: 1_000, data: {} },
+            { type: 2, timestamp: 1_010, data: {} },
+            { type: 3, timestamp: 8_500, data: { source: 1, positions: [] } },
+          ],
+        },
+      ],
+      manifest: manifest(),
+    })
+
+    expect(replay.initialOffsetMs).toBe(7_501)
+    expect(replay.durationMs).toBe(7_500)
+  })
 })
 
 function manifest(): TrackingV2RecordingManifestResponse {

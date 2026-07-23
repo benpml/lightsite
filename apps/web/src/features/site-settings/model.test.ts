@@ -6,16 +6,39 @@ import {
   getSiteVariableUsageCounts,
   getUniqueSiteVariableKey,
   isDuplicateSiteVariableLabel,
+  primaryColorOptions,
+  resolveSystemSiteVariableDescription,
   SYSTEM_SITE_VARIABLE_IDS,
+  systemSiteVariables,
 } from "./model"
 
 describe("site settings variable model", () => {
+  it("omits teal from the selectable primary color presets", () => {
+    expect(primaryColorOptions.map((option) => option.value)).not.toContain("teal")
+  })
+
   it("keeps the three recipient system variables protected", () => {
     expect([...SYSTEM_SITE_VARIABLE_IDS]).toEqual([
       "recipient-name",
       "recipient-company",
       "recipient_website",
     ])
+  })
+
+  it("uses concise system descriptions and normalizes persisted legacy defaults", () => {
+    expect(systemSiteVariables.map((variable) => variable.description)).toEqual([
+      "Recipient first name",
+      "Recipient company name",
+      "Recipient company website domain",
+    ])
+    expect(resolveSystemSiteVariableDescription(
+      "recipient-name",
+      "The first name of the person receiving this page.",
+    )).toBe("Recipient first name")
+    expect(resolveSystemSiteVariableDescription(
+      "recipient-company",
+      "Custom recipient description",
+    )).toBe("Custom recipient description")
   })
 
   it("counts custom variable uses across every page", () => {

@@ -35,6 +35,7 @@ import { createDbBootstrapRepository } from "./bootstrap/repository";
 import { createBootstrapService, type BootstrapService } from "./bootstrap/service";
 import { env } from "./env";
 import { errorMiddleware, notFoundMiddleware } from "./http/error-middleware";
+import { createOriginAuthMiddleware } from "./http/origin-auth";
 import { createTransactionalEmailSender } from "./email/transactional-email";
 import { requestContextMiddleware } from "./http/request-context";
 import { createMeRouter } from "./me/router";
@@ -57,6 +58,7 @@ import { createSiteRouter } from "./sites/router";
 import { createSiteService, type SiteService } from "./sites/service";
 import { createDbTeamRepository } from "./team/repository";
 import { createTeamRouter } from "./team/router";
+import { createWorkspaceInvitationRouter } from "./team/invitation-router";
 import { createTeamService, type TeamService } from "./team/service";
 import { createPublicTrackingScriptRouter } from "./tracking/public-script";
 import {
@@ -177,6 +179,8 @@ export function createApp(options: CreateAppOptions = {}) {
       })
     : null;
 
+  app.use(createOriginAuthMiddleware(env.ORIGIN_AUTH_SECRET));
+
   app.use(
     cors({
       origin: resolveCorsOrigin,
@@ -193,6 +197,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/.well-known/oauth-authorization-server", (_request, response) => {
     response.setHeader("cache-control", "public, max-age=300").json(authorizationServerMetadata(mcpIssuer, env.WEB_ORIGIN));
   });
+  app.use("/mcp", express.json({ limit: env.API_SITE_CONTENT_JSON_BODY_LIMIT }));
   app.all("/mcp", (request, response) => {
     void handleRemoteMcpRequest(request, response, {
       apiBaseUrl: `http://127.0.0.1:${env.API_PORT}`,
@@ -207,7 +212,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(requestContextMiddleware);
   app.use(
     "/api/billing/webhook",
-    express.raw({ type: "application/json" }),
+    express.raw({ type: "application/json", limit: "256kb" }),
     createBillingWebhookRouter({ billingService: billing }),
   );
   app.use(
@@ -223,6 +228,10 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(
     "/api/sites/:siteId/content",
     express.json({ limit: env.API_SITE_CONTENT_JSON_BODY_LIMIT }),
+  );
+  app.use(
+    "/api/sites/:siteId/variants/batch",
+    express.json({ limit: "2mb" }),
   );
   app.use(
     "/api/workspaces/:workspaceId/logo",
@@ -338,6 +347,13 @@ export function createApp(options: CreateAppOptions = {}) {
     createWorkspaceAssetRouter({
       assetService: assets,
       bootstrapService: bootstrap,
+      getCurrentActor: actorProvider,
+    }),
+  );
+  app.use(
+    "/api/workspace-invitations",
+    createWorkspaceInvitationRouter({
+      teamService: team,
       getCurrentActor: actorProvider,
     }),
   );

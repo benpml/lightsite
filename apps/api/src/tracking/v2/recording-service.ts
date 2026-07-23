@@ -192,6 +192,7 @@ export function createTrackingV2RecordingService(options: {
           eventCount: sanitized.events.length,
           compressedBytes: compressed.byteLength,
           uncompressedBytes: payload.byteLength,
+          hasFullSnapshot: sanitized.events.some((event) => event.type === 2),
           checksumSha256,
           firstEventAt: eventBounds.first,
           lastEventAt: eventBounds.last,
@@ -249,8 +250,15 @@ export function createTrackingV2RecordingService(options: {
         });
         return { status: reconciled?.status ?? "recording" as const };
       }
-      const status = completionStatus(input.complete.stopReason, chunks.length);
-      await options.repository.complete({ ...completion, status });
+      const completedChunks = contiguousPrefix(chunks, completion.finalSequence);
+      const status = completionStatus(input.complete.stopReason, completedChunks);
+      await options.repository.complete({
+        ...completion,
+        status,
+        ...(status === "failed" && !hasReplayableSnapshot(completedChunks)
+          ? { errorCode: "missing_snapshot" }
+          : {}),
+      });
       return { status };
     },
 
@@ -469,10 +477,17 @@ function clampRecordingEnd(candidate: Date, recording: TrackingV2RecordingRecord
   return new Date(Math.min(max, Math.max(min, value)));
 }
 
-function completionStatus(reason: TrackingV2RecordingComplete["stopReason"], chunkCount: number) {
-  if (chunkCount === 0 || reason === "error") return "failed" as const;
+function completionStatus(
+  reason: TrackingV2RecordingComplete["stopReason"],
+  chunks: TrackingV2RecordingChunkRecord[],
+) {
+  if (!hasReplayableSnapshot(chunks) || reason === "error") return "failed" as const;
   if (["duration_cap", "size_cap", "event_cap", "daily_cap"].includes(reason)) return "truncated" as const;
   return "available" as const;
+}
+
+function hasReplayableSnapshot(chunks: TrackingV2RecordingChunkRecord[]) {
+  return chunks.some((chunk) => chunk.hasFullSnapshot === true);
 }
 
 async function failOrTruncate(
@@ -482,11 +497,12 @@ async function failOrTruncate(
   at: Date,
 ) {
   const chunks = await repository.listChunks(recording.id);
-  const finalSequence = contiguousPrefix(chunks, null).at(-1)?.sequence ?? null;
-  const last = chunks.at(-1)?.lastEventAt ?? recording.startedAt;
+  const prefix = contiguousPrefix(chunks, null);
+  const finalSequence = prefix.at(-1)?.sequence ?? null;
+  const last = prefix.at(-1)?.lastEventAt ?? recording.startedAt;
   await repository.complete({
     recordingId: recording.id,
-    status: chunks.length > 0 ? "truncated" : "failed",
+    status: hasReplayableSnapshot(prefix) ? "truncated" : "failed",
     endedAt: last,
     durationMs: Math.max(0, Math.min(recording.maxDurationMs, last.getTime() - recording.startedAt.getTime())),
     stopReason: errorCode.includes("cap") ? errorCode : "error",
@@ -508,15 +524,17 @@ async function settleIfRequested(
   if (!recording || !mutable(recording.status) || !recording.endedAt || !recording.stopReason) return;
   const chunks = await repository.listChunks(recording.id);
   if (!hasContiguousChunks(chunks, recording.finalSequence)) return;
+  const completedChunks = contiguousPrefix(chunks, recording.finalSequence);
   const typedReason = trackingStopReason(recording.stopReason);
+  const hasSnapshot = hasReplayableSnapshot(completedChunks);
   await repository.complete({
     recordingId: recording.id,
-    status: typedReason ? completionStatus(typedReason, chunks.length) : "failed",
+    status: typedReason ? completionStatus(typedReason, completedChunks) : "failed",
     endedAt: recording.endedAt,
     durationMs: recording.durationMs,
     stopReason: recording.stopReason,
     finalSequence: recording.finalSequence,
-    errorCode: recording.errorCode,
+    errorCode: !hasSnapshot ? "missing_snapshot" : recording.errorCode,
     updatedAt: at,
   });
 }

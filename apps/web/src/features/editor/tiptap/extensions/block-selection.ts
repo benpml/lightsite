@@ -5,14 +5,43 @@ import type { EditorState, Selection, SelectionRange, Transaction } from "@tipta
 import { NodeSelection, Plugin, TextSelection } from "@tiptap/pm/state"
 import type { EditorView } from "@tiptap/pm/view"
 
-type BlockRange = {
+export type BlockRange = {
   from: number
   gridCellPos?: number
   to: number
 }
 
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    handoutNextBlockSelection: {
+      deleteHandoutNextSelectedBlocks: () => ReturnType
+    }
+  }
+}
+
 export const HandoutNextBlockSelection = Extension.create({
   name: "handoutNextBlockSelection",
+
+  addCommands() {
+    return {
+      deleteHandoutNextSelectedBlocks:
+        () =>
+        ({ state, dispatch, view }) => {
+          const tr = createDeleteSelectedBlocksTransaction(state)
+
+          if (!tr) {
+            return false
+          }
+
+          if (dispatch) {
+            dispatch(tr)
+            view.focus()
+          }
+
+          return true
+        },
+    }
+  },
 
   addKeyboardShortcuts() {
     return {
@@ -54,14 +83,7 @@ export const HandoutNextBlockSelection = Extension.create({
 })
 
 function deleteSelectedBlocks(view: EditorView) {
-  const { doc, selection } = view.state
-  const blockRanges = getSelectedBlockRanges(doc, selection)
-
-  if (blockRanges.length === 0) {
-    return false
-  }
-
-  const tr = createDeleteBlockRangesTransaction(view.state, blockRanges)
+  const tr = createDeleteSelectedBlocksTransaction(view.state)
 
   if (!tr) {
     return false
@@ -71,6 +93,14 @@ function deleteSelectedBlocks(view: EditorView) {
   view.focus()
 
   return true
+}
+
+export function createDeleteSelectedBlocksTransaction(state: EditorState) {
+  const blockRanges = getSelectedBlockRanges(state.doc, state.selection)
+
+  return blockRanges.length > 0
+    ? createDeleteBlockRangesTransaction(state, blockRanges)
+    : null
 }
 
 function deleteEmptyButtonBlock(view: EditorView) {
@@ -161,7 +191,7 @@ function getEmptyButtonBlockRange(
   return null
 }
 
-function getSelectedBlockRanges(doc: ProseMirrorNode, selection: Selection) {
+export function getSelectedBlockRanges(doc: ProseMirrorNode, selection: Selection) {
   if (isNodeRangeSelection(selection)) {
     return mergeBlockRanges(
       selection.ranges.flatMap((range) => getBlockRangesForSelectionRange(doc, range))

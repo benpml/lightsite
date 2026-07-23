@@ -5,21 +5,21 @@ export const editorVariables: HandoutVariableOption[] = [
     id: "recipient-name",
     name: "Name",
     slug: "name",
-    description: "The first name of the person receiving this page.",
+    description: "Recipient first name",
     defaultValue: "you",
   },
   {
     id: "recipient-company",
     name: "Company",
     slug: "company",
-    description: "The company receiving this page.",
+    description: "Recipient company name",
     defaultValue: "your company",
   },
   {
     id: "recipient_website",
     name: "Website",
     slug: "website",
-    description: "The recipient company's website, used to derive their logo when available.",
+    description: "Recipient company website domain",
   },
 ]
 

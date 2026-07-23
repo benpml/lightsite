@@ -359,6 +359,15 @@ export const createWorkspaceInvitationResponseSchema = z.object({
   requestId: z.string(),
 });
 
+export const redeemWorkspaceInvitationRequestSchema = z.object({
+  code: z.string().trim().min(1).max(64),
+});
+
+export const redeemWorkspaceInvitationResponseSchema = z.object({
+  workspaceId: z.uuid(),
+  requestId: z.string(),
+});
+
 export const updateWorkspaceMemberRequestSchema = z.object({
   role: workspaceRoleSchema,
 });
@@ -515,6 +524,8 @@ export type WorkspaceInvitation = z.infer<typeof workspaceInvitationSchema>;
 export type WorkspaceTeamResponse = z.infer<typeof workspaceTeamResponseSchema>;
 export type CreateWorkspaceInvitationRequest = z.input<typeof createWorkspaceInvitationRequestSchema>;
 export type CreateWorkspaceInvitationResponse = z.infer<typeof createWorkspaceInvitationResponseSchema>;
+export type RedeemWorkspaceInvitationRequest = z.input<typeof redeemWorkspaceInvitationRequestSchema>;
+export type RedeemWorkspaceInvitationResponse = z.infer<typeof redeemWorkspaceInvitationResponseSchema>;
 export type UpdateWorkspaceMemberRequest = z.input<typeof updateWorkspaceMemberRequestSchema>;
 export type UpdateWorkspaceMemberResponse = z.infer<typeof updateWorkspaceMemberResponseSchema>;
 export type BillingInterval = z.infer<typeof billingIntervalSchema>;

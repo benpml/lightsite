@@ -812,6 +812,7 @@ export const trackingRecordingChunks = pgTable(
     eventCount: integer("event_count").notNull(),
     compressedBytes: integer("compressed_bytes").notNull(),
     uncompressedBytes: integer("uncompressed_bytes").notNull(),
+    hasFullSnapshot: boolean("has_full_snapshot"),
     checksumSha256: varchar("checksum_sha256", { length: 64 }).notNull(),
     firstEventAt: timestamp("first_event_at", { withTimezone: true }).notNull(),
     lastEventAt: timestamp("last_event_at", { withTimezone: true }).notNull(),

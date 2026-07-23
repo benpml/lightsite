@@ -5,26 +5,19 @@ const PUBLIC_CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn
 export const SITE_PUBLIC_ID_LENGTH = 12;
 export const RECIPIENT_SHORT_CODE_MIN_LENGTH = 6;
 export const RECIPIENT_SHORT_CODE_MAX_LENGTH = 16;
-export const RECIPIENT_SHORT_CODE_ATTEMPTS_PER_LENGTH = 4;
-export const RECIPIENT_SHORT_CODE_MAX_ALLOCATION_ATTEMPTS =
-  (RECIPIENT_SHORT_CODE_MAX_LENGTH - RECIPIENT_SHORT_CODE_MIN_LENGTH + 1)
-  * RECIPIENT_SHORT_CODE_ATTEMPTS_PER_LENGTH;
+export const RECIPIENT_SHORT_CODE_GENERATED_LENGTH = 16;
+export const RECIPIENT_SHORT_CODE_MAX_ALLOCATION_ATTEMPTS = 16;
 
 export function createSitePublicId() {
   return createPublicCode(SITE_PUBLIC_ID_LENGTH);
 }
 
-export function createRecipientShortCode(attempt = 0) {
-  return createPublicCode(recipientShortCodeLengthForAttempt(attempt));
+export function createRecipientShortCode(_attempt = 0) {
+  return randomBytes(12).toString("base64url");
 }
 
-export function recipientShortCodeLengthForAttempt(attempt: number) {
-  const normalizedAttempt = Math.max(0, Math.floor(attempt));
-  return Math.min(
-    RECIPIENT_SHORT_CODE_MIN_LENGTH
-      + Math.floor(normalizedAttempt / RECIPIENT_SHORT_CODE_ATTEMPTS_PER_LENGTH),
-    RECIPIENT_SHORT_CODE_MAX_LENGTH,
-  );
+export function recipientShortCodeLengthForAttempt(_attempt: number) {
+  return RECIPIENT_SHORT_CODE_GENERATED_LENGTH;
 }
 
 export function isRecipientShortCode(value: string) {

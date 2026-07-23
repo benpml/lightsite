@@ -1,11 +1,17 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { SQL } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
-import { workspaceInvitations, type Database } from "@handout/db";
-import { claimWorkspaceInvitationsForUser } from "./repository";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Database } from "@handout/db";
+import { workspaceInvitations } from "@handout/db/schema";
 
 describe("team repository", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("encodes the invitation expiry cutoff as a Postgres timestamp", async () => {
+    vi.stubEnv("DATABASE_URL", "postgresql://user:password@localhost:5432/handout_test");
+    const { claimWorkspaceInvitationsForUser } = await import("./repository");
     const queries: Array<{ sql: string; params: unknown[] }> = [];
     const database = {
       transaction: async (callback: (transaction: unknown) => Promise<void>) => callback({

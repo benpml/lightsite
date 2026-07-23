@@ -104,7 +104,7 @@ function InternalLoadingState({ chrome }: { chrome: InternalRouteFrameProps["chr
             <Skeleton className="h-7 w-20" />
           </div>
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_303px] gap-1.5">
+        <div className="grid min-h-0 flex-1 grid-cols-[303px_minmax(0,1fr)] gap-1.5">
           <Skeleton className="h-full rounded-xl" />
           <Skeleton className="h-full rounded-xl" />
         </div>

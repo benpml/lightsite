@@ -78,11 +78,11 @@ export function SiteSettingsDrawer({
       )}
       <SheetContent
         aria-describedby={undefined}
-        className="inset-y-1.5! right-1.5! h-[calc(100%-12px)]! w-[384px] max-w-[calc(100vw-12px)] gap-5 overflow-hidden rounded-2xl border-0 bg-background px-4 pt-2 pb-4 sm:max-w-[384px]"
+        className="inset-y-1.5! right-1.5! h-[calc(100%-12px)]! w-[384px] max-w-[calc(100vw-12px)] gap-1 overflow-hidden rounded-2xl bg-background px-0 pt-2 pb-4 sm:max-w-[384px]"
         overlayClassName="bg-black/20 backdrop-blur-none"
         showCloseButton={false}
       >
-        <SheetHeader className="flex h-8 shrink-0 flex-row items-center justify-between rounded-sm px-1.5 py-1.5">
+        <SheetHeader className="flex h-8 shrink-0 flex-row items-center justify-between rounded-sm px-[22px]">
           <SheetTitle className="text-sm leading-5">Site settings</SheetTitle>
           <SheetClose asChild>
             <Button className="-mr-1.5" variant="ghost" size="icon-field" aria-label="Close site settings">
@@ -93,8 +93,8 @@ export function SiteSettingsDrawer({
         {loading ? (
           <SiteSettingsLoadingState />
         ) : (
-          <Tabs defaultValue="appearance" className="min-h-0 flex-1 gap-5">
-            <TabsList variant="line" className="h-[42px]! w-full shrink-0 justify-start gap-2 border-b border-border-subtle p-0">
+          <Tabs defaultValue="appearance" className="min-h-0 flex-1 gap-0">
+            <TabsList variant="line" className="mx-4 h-[42px]! w-auto shrink-0 justify-start gap-2 border-b border-border-subtle p-0">
               <TabsTrigger value="appearance" className="h-full! flex-none -translate-y-0.5 px-1 after:bottom-[-3px]! after:h-px! [&_svg:not([class*='size-'])]:size-3.5">
                 <IconPalette data-icon="inline-start" />
                 Appearance
@@ -144,7 +144,7 @@ export function SiteSettingsDrawer({
 
 function SiteSettingsLoadingState() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5" aria-busy="true" aria-label="Loading site settings">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 px-4" aria-busy="true" aria-label="Loading site settings">
       <div className="flex h-[42px] items-center gap-2 border-b border-border-subtle">
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-5 w-20" />
@@ -163,7 +163,7 @@ function SettingsTab({ children, value }: { children: ReactNode; value: string }
   return (
     <TabsContent value={value} className="min-h-0">
       <ScrollArea className="h-full">
-        <div className="px-px">{children}</div>
+        <div className="px-4 pt-5">{children}</div>
       </ScrollArea>
     </TabsContent>
   )

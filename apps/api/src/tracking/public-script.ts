@@ -112,6 +112,7 @@ export const PUBLIC_TRACKING_V2_SCRIPT = `
     maxSessionTimerId: null,
     queue: [],
     requestId: createId("request"),
+    recorderPending: null,
     recorderStop: null,
     sequence: 0,
     sessionId: null,
@@ -160,14 +161,29 @@ export const PUBLIC_TRACKING_V2_SCRIPT = `
 
   function startRecorder(recording) {
     if (bootstrap.trackingMode !== "events_and_replay" || !recording || recording.enabled !== true) return;
-    import(config.recorderScriptEndpoint).then((module) => {
-      if (state.ended || !module || typeof module.startHandoutRecording !== "function") return;
-      state.recorderStop = module.startHandoutRecording({
+    state.recorderPending = recording;
+    Promise.all([
+      import(config.recorderScriptEndpoint),
+      import(config.rrwebRecordScriptEndpoint)
+    ]).then(([module, rrwebRecordModule]) => {
+      if (state.ended || state.recorderPending !== recording) return;
+      if (!module || typeof module.startHandoutRecording !== "function") throw new Error("Recorder runtime is unavailable.");
+      const recorderStop = module.startHandoutRecording({
         ...recording,
-        rrwebRecordScriptEndpoint: config.rrwebRecordScriptEndpoint,
+        rrwebRecordModule,
         sessionId: state.sessionId
       });
-    }).catch(() => {});
+      if (typeof recorderStop !== "function") {
+        completePendingRecording(recording, "error");
+      } else {
+        state.recorderStop = recorderStop;
+      }
+      state.recorderPending = null;
+    }).catch(() => {
+      if (state.recorderPending !== recording) return;
+      completePendingRecording(recording, "error");
+      state.recorderPending = null;
+    });
   }
 
   function installListeners() {
@@ -263,8 +279,7 @@ export const PUBLIC_TRACKING_V2_SCRIPT = `
   }
 
   function onConsentWithdrawn() {
-    if (typeof state.recorderStop === "function") state.recorderStop("consent_withdrawn");
-    state.recorderStop = null;
+    stopRecording("consent_withdrawn");
     endSession("unknown");
   }
 
@@ -298,10 +313,7 @@ export const PUBLIC_TRACKING_V2_SCRIPT = `
     accrueVisibleTime(endedAt);
     clearTimers();
     window.removeEventListener("handout:tracking-consent-withdrawn", onConsentWithdrawn);
-    if (typeof state.recorderStop === "function") {
-      state.recorderStop(reason === "pagehide" ? "pagehide" : reason === "max_duration" ? "duration_cap" : "hidden_timeout");
-      state.recorderStop = null;
-    }
+    stopRecording(reason === "pagehide" ? "pagehide" : reason === "max_duration" ? "duration_cap" : "hidden_timeout");
     flushEvents(true);
     sendJson(config.sessionEndEndpoint, {
       sessionId: state.sessionId,
@@ -317,6 +329,32 @@ export const PUBLIC_TRACKING_V2_SCRIPT = `
       if (state[key] !== null) window.clearTimeout(state[key]);
       state[key] = null;
     }
+  }
+
+  function stopRecording(reason) {
+    if (typeof state.recorderStop === "function") {
+      state.recorderStop(reason);
+    } else if (state.recorderPending) {
+      completePendingRecording(state.recorderPending, reason);
+    }
+    state.recorderStop = null;
+    state.recorderPending = null;
+  }
+
+  function completePendingRecording(recording, reason) {
+    void fetch(recording.completeEndpoint, {
+      method: "POST",
+      headers: { authorization: "Bearer " + recording.uploadToken, "content-type": "application/json" },
+      body: JSON.stringify({
+        schemaVersion: ${TRACKING_V2_RECORDING_SCHEMA_VERSION},
+        sessionId: state.sessionId,
+        finalSequence: null,
+        endedAt: new Date().toISOString(),
+        stopReason: reason
+      }),
+      credentials: "omit",
+      keepalive: true
+    }).catch(() => {});
   }
 
   function enqueue(event) {
@@ -418,6 +456,7 @@ export function startHandoutRecording(config) {
   if (root) root.dataset.handoutRecordingStarted = "true";
 
   const INPUT_SOURCE = 5;
+  const FULL_SNAPSHOT_TYPE = 2;
   const MASKED_VALUE = "[masked]";
   const MAX_DEPTH = 32;
   const URL_KEYS = new Set(["action", "background", "data", "href", "poster", "src", "srcset", "xlink:href"]);
@@ -441,7 +480,7 @@ export function startHandoutRecording(config) {
   return (reason) => stop(validStopReason(reason) ? reason : "pagehide");
 
   async function start() {
-    const module = await import(config.rrwebRecordScriptEndpoint);
+    const module = config.rrwebRecordModule;
     if (state.stopped || !module || typeof module.record !== "function") return;
     state.flushTimer = window.setInterval(() => {
       if (!flush(false)) stop("size_cap");
@@ -473,6 +512,7 @@ export function startHandoutRecording(config) {
         media: 1000,
         mouseInteraction: true,
         mousemove: 100,
+        mousemoveCallback: 100,
         scroll: 150
       },
       slimDOMOptions: {
@@ -497,6 +537,10 @@ export function startHandoutRecording(config) {
     state.pendingEvents.push(event);
     state.eventCount += 1;
     if (state.eventCount >= maxEvents) return stop("event_cap");
+    if (event.type === FULL_SNAPSHOT_TYPE) {
+      if (!flush(false)) stop("size_cap");
+      return;
+    }
     if (isCheckout || state.pendingEvents.length >= positiveInteger(config.maxEventsPerChunk, 500)) {
       if (!flush(false)) stop("size_cap");
       return;
@@ -507,7 +551,10 @@ export function startHandoutRecording(config) {
   }
 
   function flush(forUnload) {
-    if (state.pendingEvents.length === 0) return true;
+    if (state.pendingEvents.length === 0) {
+      if (state.uploads.length > 0) void drainUploads();
+      return true;
+    }
     const configuredMax = positiveInteger(config.maxChunkBytes, 524288);
     const chunkLimit = forUnload
       ? Math.min(configuredMax, ${TRACKING_V2_RECORDING_KEEPALIVE_MAX_BYTES - TRACKING_V2_RECORDING_TERMINAL_RESERVE_BYTES})
@@ -536,7 +583,7 @@ export function startHandoutRecording(config) {
       state.sequence += 1;
       if (!forUnload) break;
     }
-    if (!forUnload) void drainUploads();
+    void drainUploads();
     return true;
   }
 
@@ -603,7 +650,7 @@ export function startHandoutRecording(config) {
           completion: terminalMetadata(reason, finalSequence)
         });
         terminalUpload.byteLength = textBytes(terminalUpload.text);
-        if (!sendUnloadUpload(terminalUpload)) sendCompletion(reason, state.lastUploadedSequence);
+        if (!sendUnloadUpload(terminalUpload)) sendCompletion(reason, finalSequence);
       } else {
         sendCompletion(reason, state.lastUploadedSequence);
       }

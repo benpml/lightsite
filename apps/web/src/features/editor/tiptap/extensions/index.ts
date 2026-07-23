@@ -51,6 +51,7 @@ import { HandoutGif } from "../nodes/handout-gif"
 import { HandoutImage } from "../nodes/handout-image"
 import { VideoEmbed } from "../nodes/video-embed"
 import { VariableToken } from "../nodes/variable-token"
+import { HandoutNextBlockClipboard } from "./block-clipboard"
 import { HandoutNextBlockCommands } from "./block-commands"
 import { HandoutNextBlockMarqueeSelection } from "./block-marquee-selection"
 import { HandoutNextBlockSelection } from "./block-selection"
@@ -337,6 +338,7 @@ export function createEditorExtensions(
     ButtonBlock,
     CalendarEmbed,
     VideoEmbed,
+    HandoutNextBlockClipboard,
     HandoutNextBlockCommands,
     HandoutNextButtonSettings,
     HandoutNextCalendarEmbedSettings,

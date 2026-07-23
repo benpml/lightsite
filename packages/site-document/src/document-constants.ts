@@ -12,3 +12,7 @@ export const SITE_PRIMARY_COLOR_OPTIONS = [
   "red",
   "pink",
 ] as const;
+
+export const SITE_PRIMARY_COLOR_PRESET_OPTIONS = SITE_PRIMARY_COLOR_OPTIONS.filter(
+  (color) => color !== "teal",
+);

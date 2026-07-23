@@ -157,18 +157,11 @@ async function resolveAndRedirectPublicRecipientLink(input: {
     const result = await resolvePublicRecipientRequest(input);
     if (!result) return;
 
-    void input.options.screenshotService.render({
-      origin: input.options.publicSiteOrigin,
-      payload: result.payload,
-    }).catch(() => {
-      // Warming is best-effort; the canonical image request will retry rendering.
-    });
-
     input.response
       .setHeader("cache-control", "no-store")
       .redirect(302, `/${result.shortCode}?v=${encodeURIComponent(result.version)}`);
   } catch {
-    input.response.status(503).setHeader("cache-control", "no-store").end();
+    sendRetryableUnavailable(input.response);
   }
 }
 
@@ -185,7 +178,7 @@ async function resolveAndRedirectPublicRecipientScreenshot(input: {
       .setHeader("cache-control", "no-store")
       .redirect(302, `/${result.shortCode}/embed.jpg?v=${encodeURIComponent(result.version)}`);
   } catch {
-    input.response.status(503).setHeader("cache-control", "no-store").end();
+    sendRetryableUnavailable(input.response);
   }
 }
 
@@ -194,6 +187,7 @@ async function resolvePublicRecipientRequest(input: {
   request: Request;
   response: Response;
 }) {
+  input.response.setHeader("referrer-policy", "no-referrer");
   const query = input.request.originalUrl.split("?", 2)[1] ?? "";
   if (query.length > MAX_PUBLIC_RECIPIENT_QUERY_LENGTH) {
     input.response.status(414).setHeader("cache-control", "no-store").end();
@@ -234,6 +228,10 @@ async function resolveAndSendShortLinkDocument(input: {
   response: Response;
 }) {
   try {
+    if (!await allowPublicRequest(
+      input,
+      `public-short:${input.request.params.shortCode ?? "unknown"}:${input.request.ip}`,
+    )) return;
     const result = await input.options.publicSiteService.resolveShortLink(
       input.request.params.shortCode ?? "",
     );
@@ -289,6 +287,10 @@ async function resolveAndSendShortLinkScreenshot(input: {
   response: Response;
 }) {
   try {
+    if (!await allowPublicRequest(
+      input,
+      `public-short-image:${input.request.params.shortCode ?? "unknown"}:${input.request.ip}`,
+    )) return;
     const result = await input.options.publicSiteService.resolveShortLink(
       input.request.params.shortCode ?? "",
     );
@@ -305,7 +307,7 @@ async function resolveAndSendShortLinkScreenshot(input: {
       result,
     });
   } catch {
-    input.response.status(503).setHeader("cache-control", "no-store").end();
+    sendRetryableUnavailable(input.response);
   }
 }
 
@@ -329,11 +331,33 @@ async function resolveAndSendPublicSiteScreenshot(input: {
     const result = await input.options.publicSiteService.resolve(input.input);
     await sendResolvedPublicSiteScreenshot({ ...input, result });
   } catch {
-    input.response
-      .status(503)
-      .setHeader("cache-control", "no-store")
-      .end();
+    sendRetryableUnavailable(input.response);
   }
+}
+
+function sendRetryableUnavailable(response: Response) {
+  response
+    .status(503)
+    .setHeader("cache-control", "no-store")
+    .setHeader("retry-after", "5")
+    .end();
+}
+
+async function allowPublicRequest(
+  input: Pick<Parameters<typeof resolveAndSendShortLinkDocument>[0], "options" | "request" | "response">,
+  key: string,
+) {
+  const result = await input.options.trackingRateLimiter?.check({
+    key,
+    eventCount: 1,
+  });
+  if (!result || result.allowed) return true;
+  input.response
+    .status(429)
+    .setHeader("cache-control", "no-store")
+    .setHeader("retry-after", String(result.retryAfterSeconds))
+    .end();
+  return false;
 }
 
 async function sendResolvedPublicSiteScreenshot(input: {

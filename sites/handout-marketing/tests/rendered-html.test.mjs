@@ -189,6 +189,45 @@ test("server-renders the monthly pricing page and preserves both billing states"
   assert.match(frame, /<SectionCellDivider|function SectionCellDivider/);
 });
 
+test("server-renders the legal documents and exposes them site-wide", async () => {
+  const [privacyResponse, termsResponse, sitemapResponse] = await Promise.all([
+    render("/privacy"),
+    render("/terms"),
+    render("/sitemap.xml"),
+  ]);
+
+  assert.equal(privacyResponse.status, 200);
+  const privacyHtml = await privacyResponse.text();
+  assert.match(privacyHtml, /<title>Privacy Policy — Handout<\/title>/i);
+  assert.match(privacyHtml, /Visitors to customer-created sites/);
+  assert.match(privacyHtml, /Session replay/);
+  assert.match(privacyHtml, /Your privacy rights/);
+  assert.match(privacyHtml, /Service providers and subprocessors/);
+  assert.match(privacyHtml, /href="\/terms"/);
+
+  assert.equal(termsResponse.status, 200);
+  const termsHtml = await termsResponse.text();
+  assert.match(termsHtml, /<title>Terms of Service — Handout<\/title>/i);
+  assert.match(termsHtml, /Session Replay Addendum/);
+  assert.match(termsHtml, /Data Processing Addendum/);
+  assert.match(termsHtml, /Limitation of liability/);
+  assert.match(termsHtml, /Standard Contractual Clauses/);
+  assert.match(termsHtml, /href="\/privacy"/);
+
+  assert.equal(sitemapResponse.status, 200);
+  const sitemapXml = await sitemapResponse.text();
+  assert.match(sitemapXml, /https:\/\/www\.handout\.link\/privacy/);
+  assert.match(sitemapXml, /https:\/\/www\.handout\.link\/terms/);
+
+  const footer = await readFile(
+    new URL("../components/layout/site-footer.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(footer, /title: "Legal"/);
+  assert.match(footer, /href: "\/privacy"/);
+  assert.match(footer, /href: "\/terms"/);
+});
+
 test("server-renders the data-driven examples page", async () => {
   const response = await render("/examples");
   assert.equal(response.status, 200);

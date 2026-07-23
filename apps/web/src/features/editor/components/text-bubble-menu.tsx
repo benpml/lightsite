@@ -29,6 +29,8 @@ import {
 } from "@tabler/icons-react"
 import { useEffect, useRef, useState } from "react"
 
+import { ColorPickerMenu } from "@/components/common/color-picker-menu"
+import { ColorSpectrumSwatch } from "@/components/common/color-spectrum-swatch"
 import { Button } from "@/components/ui/button"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 
@@ -57,6 +59,8 @@ type TextTypeOption = {
   label: string
   run: (editor: Editor) => void
 }
+
+const DEFAULT_CUSTOM_MARK_COLOR = "#755bde"
 
 const textTypeOptions: TextTypeOption[] = [
   {
@@ -157,6 +161,8 @@ const emptyTextBubbleMenuState = {
 
 export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
   const [activePanel, setActivePanel] = useState<BubblePanel>(null)
+  const [customHighlightColor, setCustomHighlightColor] = useState(DEFAULT_CUSTOM_MARK_COLOR)
+  const [customTextColor, setCustomTextColor] = useState(DEFAULT_CUSTOM_MARK_COLOR)
   const [linkHref, setLinkHref] = useState("")
   const [linkError, setLinkError] = useState<string | null>(null)
   const linkInputRef = useRef<HTMLInputElement>(null)
@@ -186,6 +192,14 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
       }
     },
   })
+  const customHighlightColorActive = isCustomHighlightColor(editorState.highlightColor)
+  const customTextColorActive = isCustomTextColor(editorState.textColor)
+  const customHighlightPickerValue = isSixDigitHexColor(editorState.highlightColor)
+    ? editorState.highlightColor
+    : customHighlightColor
+  const customTextPickerValue = isSixDigitHexColor(editorState.textColor)
+    ? editorState.textColor
+    : customTextColor
 
   useEffect(() => {
     if (activePanel === "link") {
@@ -216,6 +230,13 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
     }
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-handout-color-picker-menu]")
+      ) {
+        return
+      }
+
       if (event.target instanceof Node && bubbleRef.current?.contains(event.target)) {
         return
       }
@@ -320,6 +341,16 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
     }
 
     setActivePanel(null)
+  }
+
+  const setCustomTextColorMark = (value: string) => {
+    setCustomTextColor(value)
+    editor.chain().setColor(value).run()
+  }
+
+  const setCustomHighlightColorMark = (value: string) => {
+    setCustomHighlightColor(value)
+    editor.chain().setHighlight({ color: value }).run()
   }
 
   const clearFormatting = () => {
@@ -443,6 +474,29 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
                   onSelect={() => setTextColor(option.value)}
                 />
               ))}
+              <ColorPickerMenu
+                align="center"
+                description="Applied directly to the selected text."
+                title="Custom text color"
+                value={customTextPickerValue}
+                onValueChange={setCustomTextColorMark}
+              >
+                <button
+                  type="button"
+                  aria-label="Custom text color"
+                  className="handout-editor-text-color-button handout-editor-custom-color-button"
+                  data-active={customTextColorActive}
+                  onMouseDown={(event) => event.preventDefault()}
+                  style={
+                    {
+                      "--handout-editor-color-ring": "var(--border)",
+                      "--handout-editor-color-value": "var(--popover-foreground)",
+                    } as React.CSSProperties
+                  }
+                >
+                  <ColorSpectrumSwatch className="size-full" />
+                </button>
+              </ColorPickerMenu>
             </ColorSection>
             <ColorSection label="Highlight color">
               {highlightColors.map((option) => (
@@ -453,6 +507,30 @@ export function EditorTextBubbleMenu({ editor }: EditorTextBubbleMenuProps) {
                   onSelect={() => setHighlightColor(option.value)}
                 />
               ))}
+              <ColorPickerMenu
+                align="center"
+                description="Applied directly behind the selected text."
+                title="Custom highlight color"
+                value={customHighlightPickerValue}
+                onValueChange={setCustomHighlightColorMark}
+              >
+                <button
+                  type="button"
+                  aria-label="Custom highlight color"
+                  className="handout-editor-highlight-color-button handout-editor-custom-color-button"
+                  data-active={customHighlightColorActive}
+                  onMouseDown={(event) => event.preventDefault()}
+                  style={
+                    {
+                      "--handout-editor-highlight-border": "var(--border)",
+                      "--handout-editor-highlight-swatch": "transparent",
+                      "--handout-editor-highlight-value": "transparent",
+                    } as React.CSSProperties
+                  }
+                >
+                  <ColorSpectrumSwatch className="size-full" />
+                </button>
+              </ColorPickerMenu>
             </ColorSection>
           </div>
         ) : null}
@@ -752,6 +830,20 @@ function highlightValuesMatch(currentValue: string, option: HighlightColorOption
     normalizedValue === option.value.toLowerCase() ||
     normalizedValue === option.swatch?.toLowerCase()
   )
+}
+
+function isCustomTextColor(value: string) {
+  return Boolean(value && !textColors.some((option) => colorValuesMatch(value, option.value)))
+}
+
+function isCustomHighlightColor(value: string) {
+  return Boolean(
+    value && !highlightColors.some((option) => highlightValuesMatch(value, option)),
+  )
+}
+
+function isSixDigitHexColor(value: string) {
+  return /^#[0-9a-f]{6}$/i.test(value)
 }
 
 function createTextColorOption(label: string, colorName: string): TextColorOption {

@@ -115,6 +115,7 @@ describe("tracking v2 retention", () => {
       eventCount: 1,
       compressedBytes: 5,
       uncompressedBytes: 5,
+      hasFullSnapshot: true,
       checksumSha256: "a".repeat(64),
       firstEventAt: startedAt,
       lastEventAt: startedAt,

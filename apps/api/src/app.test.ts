@@ -40,7 +40,12 @@ import {
   type SiteVersionRecord,
 } from "./sites/repository";
 import { createSiteService } from "./sites/service";
-import { createMemoryTeamRepository, type TeamMemberRecord } from "./team/repository";
+import {
+  createMemoryTeamRepository,
+  type TeamInvitationRecord,
+  type TeamMemberRecord,
+} from "./team/repository";
+import { encodeWorkspaceInviteCode } from "./team/invite-code";
 import { createTeamService, type TeamService } from "./team/service";
 import {
   createLogoDevPreviewService,
@@ -78,9 +83,9 @@ function createTestApp(input: {
   const actor = "actor" in input ? (input.actor ?? null) : testActor;
 
   return createApp({
-    ...(input.billing ? { billing: input.billing } : {}),
+    billing: input.billing ?? createFakeBillingService(),
     bootstrap: createBootstrapService(createMemoryBootstrapRepository(input.bootstrap)),
-    ...(input.logoPreview ? { logoPreview: input.logoPreview } : {}),
+    logoPreview: input.logoPreview ?? createLogoDevPreviewService(undefined),
     publicSites:
       input.publicSites ??
       createPublicSiteService(createUnavailablePublicSiteRepository()),
@@ -459,6 +464,37 @@ describe("Handout API", () => {
     ]);
   });
 
+  it("redeems a workspace invitation code for its signed-in recipient", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111112";
+    const invitation: TeamInvitationRecord = {
+      id: "22222222-2222-4222-8222-222222222223",
+      workspaceId,
+      email: testActor.email,
+      role: "user",
+      status: "pending",
+      invitedByName: "Ada Admin",
+      createdAt: new Date("2026-07-14T16:00:00.000Z"),
+      expiresAt: new Date("2026-08-01T16:00:00.000Z"),
+    };
+    const team = createTeamService(createMemoryTeamRepository({
+      invitations: [invitation],
+      users: [{ id: testActor.userId, email: testActor.email }],
+    }), {
+      now: () => new Date("2026-07-23T16:00:00.000Z"),
+    });
+    const app = createTestApp({ team });
+
+    const response = await request(app)
+      .post("/api/workspace-invitations/redeem")
+      .send({ code: encodeWorkspaceInviteCode(invitation.id) })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      workspaceId,
+      requestId: expect.any(String),
+    });
+  });
+
   it("uses the dev bootstrap with the configured site service when the local bypass header is present", async () => {
     const app = createTestApp({
       actor: null,
@@ -751,6 +787,7 @@ describe("Handout API", () => {
       ...defaultSiteDefaults,
       themeMode: "light" as const,
       primaryColor: "blue" as const,
+      customPrimaryColor: "#fff5d2",
       trackingEnabled: false,
     };
 
@@ -1411,7 +1448,7 @@ describe("Handout API", () => {
     });
   });
 
-  it("accepts bounded embedded images above the default JSON request limit", async () => {
+  it("rejects newly embedded image data without breaking legacy drafts that already contain it", async () => {
     const workspace = buildWorkspace({ plan: "core" });
     const site = buildMemorySite({ workspaceId: workspace.id });
     const app = createTestAppWithActiveWorkspace({
@@ -1420,24 +1457,44 @@ describe("Handout API", () => {
     });
     const embeddedImage = `data:image/webp;base64,${"a".repeat(300_000)}`;
 
+    const nextDraftContent = buildDraftContent({
+      document: {
+        type: "doc",
+        content: [{
+          type: "image",
+          attrs: { src: embeddedImage },
+        }],
+      },
+    });
     const response = await request(app)
       .put(`/api/sites/${site.id}/content`)
       .send({
         expectedDraftRevision: 1,
-        draftContent: buildDraftContent({
-          document: {
-            type: "doc",
-            content: [{
-              type: "image",
-              attrs: { src: embeddedImage },
-            }],
-          },
-        }),
+        draftContent: nextDraftContent,
+      })
+      .expect(400);
+
+    expect(response.body.error.message).toContain("Inline image data cannot be added");
+
+    const legacySite = buildMemorySite({
+      id: "legacy-inline-site",
+      workspaceId: workspace.id,
+      draftContent: nextDraftContent,
+    });
+    const legacyApp = createTestAppWithActiveWorkspace({
+      workspace,
+      sites: [legacySite],
+    });
+    await request(legacyApp)
+      .put(`/api/sites/${legacySite.id}/content`)
+      .send({
+        expectedDraftRevision: 1,
+        draftContent: {
+          ...nextDraftContent,
+          themeMode: "light",
+        },
       })
       .expect(200);
-
-    expect(response.body.draftContent.pages[0].document.content[0].attrs.src)
-      .toBe(embeddedImage);
   });
 
   it("blocks drafts with too many tab blocks before saving", async () => {
@@ -1470,6 +1527,29 @@ describe("Handout API", () => {
 
     expect(response.body.error).toMatchObject({
       code: "site.invalid_payload",
+    });
+  });
+
+  it("rejects excessively deep content before recursive schema validation", async () => {
+    const workspace = buildWorkspace({ plan: "core" });
+    const site = buildMemorySite({ workspaceId: workspace.id });
+    const app = createTestAppWithActiveWorkspace({ workspace, sites: [site] });
+    let nested: TiptapNode = { type: "paragraph" };
+    for (let depth = 0; depth < 70; depth += 1) {
+      nested = { type: "blockquote", content: [nested] };
+    }
+
+    const response = await request(app)
+      .put(`/api/sites/${site.id}/content`)
+      .send({
+        expectedDraftRevision: 1,
+        draftContent: buildDraftContent({ document: { type: "doc", content: [nested] } }),
+      })
+      .expect(422);
+
+    expect(response.body.error).toMatchObject({
+      code: "site.content_limit_reached",
+      message: expect.stringContaining("nested"),
     });
   });
 
@@ -2142,7 +2222,7 @@ describe("Handout API", () => {
 
     expect(response.body.error).toMatchObject({
       code: "site.limit_reached",
-      message: "Free workspaces can create up to 10 draft sites. Upgrade to publish more.",
+      message: "Free workspaces can retain up to 10 sites. Upgrade to create another site.",
       requestId: expect.any(String),
     });
   });
@@ -2585,6 +2665,35 @@ describe("Handout API", () => {
       requestId: expect.any(String),
     });
     expect(response.body.membership.workspaceId).toBe(response.body.workspace.id);
+  });
+
+  it("saves a detected logo.dev image as the new workspace logo", async () => {
+    const dataBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    const app = createTestApp({
+      logoPreview: {
+        async getPreview() {
+          return { enabled: true, domain: "acme.com", imageUrl: "/logo-preview" };
+        },
+        async fetchImage() {
+          return {
+            body: new Uint8Array(Buffer.from(dataBase64, "base64")),
+            contentType: "image/png",
+            cacheControl: "private, max-age=60",
+          };
+        },
+      },
+    });
+
+    const response = await request(app)
+      .post("/api/workspaces")
+      .send({ name: "Acme Sales", website: "acme.com" })
+      .expect(201);
+
+    expect(response.body.workspace.logoAssetId).toEqual(expect.any(String));
+    await request(app)
+      .get(`/api/workspaces/logo-assets/${response.body.workspace.logoAssetId}`)
+      .expect("Content-Type", "image/png")
+      .expect(200);
   });
 
   it("requires auth before creating a workspace", async () => {

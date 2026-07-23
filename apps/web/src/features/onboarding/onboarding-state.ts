@@ -1,5 +1,5 @@
 import type { AppBootstrapResponse } from "@handout/contracts"
-import { validateWorkEmail } from "@handout/domain"
+import { isPersonalEmailDomain, validateEmail } from "@handout/domain"
 
 export type OnboardingStep = "verify_email" | "account" | "workspace"
 
@@ -28,13 +28,13 @@ export function getDefaultAccountName(bootstrap: AppBootstrapResponse) {
 }
 
 export function getDefaultWorkspaceName(email: string) {
-  const validation = validateWorkEmail(email)
+  const validation = getWorkspaceEmailDomain(email)
 
-  if (!validation.ok) {
+  if (!validation) {
     return "My Workspace"
   }
 
-  const companyLabel = validation.domain.split(".")[0]?.replace(/[-_]+/g, " ").trim()
+  const companyLabel = validation.split(".")[0]?.replace(/[-_]+/g, " ").trim()
 
   if (!companyLabel) {
     return "My Workspace"
@@ -44,4 +44,22 @@ export function getDefaultWorkspaceName(email: string) {
     .split(/\s+/)
     .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
     .join(" ")
+}
+
+export function getDefaultWorkspaceWebsite(email: string) {
+  return getWorkspaceEmailDomain(email) ?? ""
+}
+
+export function splitAccountName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return {
+    firstName: parts.shift() ?? "",
+    lastName: parts.join(" "),
+  }
+}
+
+function getWorkspaceEmailDomain(email: string) {
+  const validation = validateEmail(email)
+  if (!validation.ok || isPersonalEmailDomain(validation.domain)) return null
+  return validation.domain
 }

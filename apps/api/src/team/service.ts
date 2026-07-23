@@ -7,6 +7,10 @@ import type {
   TeamRepository,
   TeamRole,
 } from "./repository";
+import {
+  decodeWorkspaceInviteCode,
+  encodeWorkspaceInviteCode,
+} from "./invite-code";
 
 const INVITATION_LIFETIME_MS = 14 * 24 * 60 * 60 * 1_000;
 
@@ -43,6 +47,10 @@ export interface TeamService {
     email: string;
     role: TeamRole;
   }): Promise<"member_added" | "invitation_created">;
+  redeemInvitation(input: {
+    actor: CurrentActor;
+    code: string;
+  }): Promise<{ workspaceId: string }>;
   updateMemberRole(input: {
     actor: CurrentActor;
     workspaceId: string;
@@ -103,6 +111,13 @@ export class TeamInvitationValidationError extends Error {
     super(input.message);
     this.name = "TeamInvitationValidationError";
     this.code = input.code;
+  }
+}
+
+export class TeamInvitationCodeError extends Error {
+  constructor() {
+    super("That workspace invite code is invalid or expired.");
+    this.name = "TeamInvitationCodeError";
   }
 }
 
@@ -169,7 +184,7 @@ export function createTeamService(
         return "member_added";
       }
 
-      await repository.upsertInvitation({
+      const invitation = await repository.upsertInvitation({
         workspaceId: input.workspaceId,
         email: emailResult.email,
         role: input.role,
@@ -180,16 +195,33 @@ export function createTeamService(
 
       if (options.email) {
         const workspaceName = await repository.findWorkspaceName(input.workspaceId);
+        const code = encodeWorkspaceInviteCode(invitation.id);
+        const joinPath = `/onboarding/join?code=${encodeURIComponent(code)}`;
         await options.email.sendWorkspaceInvitation({
           email: emailResult.email,
           inviterName: input.actor.name?.trim() || input.actor.email,
           workspaceName: workspaceName ?? "Handout workspace",
           role: input.role,
-          acceptUrl: `${options.webOrigin ?? "http://localhost:5173"}/auth?mode=sign-up`,
+          acceptUrl: `${options.webOrigin ?? "http://localhost:5173"}/auth?mode=sign-up&returnTo=${encodeURIComponent(joinPath)}`,
         });
       }
 
       return "invitation_created";
+    },
+
+    async redeemInvitation(input) {
+      const invitationId = decodeWorkspaceInviteCode(input.code);
+      if (!invitationId) throw new TeamInvitationCodeError();
+
+      const workspaceId = await repository.claimInvitationByIdForUser({
+        invitationId,
+        userId: input.actor.userId,
+        email: input.actor.email,
+        now: now(),
+      });
+      if (!workspaceId) throw new TeamInvitationCodeError();
+
+      return { workspaceId };
     },
 
     async updateMemberRole(input) {

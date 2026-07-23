@@ -11,6 +11,7 @@ import {
   getUniqueSiteVariableKey,
   normalizeSiteVariableLabel,
   SYSTEM_SITE_VARIABLE_IDS,
+  systemSiteVariables,
 } from "@/features/site-settings/model"
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
@@ -73,22 +74,7 @@ export function SiteDetailsSettingsDrawer({
   const editVariable = useCallback((variableId: string, input: VariableInput) => {
     updateContent((currentContent) => ({
       ...currentContent,
-      variables: currentContent.variables.map((variable) =>
-        variable.id === variableId
-          ? {
-              ...variable,
-              defaultValue: typeof input.defaultValue === "string" ? input.defaultValue : "",
-              description: input.description?.trim() || undefined,
-              key: input.label === variable.label
-                ? variable.key
-                : getUniqueSiteVariableKey(
-                    input.label,
-                    currentContent.variables.filter((candidate) => candidate.id !== variableId),
-                  ),
-              label: normalizeSiteVariableLabel(input.label),
-            }
-          : variable,
-      ),
+      variables: updateVariableDefinition(currentContent.variables, variableId, input),
     }))
   }, [updateContent])
 
@@ -145,5 +131,49 @@ export function SiteDetailsSettingsDrawer({
       variables={content.variables}
       workspaceId={workspaceId}
     />
+  )
+}
+
+function updateVariableDefinition(
+  variables: SiteVariableDefinition[],
+  variableId: string,
+  input: VariableInput,
+) {
+  const systemVariable = systemSiteVariables.find((variable) => variable.id === variableId)
+  const defaultValue = typeof input.defaultValue === "string" ? input.defaultValue : ""
+  const description = input.description?.trim() || undefined
+
+  if (systemVariable) {
+    const savedVariable = variables.find((variable) => variable.id === variableId)
+    const nextVariable = {
+      ...(savedVariable ?? systemVariable),
+      defaultValue,
+      description,
+      id: systemVariable.id,
+      key: systemVariable.key,
+      label: systemVariable.label,
+      type: systemVariable.type,
+    }
+
+    return savedVariable
+      ? variables.map((variable) => variable.id === variableId ? nextVariable : variable)
+      : [...variables, nextVariable]
+  }
+
+  return variables.map((variable) =>
+    variable.id === variableId
+      ? {
+          ...variable,
+          defaultValue,
+          description,
+          key: input.label === variable.label
+            ? variable.key
+            : getUniqueSiteVariableKey(
+                input.label,
+                variables.filter((candidate) => candidate.id !== variableId),
+              ),
+          label: normalizeSiteVariableLabel(input.label),
+        }
+      : variable,
   )
 }

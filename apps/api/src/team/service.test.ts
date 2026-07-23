@@ -8,8 +8,10 @@ import {
 import {
   createTeamService,
   TeamAdminRequiredError,
+  TeamInvitationCodeError,
   TeamMemberConflictError,
 } from "./service";
+import { encodeWorkspaceInviteCode } from "./invite-code";
 
 vi.hoisted(() => {
   process.env.DATABASE_URL ??= "postgres://postgres:postgres@localhost:5432/handout";
@@ -116,13 +118,55 @@ describe("team service", () => {
       role: "user",
     });
 
+    const invitation = (await service.getTeam({ actor: adminActor, workspaceId })).invitations[0]!;
+    const code = encodeWorkspaceInviteCode(invitation.id);
+
     expect(sendWorkspaceInvitation).toHaveBeenCalledWith({
       email: "new@acme.com",
       inviterName: "Ada Admin",
       workspaceName: "Acme Sales",
       role: "user",
-      acceptUrl: "https://app.handout.link/auth?mode=sign-up",
+      acceptUrl: `https://app.handout.link/auth?mode=sign-up&returnTo=${encodeURIComponent(`/onboarding/join?code=${code}`)}`,
     });
+  });
+
+  it("redeems an invitation code for the matching signed-in email", async () => {
+    const invitedActor: CurrentActor = {
+      userId: "user_invited",
+      email: "invited@acme.com",
+      emailVerified: true,
+      name: "Ivy Invited",
+    };
+    const invitation = buildInvitation({ email: invitedActor.email });
+    const repository = createMemoryTeamRepository({
+      members: [buildMember()],
+      invitations: [invitation],
+      users: [{ id: invitedActor.userId, email: invitedActor.email }],
+    });
+    const service = createTeamService(repository, { now: () => now });
+
+    await expect(service.redeemInvitation({
+      actor: invitedActor,
+      code: encodeWorkspaceInviteCode(invitation.id),
+    })).resolves.toEqual({ workspaceId });
+
+    const team = await service.getTeam({ actor: adminActor, workspaceId });
+    expect(team.members.map((member) => member.email)).toContain(invitedActor.email);
+    expect(team.invitations).toEqual([]);
+  });
+
+  it("does not redeem an invite code for another email", async () => {
+    const invitation = buildInvitation();
+    const repository = createMemoryTeamRepository({
+      members: [buildMember()],
+      invitations: [invitation],
+    });
+    const service = createTeamService(repository, { now: () => now });
+
+    await expect(service.redeemInvitation({
+      actor: adminActor,
+      code: encodeWorkspaceInviteCode(invitation.id),
+    })).rejects.toBeInstanceOf(TeamInvitationCodeError);
   });
 
   it("allows personal email domains and plus aliases in invitations", async () => {

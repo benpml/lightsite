@@ -21,7 +21,12 @@ import {
   SITE_DOCUMENT_EXTENSIONS,
   SITE_DOCUMENT_PROSEMIRROR_SCHEMA,
 } from "./tiptap/site-extensions";
-import { normalizeSiteIconColor, renderSiteIconSvg } from "./site-icons";
+import {
+  getSiteIconColorVariables,
+  normalizeSiteIconColor,
+  renderSiteIconSvg,
+} from "./site-icons";
+import { getSitePrimaryColorVariables } from "./primary-color";
 
 import {
   getSiteMetadata,
@@ -56,9 +61,9 @@ export type RenderPublicSiteOptions = {
 };
 
 export const PUBLIC_SITE_LOGO_ENDPOINT = "/api/public/site-logo" as const;
-export const PUBLIC_SITE_RUNTIME_PATH = "/site-runtime.v6.js" as const;
+export const PUBLIC_SITE_RUNTIME_PATH = "/site-runtime.v7.js" as const;
 export const HANDOUT_LOGO_MARK_PATH = "/handout-logo-icon.svg" as const;
-export const PUBLIC_SITE_PREVIEW_RENDER_VERSION = 2 as const;
+export const PUBLIC_SITE_PREVIEW_RENDER_VERSION = 3 as const;
 /**
  * Shared iframe capability contract for generated site documents.
  *
@@ -128,7 +133,10 @@ export function renderPublicSiteHtml(
     ? trackingScript
     : "";
   const theme = resolveTheme(payload.content.themeMode);
-  const primaryStyle = getPrimaryColorStyle(payload.content.settings.primaryColor);
+  const primaryStyle = getPrimaryColorStyle(
+    payload.content.settings.primaryColor,
+    payload.content.settings.customPrimaryColor,
+  );
 
   return `<!doctype html>
 <html lang="en" class="${theme}" data-handout-public-site="" style="${attr(primaryStyle)}">
@@ -293,9 +301,10 @@ function createNodeMapping(context: RenderContext): Record<string, (props: NodeR
   return {
     doc: ({ children }) => `<div class="handout-prosemirror">${childrenText(children)}</div>`,
     text: ({ node }) => text(resolveTemplate(node.text ?? "", context.values)),
-    paragraph: ({ children, node }) => childrenText(children)
-      ? wrap("p", "handout-paragraph", children, nodeId(node))
-      : "",
+    paragraph: ({ children, node }) => renderVariableListParagraph(node, context.values)
+      ?? (childrenText(children)
+        ? wrap("p", "handout-paragraph", children, nodeId(node))
+        : ""),
     heading: ({ children, node }) => {
       const level = node.attrs?.level === 1 || node.attrs?.level === 3 ? node.attrs.level : 2;
       return wrap(`h${level}`, `handout-heading handout-heading-${level}`, children, nodeId(node));
@@ -316,13 +325,13 @@ function createNodeMapping(context: RenderContext): Record<string, (props: NodeR
     pageTitleTitle: ({ children }) => wrap("h1", "handout-page-title-heading", children),
     pageTitleSubtitle: ({ children }) => wrap("p", "handout-page-title-subtitle", children),
     iconList: ({ children, node }) => wrap("ul", "handout-icon-list", children, nodeId(node)),
-    iconListItem: ({ children, node }) => `<li class="handout-icon-list-item"${nodeId(node)}><span class="handout-icon-tile" data-icon-color="${normalizeSiteIconColor(node.attrs?.iconColor)}">${icon(stringAttr(node.attrs?.icon, "box"))}</span><div>${childrenText(children)}</div></li>`,
+    iconListItem: ({ children, node }) => `<li class="handout-icon-list-item"${nodeId(node)}><span class="handout-icon-tile"${renderIconColorAttributes(node.attrs?.iconColor)}>${icon(stringAttr(node.attrs?.icon, "box"))}</span><div>${childrenText(children)}</div></li>`,
     image: ({ node }) => renderImage(node, "handout-image-block"),
     gifBlock: ({ node }) => renderImage(node, "handout-image-block handout-gif-block"),
     imageCard: ({ children, node }) => renderImageCard(node, children, context),
     imageCardTitle: ({ children }) => wrap("h3", "handout-card-title", children),
     imageCardBody: ({ children }) => wrap("p", "handout-card-body", children),
-    iconCard: ({ children, node }) => `<article class="handout-icon-card"${nodeId(node)}><span class="handout-card-icon" data-icon-color="${normalizeSiteIconColor(node.attrs?.iconColor)}">${icon(stringAttr(node.attrs?.icon, "bolt"))}</span><div class="handout-card-copy">${childrenText(children)}</div></article>`,
+    iconCard: ({ children, node }) => `<article class="handout-icon-card"${nodeId(node)}><span class="handout-card-icon"${renderIconColorAttributes(node.attrs?.iconColor)}>${icon(stringAttr(node.attrs?.icon, "bolt"))}</span><div class="handout-card-copy">${childrenText(children)}</div></article>`,
     iconCardTitle: ({ children }) => wrap("h3", "handout-card-title", children),
     iconCardBody: ({ children }) => wrap("p", "handout-card-body", children),
     testimonialCard: ({ children, node }) => renderTestimonial(node, children),
@@ -532,12 +541,23 @@ function renderEmptyPage() {
   return `<div class="handout-empty-page"><h1>This page is empty</h1></div>`;
 }
 
-export function getPrimaryColorStyle(color: SiteContent["settings"]["primaryColor"]) {
-  if (color === "neutral") {
-    return "--handout-primary:var(--foreground,var(--primary));--handout-primary-foreground:var(--background,var(--primary-foreground));--handout-primary-soft:var(--accent,var(--muted));--handout-sidebar-link-icon:var(--blue-foreground,var(--link))";
-  }
+export function getPrimaryColorStyle(
+  color: SiteContent["settings"]["primaryColor"],
+  customColor?: SiteContent["settings"]["customPrimaryColor"],
+) {
+  return Object.entries(getSitePrimaryColorVariables(color, customColor))
+    .map(([name, value]) => `${name}:${value}`)
+    .join(";");
+}
 
-  return `--handout-primary:var(--${color}-foreground,var(--primary));--handout-primary-foreground:var(--background,var(--primary-foreground));--handout-primary-soft:var(--${color}-background-subtle,var(--accent));--handout-sidebar-link-icon:var(--${color}-foreground,var(--link))`;
+function renderIconColorAttributes(value: unknown) {
+  const color = normalizeSiteIconColor(value);
+  const variables = getSiteIconColorVariables(color);
+  const style = variables
+    ? ` style="${attr(Object.entries(variables).map(([name, role]) => `${name}:${role}`).join(";"))}"`
+    : "";
+
+  return ` data-icon-color="${attr(color)}"${style}`;
 }
 
 function renderTrackingConsent(payload: PublishedSitePayload, hasTracking: boolean) {
@@ -553,12 +573,42 @@ function renderTrackingConsent(payload: PublishedSitePayload, hasTracking: boole
     : `<button class="handout-consent-button" type="button" data-handout-consent="deny">Deny and proceed</button><button class="handout-consent-button handout-consent-button-primary" type="button" data-handout-consent="allow">Allow and proceed</button>`;
   const bootstrap = JSON.stringify(payload.trackingV2);
 
-  return `<aside class="handout-consent-popup" role="dialog" aria-modal="true" data-handout-consent-popup="${attr(popup)}" data-handout-consent-site-id="${attr(payload.site.id)}" data-handout-consent-notice-version="${TRACKING_V2_VISITOR_NOTICE_VERSION}" data-handout-consent-script-src="${TRACKING_V2_SCRIPT_ENDPOINT}" data-handout-consent-bootstrap="${attr(bootstrap)}" aria-labelledby="handout-consent-title"><div class="handout-consent-dialog"><div class="handout-consent-copy"><h2 id="handout-consent-title">We value your privacy</h2><p>${body}</p></div><div class="handout-consent-actions">${actions}</div></div></aside><button class="handout-privacy-choices" type="button" data-handout-privacy-choices hidden>Privacy choices</button>`;
+  return `<aside class="handout-consent-popup" role="dialog" aria-modal="true" data-handout-consent-popup="${attr(popup)}" data-handout-consent-site-id="${attr(payload.site.id)}" data-handout-consent-notice-version="${TRACKING_V2_VISITOR_NOTICE_VERSION}" data-handout-consent-script-src="${TRACKING_V2_SCRIPT_ENDPOINT}" data-handout-consent-bootstrap="${attr(bootstrap)}" aria-labelledby="handout-consent-title" hidden><div class="handout-consent-dialog"><div class="handout-consent-copy"><h2 id="handout-consent-title">We value your privacy</h2><p>${body}</p></div><div class="handout-consent-actions">${actions}</div></div></aside><button class="handout-privacy-choices" type="button" data-handout-privacy-choices hidden>Privacy choices</button>`;
 }
 
-function resolveVariableToken(node: TiptapNode, values: Record<string, string>) {
+function resolveVariableToken(node: TiptapNode, values: Readonly<Record<string, string>>) {
   const id = stringAttr(node.attrs?.variableId);
   return values[id] ?? stringAttr(node.attrs?.fallbackName, id);
+}
+
+function renderVariableListParagraph(
+  node: TiptapNode,
+  values: Readonly<Record<string, string>>,
+) {
+  const content = node.content ?? [];
+  const variableNodes = content.filter((child) => child.type === "variableToken");
+  const hasNonWhitespaceSibling = content.some(
+    (child) => child.type !== "variableToken" && (child.type !== "text" || child.text?.trim()),
+  );
+  if (variableNodes.length !== 1 || hasNonWhitespaceSibling) return null;
+
+  const value = resolveVariableToken(variableNodes[0]!, values);
+  const rows = value
+    .split(/(?:<br\s*\/?>|\r?\n)/gi)
+    .map((row) => row.trim())
+    .filter(Boolean);
+  if (rows.length === 0) return null;
+
+  const items: string[] = [];
+  for (const row of rows) {
+    const item = /^-\s+(.+)$/.exec(row)?.[1]?.trim();
+    if (!item) return null;
+    items.push(item);
+  }
+
+  return `<ul class="handout-list" data-handout-variable-list=""${nodeId(node)}>${items
+    .map((item) => `<li class="handout-list-item"><p class="handout-paragraph">${text(item)}</p></li>`)
+    .join("")}</ul>`;
 }
 
 function resolveTemplate(value: string, values: Record<string, string>) {
@@ -821,7 +871,7 @@ if(consentPopup&&privacyChoices){
     consentPopup.hidden=true;
     showPrivacyChoices();
     if(storedConsent.choice==='allow')startTracking({noticeVersion:consentNoticeVersion,grantedAt:storedConsent.decidedAt,source:'remembered'});
-  }
+  }else{consentPopup.hidden=false;}
 }
 })();`;
 

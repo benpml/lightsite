@@ -20,6 +20,7 @@ import {
 } from "@handout/contracts";
 import { Router, type Request } from "express";
 import { z } from "zod";
+import { analyzeSiteContentSafety } from "@handout/site-document";
 import { getAgentAuthContext } from "../auth/agent-auth";
 import type { CurrentActor, CurrentActorProvider } from "../auth/current-actor";
 import { devActor, getDevAppBootstrap, isDevAuthBypassRequest } from "../auth/dev-auth";
@@ -188,6 +189,7 @@ export function createSiteRouter(options: SiteRouterOptions) {
 
   router.put("/:siteId/content", asyncHandler(async (request, response) => {
     const context = await resolveSiteRequestContext(request, options);
+    enforceSiteContentEnvelope((request.body as { draftContent?: unknown } | undefined)?.draftContent);
     const result = updateSiteContentRequestSchema.safeParse(request.body ?? {});
 
     if (!result.success) {
@@ -221,6 +223,7 @@ export function createSiteRouter(options: SiteRouterOptions) {
 
   router.post("/:siteId/content/validate", asyncHandler(async (request, response) => {
     const context = await resolveSiteRequestContext(request, options);
+    enforceSiteContentEnvelope((request.body as { draftContent?: unknown } | undefined)?.draftContent);
     const result = validateSiteContentRequestSchema.safeParse(request.body ?? {});
 
     if (!result.success) {
@@ -653,4 +656,17 @@ function mapSiteServiceError(error: unknown): AppError {
   }
 
   throw error;
+}
+
+function enforceSiteContentEnvelope(value: unknown) {
+  if (value === undefined) return;
+  const issue = analyzeSiteContentSafety(value).issues[0];
+  if (!issue) return;
+  throw new AppError({
+    code: issue.code === "content_too_large"
+      ? "site.content_too_large"
+      : "site.content_limit_reached",
+    message: issue.message,
+    status: issue.code === "content_too_large" ? 413 : 422,
+  });
 }

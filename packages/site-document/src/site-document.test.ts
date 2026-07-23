@@ -7,8 +7,10 @@ import {
   buildPublicPreviewVersion,
   buildPublicScreenshotPath,
   createDefaultSiteContent,
+  createSiteContentFromDefaults,
   defaultSiteDefaults,
   getSiteMetadata,
+  getSiteIconColorVariables,
   getSiteVariableValues,
   HANDOUT_PRIVACY_POLICY_URL,
   normalizeSiteContent,
@@ -41,7 +43,7 @@ describe("canonical site document", () => {
     payload.workspace.logoUrl = "/api/workspaces/logo-assets/55555555-5555-4555-8555-555555555555";
     const uploadedLogoVersion = buildPublicPreviewVersion(payload);
 
-    expect(initialVersion).toMatch(/^33333333-3333-4333-8333-333333333333\.1\.r2\.w[a-z0-9]+$/);
+    expect(initialVersion).toMatch(/^33333333-3333-4333-8333-333333333333\.1\.r3\.w[a-z0-9]+$/);
     expect(initialPath).toContain(`embed.jpg?v=${encodeURIComponent(initialVersion)}`);
     expect(uploadedLogoVersion).not.toBe(initialVersion);
     expect(buildPublicScreenshotPath(payload)).toContain(
@@ -70,6 +72,24 @@ describe("canonical site document", () => {
     if (enabledDefaults.success) {
       expect(enabledDefaults.data.trackingPrivacyPolicyUrl).toBe(HANDOUT_PRIVACY_POLICY_URL);
     }
+  });
+
+  it("validates and normalizes custom primary colors in site defaults", () => {
+    const parsed = siteDefaultsSchema.safeParse({
+      ...defaultSiteDefaults,
+      customPrimaryColor: " #FFF5D2 ",
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.customPrimaryColor).toBe("#fff5d2");
+      expect(createSiteContentFromDefaults(parsed.data).settings.customPrimaryColor)
+        .toBe("#fff5d2");
+    }
+    expect(siteDefaultsSchema.safeParse({
+      ...defaultSiteDefaults,
+      customPrimaryColor: "yellow",
+    }).success).toBe(false);
   });
 
   it("rejects custom default variables that collide with system variables", () => {
@@ -318,7 +338,7 @@ describe("canonical site document", () => {
     expect(html).not.toContain("data-handout-element-kind");
     expect(html).not.toContain("data-handout-element-label");
     expect(html).not.toContain("data-handout-element-href");
-    expect(html).toContain('<script defer src="/site-runtime.v6.js"></script>');
+    expect(html).toContain('<script defer src="/site-runtime.v7.js"></script>');
     expect(html).toContain('url("/fonts/geist-latin-wght-normal.woff2")');
     expect(html).toContain('format("woff2")');
     expect(html).not.toContain("woff2-variations");
@@ -336,6 +356,67 @@ describe("canonical site document", () => {
     expect(html).not.toContain('class="handout-footer"');
     expect(SITE_DOCUMENT_CSS).toContain('-webkit-mask:url("/handout-logo-icon.svg") center/contain no-repeat');
     expect(html).toContain(`<style>${HANDOUT_THEME_CSS}${SITE_DOCUMENT_CSS}</style>`);
+  });
+
+  it("renders a URL variable made of hyphen rows and br separators as a bullet list", () => {
+    const payload = buildPayload();
+    const value = new URL(
+      "https://handout.link/site/name/company/domain?pain-points=-%20Point%20A<br>-%20Point%20B",
+    ).searchParams.get("pain-points");
+
+    expect(value).toBe("- Point A<br>- Point B");
+    payload.content.variables.push({
+      id: "pain-points",
+      key: "pain-points",
+      label: "Pain points",
+      type: "text",
+      defaultValue: "",
+    });
+    payload.content.pages[0]!.document.content = [{
+      type: "paragraph",
+      content: [{
+        type: "variableToken",
+        attrs: { variableId: "pain-points", fallbackName: "Pain points" },
+      }],
+    }];
+    payload.selectedVariant!.variableValues["pain-points"] = value!;
+
+    const html = renderPublicSiteHtml(payload);
+
+    expect(html).toContain(
+      '<ul class="handout-list" data-handout-variable-list=""><li class="handout-list-item"><p class="handout-paragraph">Point A</p></li><li class="handout-list-item"><p class="handout-paragraph">Point B</p></li></ul>',
+    );
+    expect(html).not.toContain("- Point A&lt;br&gt;- Point B");
+  });
+
+  it("escapes HTML inside URL-variable bullet items", () => {
+    const payload = buildPayload();
+    payload.content.variables.push({
+      id: "pain-points",
+      key: "pain-points",
+      label: "Pain points",
+      type: "text",
+      defaultValue: "",
+    });
+    payload.content.pages[0]!.document.content = [{
+      type: "paragraph",
+      content: [
+        { type: "text", text: " " },
+        {
+          type: "variableToken",
+          attrs: { variableId: "pain-points", fallbackName: "Pain points" },
+        },
+      ],
+    }];
+    payload.selectedVariant!.variableValues["pain-points"] =
+      "- <script>alert(1)</script><br />- Safe";
+
+    const html = renderPublicSiteHtml(payload);
+
+    expect(html).toContain(
+      "<p class=\"handout-paragraph\">&lt;script&gt;alert(1)&lt;/script&gt;</p>",
+    );
+    expect(html).not.toContain("<script>alert(1)</script>");
   });
 
   it("preserves resized image and GIF widths in preview and published output", () => {
@@ -551,15 +632,15 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).not.toContain(".handout-blockquote,.handout-document-editor .handout-prosemirror>blockquote")
     expect(SITE_DOCUMENT_CSS).not.toContain(".handout-code-block,.handout-document-editor .handout-prosemirror>pre")
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-list-item,.handout-document-editor .handout-prosemirror>:where(ul,ol)>li{padding-left:0}",
+      ".handout-list-item,.handout-document-editor .handout-prosemirror>:where(ul,ol)>li{padding-left:2px}",
     )
     expect(SITE_DOCUMENT_CSS).toContain(
-      ".handout-list:is(ol)>.handout-list-item,.handout-document-editor .handout-prosemirror>ol>li{padding-left:2px}",
+      ".handout-list:is(ol)>.handout-list-item,.handout-document-editor .handout-prosemirror>ol>li{padding-left:4px}",
     )
     expect(SITE_DOCUMENT_CSS).toContain(
       ".handout-list>.handout-list-item+.handout-list-item,.handout-document-editor .handout-prosemirror :where(ul:not([data-type=taskList]):not([data-handout-icon-list]),ol)>li+li{margin-top:var(--handout-list-item-gap)}",
     )
-    expect(SITE_DOCUMENT_CSS).toContain(".handout-icon-list-item{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:2px;padding-left:4px}")
+    expect(SITE_DOCUMENT_CSS).toContain(".handout-icon-list-item{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:4px;padding-left:4px}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-button{display:flex;min-height:36px;align-items:center;justify-content:center;gap:6px")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-sidebar-button>svg{width:15px;height:15px;flex:none}")
     expect(SITE_DOCUMENT_CSS).toContain(".handout-table th,.handout-document-editor .tableWrapper>table th{background:var(--table-header-background)")
@@ -614,6 +695,7 @@ describe("canonical site document", () => {
     expect(normalizeSiteIconColor("emerald")).toBe("green");
     expect(normalizeSiteIconColor("amber")).toBe("yellow");
     expect(normalizeSiteIconColor("rose")).toBe("red");
+    expect(normalizeSiteIconColor("#FFF5D2")).toBe("#fff5d2");
   });
 
   it("uses the selected icon color for icon-card glyphs and tiles", () => {
@@ -621,7 +703,7 @@ describe("canonical site document", () => {
       "--handout-icon-color:var(--color-purple-foreground,var(--purple-foreground))",
     );
     expect(SITE_DOCUMENT_CSS).toContain(
-      "--handout-icon-background:var(--color-purple-background,var(--purple-background))",
+      "--handout-icon-background:var(--color-purple-background-subtle,var(--purple-background-subtle))",
     );
     expect(SITE_DOCUMENT_CSS).toContain(
       "background:var(--handout-icon-background,var(--color-muted,var(--muted)))",
@@ -629,6 +711,42 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).toContain(
       ".handout-icon-card{padding:16px;border:1px solid var(--site-card-border);border-radius:14px;background:var(--site-card-background)",
     );
+  });
+
+  it("derives adaptive foreground and subtle-background roles for custom icon colors", () => {
+    expect(getSiteIconColorVariables("#fff5d2")).toEqual({
+      "--handout-icon-background": expect.stringMatching(
+        /^light-dark\(oklch\(.+ \/ 6%\), oklch\(.+ \/ 12%\)\)$/,
+      ),
+      "--handout-icon-color": expect.stringMatching(/^light-dark\(oklch\(.+\), oklch\(.+\)\)$/),
+    });
+    expect(getSiteIconColorVariables("purple")).toBeNull();
+
+    const payload = buildPayload();
+    payload.content.pages[0]!.document = {
+      type: "doc",
+      content: [
+        {
+          type: "iconList",
+          content: [{
+            type: "iconListItem",
+            attrs: { icon: "box", iconColor: "#FFF5D2" },
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Custom icon" }] }],
+          }],
+        },
+        {
+          type: "iconCard",
+          attrs: { icon: "bolt", iconColor: "#FFF5D2" },
+          content: [{ type: "iconCardTitle" }, { type: "iconCardBody" }],
+        },
+      ],
+    };
+
+    const html = renderPublicSiteHtml(payload, { includeTracking: false });
+
+    expect(html).toContain('class="handout-icon-tile" data-icon-color="#fff5d2" style="--handout-icon-background:light-dark(oklch(');
+    expect(html).toContain('class="handout-card-icon" data-icon-color="#fff5d2" style="--handout-icon-background:light-dark(oklch(');
+    expect(html).toMatch(/--handout-icon-color:light-dark\(oklch\(.+\), oklch\(.+\)\)/);
   });
 
   it("uses the canonical site-card surface and shadow for every card-like block", () => {
@@ -658,6 +776,18 @@ describe("canonical site document", () => {
     );
     expect(SITE_DOCUMENT_CSS).toContain(
       "border-right:1px solid var(--site-card-border);border-bottom:1px solid var(--site-card-border)",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-table tr:first-child>*:first-child,.handout-document-editor .tableWrapper>table tr:first-child>*:first-child{border-top-left-radius:9px}",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-table tr:first-child>*:last-child,.handout-document-editor .tableWrapper>table tr:first-child>*:last-child{border-top-right-radius:9px}",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-table tr:last-child>*:first-child,.handout-document-editor .tableWrapper>table tr:last-child>*:first-child{border-bottom-left-radius:9px}",
+    );
+    expect(SITE_DOCUMENT_CSS).toContain(
+      ".handout-table tr:last-child>*:last-child,.handout-document-editor .tableWrapper>table tr:last-child>*:last-child{border-bottom-right-radius:9px}",
     );
   });
 
@@ -810,6 +940,9 @@ describe("canonical site document", () => {
     );
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-navigation{display:grid");
     expect(SITE_DOCUMENT_CSS).toContain(".handout-page-navigation-next{grid-column:2;text-align:right}");
+    expect(SITE_DOCUMENT_CSS).toContain(
+      "@container (max-width:420px){.handout-page-navigation{grid-template-columns:1fr;gap:8px}",
+    );
   });
 
   it("omits page navigation when there is only one visible tab", () => {
@@ -907,6 +1040,18 @@ describe("canonical site document", () => {
     expect(SITE_DOCUMENT_CSS).toContain("background:var(--handout-primary,var(--primary))");
   });
 
+  it("derives adaptive primary roles from a custom primary color", () => {
+    const payload = buildPayload();
+    payload.content.settings.customPrimaryColor = "#fff5d2";
+
+    const html = renderPublicSiteHtml(payload, { includeTracking: false });
+
+    expect(html).toContain("--handout-primary:light-dark(oklch(");
+    expect(html).toContain("--handout-primary-foreground:light-dark(#ffffff, #191919)");
+    expect(html).toMatch(/--handout-primary-soft:light-dark\(oklch\(.+ \/ 6%\), oklch\(.+ \/ 12%\)\)/);
+    expect(html).toContain("--handout-sidebar-link-icon:light-dark(oklch(");
+  });
+
   it("gates tracking behind the selected visitor consent popup", () => {
     const payload = buildPayload();
     payload.trackingV2 = {
@@ -919,6 +1064,7 @@ describe("canonical site document", () => {
     payload.content.settings.trackingConsentPopup = "popup-b";
     const popupHtml = renderPublicSiteHtml(payload);
     expect(popupHtml).toContain('data-handout-consent-popup="popup-b"');
+    expect(popupHtml).toMatch(/data-handout-consent-popup="popup-b"[^>]* hidden>/);
     expect(popupHtml).toContain('role="dialog" aria-modal="true"');
     expect(popupHtml).toContain('class="handout-consent-dialog"');
     expect(popupHtml).toContain('class="handout-consent-copy"');
@@ -930,6 +1076,7 @@ describe("canonical site document", () => {
     expect(PUBLIC_SITE_RUNTIME).toContain("localStorage.setItem(consentStorageKey,JSON.stringify(value))");
     expect(PUBLIC_SITE_RUNTIME).toContain("data-handout-replay-consent");
     expect(PUBLIC_SITE_RUNTIME).toContain("handout:tracking-consent-withdrawn");
+    expect(PUBLIC_SITE_RUNTIME).toContain("}else{consentPopup.hidden=false;}");
     expect(PUBLIC_SITE_RUNTIME).toContain("typeof mobileQuery.addEventListener==='function'");
     expect(() => new Function(PUBLIC_SITE_RUNTIME)).not.toThrow();
     expect(SITE_DOCUMENT_CSS).toContain(".handout-consent-copy{display:flex;flex-direction:column}");

@@ -43,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   isDuplicateSiteVariableLabel,
   normalizeSiteVariableLabel,
+  resolveSystemSiteVariableDescription,
   SYSTEM_SITE_VARIABLE_IDS,
   systemSiteVariables,
 } from "../model"
@@ -73,6 +74,23 @@ export function VariablesSettings({
     () => variables.filter((variable) => !SYSTEM_SITE_VARIABLE_IDS.has(variable.id)),
     [variables],
   )
+  const resolvedSystemVariables = useMemo(
+    () => systemSiteVariables.map((systemVariable) => {
+      const savedVariable = variables.find((variable) => variable.id === systemVariable.id)
+
+      return savedVariable
+        ? {
+            ...systemVariable,
+            defaultValue: savedVariable.defaultValue,
+            description: resolveSystemSiteVariableDescription(
+              systemVariable.id,
+              savedVariable.description,
+            ),
+          }
+        : systemVariable
+    }),
+    [variables],
+  )
 
   const openCreator = () => {
     setEditingVariable(null)
@@ -89,8 +107,16 @@ export function VariablesSettings({
       </div>
 
       <ItemGroup className="gap-1.5">
-        {systemSiteVariables.map((variable) => (
-          <VariableRow key={variable.id} variable={variable} system />
+        {resolvedSystemVariables.map((variable) => (
+          <VariableRow
+            key={variable.id}
+            variable={variable}
+            system
+            onEdit={scope === "site" ? () => {
+              setEditingVariable(variable)
+              setEditorOpen(true)
+            } : undefined}
+          />
         ))}
         {customVariables.map((variable) => (
           <VariableRow
@@ -153,19 +179,29 @@ function VariableRow({
   variable: SiteVariableDefinition
 }) {
   return (
-    <Item variant="outline" className="h-[60px] gap-3 rounded-[12px] px-3 py-3">
+    <Item
+      variant="outline"
+      className="h-[60px] flex-nowrap gap-3 rounded-[12px] px-3 py-3"
+    >
       <ItemMedia variant="icon" className="self-center! translate-y-0! text-variable-foreground [&_svg]:size-3.5!">
         <IconBraces />
       </ItemMedia>
-      <ItemContent className="gap-0">
+      <ItemContent className="min-w-0 gap-0">
         <ItemTitle className="text-variable-foreground text-sm leading-5">{variable.label}</ItemTitle>
-        <ItemDescription className="text-xs leading-4">
+        <ItemDescription className="block! truncate text-xs leading-4">
           {variable.description?.trim() || "No description"}
         </ItemDescription>
       </ItemContent>
-      <ItemActions className="gap-1">
+      <ItemActions className="shrink-0 gap-1">
         {system ? (
-          <Badge variant="secondary" className="text-tertiary-foreground">System</Badge>
+          <>
+            <Badge variant="secondary" className="text-tertiary-foreground">System</Badge>
+            {onEdit ? (
+              <Button variant="ghost" size="icon-field" aria-label={`Edit ${variable.label}`} onClick={onEdit}>
+                <IconEdit />
+              </Button>
+            ) : null}
+          </>
         ) : (
           <>
             <Button variant="ghost" size="icon-field" aria-label={`Edit ${variable.label}`} onClick={onEdit}>
@@ -204,12 +240,11 @@ function VariableEditorDialog({
   const [defaultValue, setDefaultValue] = useState(
     typeof variable?.defaultValue === "string" ? variable.defaultValue : "",
   )
+  const nameLocked = Boolean(variable && SYSTEM_SITE_VARIABLE_IDS.has(variable.id))
   const normalizedName = normalizeSiteVariableLabel(name)
-  const duplicateName = isDuplicateSiteVariableLabel(
-    normalizedName,
-    variables,
-    variable?.id,
-  )
+  const duplicateName = nameLocked
+    ? false
+    : isDuplicateSiteVariableLabel(normalizedName, variables, variable?.id)
   const nameError = duplicateName
     ? `A variable named ${normalizedName} already exists.`
     : ""
@@ -217,7 +252,7 @@ function VariableEditorDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="gap-0.5">
           <DialogTitle>{variable ? "Edit variable" : "Create variable"}</DialogTitle>
           <DialogDescription>
             {scope === "site-defaults"
@@ -233,22 +268,27 @@ function VariableEditorDialog({
           className="contents"
           onSubmit={(event) => {
             event.preventDefault()
-            if (!normalizedName || duplicateName) return
+            if ((!nameLocked && !normalizedName) || duplicateName) return
             onSubmit({
-              label: normalizedName,
+              label: nameLocked ? variable?.label ?? normalizedName : normalizedName,
               description: description.trim() || undefined,
               defaultValue,
             })
           }}
         >
           <FieldGroup>
-            <Field data-invalid={duplicateName || undefined}>
+            <Field
+              data-disabled={nameLocked || undefined}
+              data-invalid={duplicateName || undefined}
+            >
               <FieldLabel htmlFor={nameId}>Name</FieldLabel>
               <Input
                 id={nameId}
                 aria-invalid={duplicateName || undefined}
+                autoFocus={!nameLocked}
+                disabled={nameLocked}
                 maxLength={120}
-                autoFocus
+                placeholder="Enter a name for this variable"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
@@ -256,16 +296,30 @@ function VariableEditorDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor={descriptionId}>Description</FieldLabel>
-              <Textarea id={descriptionId} maxLength={1000} value={description} onChange={(event) => setDescription(event.target.value)} />
+              <Textarea
+                id={descriptionId}
+                maxLength={1000}
+                placeholder="Optional description for your team and AI agents."
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor={defaultId}>Default value</FieldLabel>
-              <Input id={defaultId} maxLength={4000} value={defaultValue} onChange={(event) => setDefaultValue(event.target.value)} />
+              <Textarea
+                id={defaultId}
+                className="min-h-8! py-1!"
+                maxLength={4000}
+                placeholder="Fallback if no value is provided"
+                rows={1}
+                value={defaultValue}
+                onChange={(event) => setDefaultValue(event.target.value)}
+              />
             </Field>
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={!normalizedName || duplicateName}>{variable ? "Save changes" : "Create variable"}</Button>
+            <Button type="submit" disabled={(!nameLocked && !normalizedName) || duplicateName}>{variable ? "Save changes" : "Create variable"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

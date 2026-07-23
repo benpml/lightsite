@@ -50,15 +50,17 @@ function SiteHeader({
       {...props}
     >
       <div className="flex min-w-0 items-center justify-start gap-3.5">
-        <Button
-          type="button"
-          aria-label="Navigation menu"
-          variant={isInverse ? "ghost-inverse" : "ghost"}
-          size="icon"
-          className="md:hidden"
-        >
-          <IconMenu2 data-icon="inline-start" />
-        </Button>
+        {items.length ? (
+          <Button
+            type="button"
+            aria-label="Navigation menu"
+            variant={isInverse ? "ghost-inverse" : "ghost"}
+            size="icon"
+            className="md:hidden"
+          >
+            <IconMenu2 data-icon="inline-start" />
+          </Button>
+        ) : null}
         <div className="hidden items-center gap-3.5 md:flex">
           {items.map((item) => (
             <NavItem key={item.href} href={item.href} variant={navVariant}>

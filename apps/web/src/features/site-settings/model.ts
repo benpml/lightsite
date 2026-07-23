@@ -1,9 +1,11 @@
-import type {
-  SiteContent,
-  SitePrimaryColor,
-  SiteTrackingConsentPopup,
-  SiteVariableDefinition,
-  TiptapNode,
+import {
+  RESERVED_SITE_VARIABLE_IDS,
+  SITE_PRIMARY_COLOR_PRESET_OPTIONS,
+  type SiteContent,
+  type SitePrimaryColor,
+  type SiteTrackingConsentPopup,
+  type SiteVariableDefinition,
+  type TiptapNode,
 } from "@handout/site-document"
 
 export const modeOptions = [
@@ -16,11 +18,7 @@ export const modeOptions = [
   },
 ] as const
 
-export const SYSTEM_SITE_VARIABLE_IDS = new Set([
-  "recipient-name",
-  "recipient-company",
-  "recipient_website",
-])
+export const SYSTEM_SITE_VARIABLE_IDS = RESERVED_SITE_VARIABLE_IDS
 
 export const systemSiteVariables: SiteVariableDefinition[] = [
   {
@@ -28,7 +26,7 @@ export const systemSiteVariables: SiteVariableDefinition[] = [
     key: "name",
     label: "Name",
     type: "text",
-    description: "Recipient’s first name",
+    description: "Recipient first name",
     defaultValue: "you",
   },
   {
@@ -36,7 +34,7 @@ export const systemSiteVariables: SiteVariableDefinition[] = [
     key: "company",
     label: "Company",
     type: "text",
-    description: "Recipient’s company name",
+    description: "Recipient company name",
     defaultValue: "your company",
   },
   {
@@ -44,10 +42,44 @@ export const systemSiteVariables: SiteVariableDefinition[] = [
     key: "website",
     label: "Website",
     type: "url",
-    description: "Recipient’s company website",
+    description: "Recipient company website domain",
     defaultValue: "",
   },
 ]
+
+const legacySystemVariableDescriptions: Readonly<Record<string, readonly string[]>> = {
+  "recipient-name": [
+    "Recipient’s first name",
+    "The first name of the person receiving this page.",
+  ],
+  "recipient-company": [
+    "Recipient’s company name",
+    "The company receiving this page.",
+  ],
+  recipient_website: [
+    "Recipient’s company website",
+    "The recipient company's website.",
+    "The recipient company's website, used to derive their logo when available.",
+  ],
+}
+
+export function resolveSystemSiteVariableDescription(
+  variableId: string,
+  description?: string,
+) {
+  const systemVariable = systemSiteVariables.find((variable) => variable.id === variableId)
+  const normalizedDescription = description?.trim()
+
+  if (!systemVariable) return normalizedDescription
+  if (
+    !normalizedDescription ||
+    legacySystemVariableDescriptions[variableId]?.includes(normalizedDescription)
+  ) {
+    return systemVariable.description
+  }
+
+  return normalizedDescription
+}
 
 export type SiteVariableInput = Pick<
   SiteVariableDefinition,
@@ -117,22 +149,26 @@ export function normalizeSiteVariableLabel(label: string) {
   return label.trim().replace(/\s+/g, " ")
 }
 
-export const primaryColorOptions: Array<{
-  className: string
-  label: string
-  value: SitePrimaryColor
-}> = [
-  { value: "neutral", label: "Neutral", className: "bg-foreground" },
-  { value: "purple", label: "Purple", className: "bg-purple-foreground" },
-  { value: "blue", label: "Blue", className: "bg-blue-foreground" },
-  { value: "cyan", label: "Cyan", className: "bg-cyan-foreground" },
-  { value: "teal", label: "Teal", className: "bg-teal-foreground" },
-  { value: "green", label: "Green", className: "bg-green-foreground" },
-  { value: "yellow", label: "Yellow", className: "bg-yellow-foreground" },
-  { value: "orange", label: "Orange", className: "bg-orange-foreground" },
-  { value: "red", label: "Red", className: "bg-red-foreground" },
-  { value: "pink", label: "Pink", className: "bg-pink-foreground" },
-]
+const primaryColorMetadata: Record<
+  SitePrimaryColor,
+  { className: string; label: string }
+> = {
+  neutral: { label: "Neutral", className: "bg-foreground" },
+  purple: { label: "Purple", className: "bg-purple-foreground" },
+  blue: { label: "Blue", className: "bg-blue-foreground" },
+  cyan: { label: "Cyan", className: "bg-cyan-foreground" },
+  teal: { label: "Teal", className: "bg-teal-foreground" },
+  green: { label: "Green", className: "bg-green-foreground" },
+  yellow: { label: "Yellow", className: "bg-yellow-foreground" },
+  orange: { label: "Orange", className: "bg-orange-foreground" },
+  red: { label: "Red", className: "bg-red-foreground" },
+  pink: { label: "Pink", className: "bg-pink-foreground" },
+}
+
+export const primaryColorOptions = SITE_PRIMARY_COLOR_PRESET_OPTIONS.map((value) => ({
+  value,
+  ...primaryColorMetadata[value],
+}))
 
 export const trackingConsentOptions: Array<{
   description: string

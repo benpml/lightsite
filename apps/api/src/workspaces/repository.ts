@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import {
   db as defaultDb,
   userProfiles,
@@ -170,6 +170,13 @@ export function createDbWorkspaceRepository(database: Database = defaultDb): Wor
 
     async saveWorkspaceLogo(input) {
       return database.transaction(async (transaction) => {
+        const [workspace] = await transaction
+          .select({ id: workspaces.id })
+          .from(workspaces)
+          .where(eq(workspaces.id, input.workspaceId))
+          .for("update")
+          .limit(1);
+        if (!workspace) throw new Error("Workspace was not found.");
         const [asset] = await transaction
           .insert(workspaceLogoAssets)
           .values({
@@ -187,6 +194,12 @@ export function createDbWorkspaceRepository(database: Database = defaultDb): Wor
           .update(workspaces)
           .set({ logoAssetId: asset.id, updatedAt: new Date() })
           .where(eq(workspaces.id, input.workspaceId));
+        await transaction
+          .delete(workspaceLogoAssets)
+          .where(and(
+            eq(workspaceLogoAssets.workspaceId, input.workspaceId),
+            ne(workspaceLogoAssets.id, asset.id),
+          ));
         return asset;
       });
     },

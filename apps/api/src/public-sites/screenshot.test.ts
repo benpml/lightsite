@@ -9,6 +9,8 @@ import {
   createPublicSiteScreenshotService,
   createPlaywrightPublicSiteScreenshotRenderer,
   isPublicIpAddress,
+  MAX_PUBLIC_SITE_SCREENSHOT_BYTES,
+  PublicSiteScreenshotCapacityError,
   type PublicSiteScreenshotRenderInput,
   type PublicSiteScreenshotRenderer,
 } from "./screenshot";
@@ -91,7 +93,7 @@ describe("public site screenshots", () => {
     expect(renderedHtml).not.toContain("data-handout-tracking-v2");
   });
 
-  it("coalesces concurrent requests for the same immutable recipient image", async () => {
+  it("fails duplicate in-flight work fast and caches the completed immutable image", async () => {
     let finishRender: ((bytes: Buffer) => void) | undefined;
     const pendingRender = new Promise<Buffer>((resolve) => {
       finishRender = resolve;
@@ -100,17 +102,28 @@ describe("public site screenshots", () => {
     const service = createPublicSiteScreenshotService({ render });
     const payload = buildPayload();
 
-    const requests = Array.from({ length: 20 }, () => service.render({
+    const first = service.render({
       origin: "https://handout.test",
       payload,
-    }));
+    });
+    const duplicate = service.render({
+      origin: "https://handout.test",
+      payload,
+    });
 
     expect(render).toHaveBeenCalledTimes(1);
+    await expect(duplicate).rejects.toBeInstanceOf(PublicSiteScreenshotCapacityError);
     finishRender?.(Buffer.from("shared-jpg"));
-    const results = await Promise.all(requests);
+    const completed = await first;
+    const cached = await service.render({
+      origin: "https://handout.test",
+      payload,
+    });
 
-    expect(results.every((result) => result?.bytes.toString() === "shared-jpg")).toBe(true);
-    expect(new Set(results.map((result) => result?.cacheKey)).size).toBe(1);
+    expect(completed?.bytes.toString()).toBe("shared-jpg");
+    expect(cached?.bytes.toString()).toBe("shared-jpg");
+    expect(cached?.cacheKey).toBe(completed?.cacheKey);
+    expect(render).toHaveBeenCalledTimes(1);
   });
 
   it("renders a new image when the recipient revision changes", async () => {
@@ -121,6 +134,23 @@ describe("public site screenshots", () => {
     await service.render({ origin: "https://handout.test", payload });
     payload.selectedVariant!.revisionNumber = 3;
     await service.render({ origin: "https://handout.test", payload });
+
+    expect(render).toHaveBeenCalledTimes(2);
+  });
+
+  it("never caches empty or oversized renderer output", async () => {
+    const render = vi.fn(async () => Buffer.alloc(MAX_PUBLIC_SITE_SCREENSHOT_BYTES + 1));
+    const service = createPublicSiteScreenshotService({ render });
+    const payload = buildPayload();
+
+    await expect(service.render({
+      origin: "https://handout.test",
+      payload,
+    })).rejects.toThrow("safe size limit");
+    await expect(service.render({
+      origin: "https://handout.test",
+      payload,
+    })).rejects.toThrow("safe size limit");
 
     expect(render).toHaveBeenCalledTimes(2);
   });
