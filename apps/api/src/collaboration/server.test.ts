@@ -6,6 +6,7 @@ import {
   getSiteCollaborationDocumentName,
   getSitePageCollaborationField,
   readSiteCollaborationContent,
+  replaceSiteCollaborationContent,
   updateSiteCollaborationMetadata,
   SITE_DOCUMENT_SCHEMA_VERSION,
 } from "@handout/site-document"
@@ -150,6 +151,87 @@ describe("site collaboration server", () => {
       content: [{ content: [{ text: "offline left middle right online" }] }],
     })
   }, 20_000)
+
+  it("rejects unsafe stateless saves without crashing the collaboration server", async () => {
+    const draftContent = createDefaultSiteContent("Unsafe page")
+    let site = createSiteRecord(draftContent)
+    let persistCalls = 0
+    const repository: SiteCollaborationRepository = {
+      async load(siteId) {
+        return siteId === site.id ? { site, state: null } : null
+      },
+      async persist(input) {
+        persistCalls += 1
+        site = {
+          ...site,
+          draftContent: input.draftContent,
+          draftRevision: site.draftRevision + 1,
+          updatedAt: new Date(),
+        }
+        return site
+      },
+    }
+    const collaboration = createSiteCollaborationServer({
+      repository,
+      async authorize() {
+        return {
+          userId: "user-1",
+          workspaceId: site.workspaceId,
+          user: { id: "user-1", name: "Test User", color: "#2563eb" },
+        }
+      },
+    })
+    const httpServer = createServer()
+    const destroyCollaboration = attachSiteCollaborationWebSocketServer(
+      httpServer,
+      collaboration.hocuspocus,
+    )
+    await new Promise<void>((resolve) => httpServer.listen(0, "127.0.0.1", resolve))
+    const address = httpServer.address()
+    if (!address || typeof address === "string") {
+      throw new Error("Test server did not bind to a TCP port.")
+    }
+
+    const document = new Y.Doc()
+    const provider = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${address.port}/api/collaboration`,
+      name: getSiteCollaborationDocumentName(site.id),
+      document,
+      token: JSON.stringify({ schemaVersion: SITE_DOCUMENT_SCHEMA_VERSION }),
+    })
+    cleanup.push(async () => {
+      provider.destroy()
+      document.destroy()
+      await destroyCollaboration()
+      await new Promise<void>((resolve) => httpServer.close(() => resolve()))
+    })
+
+    await waitForSynced(provider)
+    const unsafeContent = readSiteCollaborationContent(document)
+    unsafeContent.pages[0]!.document = {
+      type: "doc",
+      content: [{
+        type: "image",
+        attrs: {
+          alt: "Inline image",
+          src: "data:image/png;base64,aGVsbG8=",
+          title: "",
+        },
+      }],
+    }
+    replaceSiteCollaborationContent(document, unsafeContent)
+
+    const requestId = crypto.randomUUID()
+    const failure = waitForSaveFailure(provider, requestId)
+    provider.sendStateless(JSON.stringify({ type: "site.save", requestId }))
+
+    await expect(failure).resolves.toMatchObject({
+      message: "Inline image data cannot be added to site content.",
+      requestId,
+      type: "site.save-failed",
+    })
+    expect(persistCalls).toBe(0)
+  }, 20_000)
 })
 
 function getFirstPageText(document: Y.Doc, pageId: string) {
@@ -194,6 +276,23 @@ function waitForSavedBroadcast(provider: HocuspocusProvider) {
       if (message.type === "site.saved" && typeof message.stateVector === "string") {
         provider.off("stateless", handleStateless)
         resolve()
+      }
+    }
+    provider.on("stateless", handleStateless)
+  })
+}
+
+function waitForSaveFailure(provider: HocuspocusProvider, requestId: string) {
+  return new Promise<{ message?: string; requestId?: string; type?: string }>((resolve) => {
+    const handleStateless = ({ payload }: { payload: string }) => {
+      const message = JSON.parse(payload) as {
+        message?: string
+        requestId?: string
+        type?: string
+      }
+      if (message.type === "site.save-failed" && message.requestId === requestId) {
+        provider.off("stateless", handleStateless)
+        resolve(message)
       }
     }
     provider.on("stateless", handleStateless)
