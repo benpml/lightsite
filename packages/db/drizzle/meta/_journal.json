@@ -176,6 +176,13 @@
       "when": 1784836487662,
       "tag": "0024_grant_hello_team_pro",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1784840558276,
+      "tag": "0025_recipient_logo_assets_and_short_code_aliases",
+      "breakpoints": true
     }
   ]
 }

@@ -84,14 +84,14 @@ describe("sharing output", () => {
     expect(card.html).toContain("&quot;bad&quot;")
   })
 
-  it("uses a versioned recipient screenshot URL", () => {
+  it("lets the screenshot endpoint redirect to its canonical version", () => {
     expect(buildRecipientScreenshotUrl({
       publicOrigin: "https://handout.link",
       recipient: { revisionNumber: 4, slug: "acme-ada" },
       siteSlug: "brief",
       siteVersion: "2026-07-11T17:00:00.000Z",
       workspaceSlug: "north-star",
-    })).toBe("https://handout.link/north-star/brief/acme-ada/embed.jpg?v=2026-07-11T17%3A00%3A00.000Z.4")
+    })).toBe("https://handout.link/north-star/brief/acme-ada/embed.jpg")
   })
 
   it("searches recipient identity, domain, and slug", () => {

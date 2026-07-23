@@ -43,6 +43,11 @@ import { createPublicSiteDocumentRouter } from "./public-sites/document-router";
 import { createPublicSiteLogoRouter } from "./public-sites/logo-router";
 import { createPublicSiteRouter } from "./public-sites/router";
 import { createDbPublicSiteRepository } from "./public-sites/repository";
+import { createDbRecipientLogoRepository } from "./recipient-logos/repository";
+import {
+  createRecipientLogoService,
+  type RecipientLogoService,
+} from "./recipient-logos/service";
 import {
   createPublicSiteScreenshotService,
   type PublicSiteScreenshotService,
@@ -91,6 +96,7 @@ export type AppServices = {
   logoPreview: WorkspaceLogoPreviewService;
   publicSites: PublicSiteService;
   publicSiteScreenshots: PublicSiteScreenshotService;
+  recipientLogos: RecipientLogoService;
   sites: SiteService;
   team: TeamService;
   trackingRateLimiter: TrackingRateLimiter;
@@ -132,6 +138,9 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   const logoPreview =
     options.logoPreview ?? createLogoDevPreviewService(env.LOGO_DEV_TOKEN);
+  const recipientLogos =
+    options.recipientLogos ??
+    createRecipientLogoService(createDbRecipientLogoRepository(), logoPreview);
   const trackingV2ContextTokens = env.TRACKING_V2_ENABLED
     ? createEncryptedTrackingV2ContextTokenService(env.TRACKING_SIGNING_SECRET)
     : undefined;
@@ -153,7 +162,9 @@ export function createApp(options: CreateAppOptions = {}) {
   const publicSiteOrigin =
     options.publicSiteOrigin ?? env.PUBLIC_SITE_ORIGIN ?? env.WEB_ORIGIN;
   const sites =
-    options.sites ?? createSiteService(createDbSiteRepository());
+    options.sites ?? createSiteService(createDbSiteRepository(), {
+      recipientLogoService: recipientLogos,
+    });
   const team =
     options.team ?? createTeamService(createDbTeamRepository(), {
       email: transactionalEmail,
@@ -302,6 +313,7 @@ export function createApp(options: CreateAppOptions = {}) {
     createPublicSiteLogoRouter({
       logoPreviewService: logoPreview,
       publicSiteService: publicSites,
+      recipientLogoService: recipientLogos,
     }),
   );
   app.use("/api/public/sites", createPublicSiteRouter({ publicSiteService: publicSites }));

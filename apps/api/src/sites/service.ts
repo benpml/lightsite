@@ -3,6 +3,7 @@ import {
   HANDOUT_COLLECTION_LIMITS,
   HANDOUT_TEXT_LIMITS,
   isEmbeddedImageDataUrl,
+  normalizeWebsiteDomain,
   slugifyName,
   validateSiteSlug,
   validateTextLimit,
@@ -26,6 +27,7 @@ import {
   type SiteVersionRecord,
 } from "./repository";
 import type { SiteContentCoordinator } from "../collaboration/server";
+import type { RecipientLogoService } from "../recipient-logos/service";
 import { withRecipientLogo } from "./recipient-values";
 
 export type SiteListItem = {
@@ -311,7 +313,10 @@ const SITE_PLAN_LIMITS: Record<SiteWorkspaceContext["plan"], number> = {
 } as const;
 export function createSiteService(
   repository: SiteRepository,
-  options: { contentCoordinator?: SiteContentCoordinator } = {},
+  options: {
+    contentCoordinator?: SiteContentCoordinator;
+    recipientLogoService?: RecipientLogoService;
+  } = {},
 ): SiteService {
   return {
     async listSites(input) {
@@ -701,6 +706,12 @@ export function createSiteService(
           matchBy: input.matchBy,
           variants,
         });
+        void warmRecipientLogos({
+          recipientLogoService: options.recipientLogoService,
+          theme: site.draftContent.themeMode === "dark" ? "dark" : "light",
+          values: variants.map((variant) => variant.variableValues),
+          workspaceId: input.workspace.id,
+        }).catch(() => undefined);
 
         return {
           variants: changedVariants.map(serializeVariant),
@@ -964,6 +975,34 @@ export function createSiteService(
       };
     },
   };
+}
+
+async function warmRecipientLogos(input: {
+  recipientLogoService: RecipientLogoService | undefined;
+  theme: "dark" | "light";
+  values: Array<Record<string, unknown>>;
+  workspaceId: string;
+}) {
+  if (!input.recipientLogoService) return;
+
+  const domains = new Set<string>();
+  for (const values of input.values) {
+    const website = typeof values.recipient_website === "string"
+      ? values.recipient_website
+      : typeof values.website === "string"
+        ? values.website
+        : "";
+    const normalized = normalizeWebsiteDomain(website);
+    if (normalized.ok) domains.add(normalized.domain);
+  }
+
+  await Promise.all(
+    [...domains].map((domain) => input.recipientLogoService!.getOrFetch({
+      domain,
+      theme: input.theme,
+      workspaceId: input.workspaceId,
+    })),
+  );
 }
 
 function serializeSite(site: SiteRecord, recipientCount?: number): SiteListItem {

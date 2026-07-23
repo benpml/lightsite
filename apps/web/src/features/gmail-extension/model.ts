@@ -120,8 +120,7 @@ export function buildRecipientScreenshotUrl(input: {
   workspaceSlug: string
 }) {
   const publicUrl = buildRecipientPublicUrl(input)
-  const version = `${input.siteVersion ?? "published"}.${input.recipient.revisionNumber}`
-  return `${publicUrl}/embed.jpg?v=${encodeURIComponent(version)}`
+  return `${publicUrl}/embed.jpg`
 }
 
 export function createEmailLink(input: {

@@ -1561,6 +1561,7 @@ describe("editor architecture", () => {
     expect(headerSource).toContain("md:inline-flex")
     expect(headerSource).toContain("md:hidden")
     expect(headerSource).toContain("IconUpload")
+    expect(headerSource).toContain("bg-muted text-muted-foreground hover:bg-muted")
     expect(headerSource).not.toContain('<Button variant="secondary" size="compact">Publish</Button>')
   })
 

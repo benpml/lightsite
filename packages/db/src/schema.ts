@@ -544,6 +544,48 @@ export const siteVariants = pgTable(
   }),
 );
 
+export const siteVariantShortCodeAliases = pgTable(
+  "site_variant_short_code_aliases",
+  {
+    shortCode: varchar("short_code", { length: 16 }).primaryKey(),
+    variantId: uuid("variant_id")
+      .notNull()
+      .references(() => siteVariants.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    variantIdx: index("site_variant_short_code_aliases_variant_idx").on(table.variantId),
+  }),
+);
+
+export const recipientLogoAssets = pgTable(
+  "recipient_logo_assets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    domain: varchar("domain", { length: 253 }).notNull(),
+    theme: varchar("theme", { length: 8 }).notNull(),
+    contentType: varchar("content_type", { length: 64 }).notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    content: bytea("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceDomainThemeIdx: uniqueIndex("recipient_logo_assets_workspace_domain_theme_idx")
+      .on(table.workspaceId, table.domain, table.theme),
+    workspaceUpdatedAtIdx: index("recipient_logo_assets_workspace_updated_at_idx")
+      .on(table.workspaceId, table.updatedAt),
+    sizeCheck: check("recipient_logo_assets_size_check", sql`${table.byteSize} between 1 and 1048576`),
+    squareCheck: check("recipient_logo_assets_square_check", sql`${table.width} = ${table.height}`),
+    themeCheck: check("recipient_logo_assets_theme_check", sql`${table.theme} in ('light', 'dark')`),
+  }),
+);
+
 export const siteAccess = pgTable(
   "site_access",
   {

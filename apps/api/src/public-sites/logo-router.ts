@@ -9,6 +9,7 @@ import {
   WorkspaceLogoValidationError,
   type WorkspaceLogoPreviewService,
 } from "../workspaces/logo-preview";
+import type { RecipientLogoService } from "../recipient-logos/service";
 import type { PublicSiteService } from "./service";
 
 const PUBLIC_LOGO_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
@@ -17,6 +18,7 @@ const UNAVAILABLE_LOGO_CACHE_CONTROL = "public, max-age=60";
 export function createPublicSiteLogoRouter(options: {
   logoPreviewService: WorkspaceLogoPreviewService;
   publicSiteService: PublicSiteService;
+  recipientLogoService: RecipientLogoService;
 }) {
   const router = Router();
 
@@ -44,17 +46,23 @@ export function createPublicSiteLogoRouter(options: {
       : null;
     const domain = payload ? resolveLogoDomain(payload, kind) : null;
 
-    if (!domain) {
+    if (!payload || !domain) {
       sendUnavailableLogo(response);
       return;
     }
 
     try {
-      const image = await options.logoPreviewService.fetchImage({
-        domain,
-        size: 128,
-        theme,
-      });
+      const image = kind === "recipient"
+        ? await options.recipientLogoService.getOrFetch({
+            domain,
+            theme,
+            workspaceId: payload.workspace.id,
+          })
+        : await options.logoPreviewService.fetchImage({
+            domain,
+            size: 128,
+            theme,
+          });
 
       if (!image) {
         sendUnavailableLogo(response);
@@ -66,7 +74,7 @@ export function createPublicSiteLogoRouter(options: {
         .setHeader("cross-origin-resource-policy", "same-origin")
         .setHeader("x-content-type-options", "nosniff")
         .type(image.contentType)
-        .send(Buffer.from(image.body));
+        .send("body" in image ? Buffer.from(image.body) : image.content);
     } catch (error) {
       if (
         error instanceof WorkspaceLogoPreviewDisabledError ||

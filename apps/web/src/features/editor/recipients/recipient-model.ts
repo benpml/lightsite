@@ -108,7 +108,6 @@ export function buildRecipientPublicUrl({
 export function buildRecipientScreenshotUrl({
   recipient,
   siteUri,
-  siteVersion,
   publicOrigin,
 }: {
   recipient: SiteRecipient
@@ -116,18 +115,17 @@ export function buildRecipientScreenshotUrl({
   siteVersion?: string | null
   publicOrigin?: string
 }) {
-  const version = encodeURIComponent(`${siteVersion ?? "published"}.${recipient.updatedAt}`)
   if (recipient.shortCode) {
-    return `${buildPublicSiteUrl(
+    return buildPublicSiteUrl(
       `${recipient.shortCode}/embed.jpg`,
       publicOrigin
-    )}?v=${version}`
+    )
   }
 
-  return `${buildPublicSiteUrl(
+  return buildPublicSiteUrl(
     `${siteUri}/${recipient.linkSlug}/embed.jpg`,
     publicOrigin
-  )}?v=${version}`
+  )
 }
 
 export function createRecipientEmailEmbedHtml({

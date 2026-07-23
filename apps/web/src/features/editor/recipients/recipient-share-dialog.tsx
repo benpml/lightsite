@@ -33,6 +33,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import type { HandoutVariableOption } from "../tiptap/schema"
 import {
@@ -780,6 +781,7 @@ function RecipientDetail({
                   {copiedState === "embed" ? "Copied embed" : "Copy embed"}
                 </Button>
                 <RecipientEmbedPreview
+                  key={`${recipient.id}:${recipient.updatedAt}:${siteVersion ?? "published"}`}
                   recipient={recipient}
                   siteUri={siteUri}
                   siteVersion={siteVersion}
@@ -865,13 +867,56 @@ function RecipientEmbedPreview({
   siteVersion?: string | null
 }) {
   const screenshotUrl = buildRecipientScreenshotUrl({ recipient, siteUri, siteVersion })
+  const [attempt, setAttempt] = useState(0)
+  const [status, setStatus] = useState<"error" | "loaded" | "loading">("loading")
+  const [retryPending, setRetryPending] = useState(false)
+  const imageUrl = attempt === 0
+    ? screenshotUrl
+    : `${screenshotUrl}${screenshotUrl.includes("?") ? "&" : "?"}retry=${attempt}`
+
+  useEffect(() => {
+    if (!retryPending) return
+
+    const timeout = window.setTimeout(() => {
+      setAttempt((currentAttempt) => currentAttempt + 1)
+      setRetryPending(false)
+    }, 1_500)
+
+    return () => window.clearTimeout(timeout)
+  }, [retryPending])
 
   return (
-    <div className="aspect-[1200/630] w-full overflow-hidden rounded-[10px] border border-border bg-background">
+    <div
+      aria-busy={status === "loading"}
+      className="relative aspect-[1200/630] w-full overflow-hidden rounded-[10px] border border-border bg-background"
+    >
+      {status === "loading" ? (
+        <Skeleton className="absolute inset-0 rounded-none" />
+      ) : null}
+      {status === "error" ? (
+        <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs text-muted-foreground">
+          Preview is temporarily unavailable.
+        </div>
+      ) : null}
       <img
         alt={`Preview of the personalized site for ${recipient.name} at ${recipient.company}`}
-        className="h-full w-full object-cover object-top"
-        src={screenshotUrl}
+        className={cn(
+          "absolute inset-0 h-full w-full object-cover object-top transition-opacity",
+          status === "loaded" ? "opacity-100" : "opacity-0"
+        )}
+        decoding="async"
+        fetchPriority="high"
+        loading="eager"
+        src={imageUrl}
+        onError={() => {
+          if (attempt < 2) {
+            setStatus("loading")
+            setRetryPending(true)
+            return
+          }
+          setStatus("error")
+        }}
+        onLoad={() => setStatus("loaded")}
       />
     </div>
   )

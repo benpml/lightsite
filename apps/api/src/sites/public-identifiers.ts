@@ -5,7 +5,7 @@ const PUBLIC_CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn
 export const SITE_PUBLIC_ID_LENGTH = 12;
 export const RECIPIENT_SHORT_CODE_MIN_LENGTH = 6;
 export const RECIPIENT_SHORT_CODE_MAX_LENGTH = 16;
-export const RECIPIENT_SHORT_CODE_GENERATED_LENGTH = 16;
+export const RECIPIENT_SHORT_CODE_GENERATED_LENGTH = 7;
 export const RECIPIENT_SHORT_CODE_MAX_ALLOCATION_ATTEMPTS = 16;
 
 export function createSitePublicId() {
@@ -13,7 +13,7 @@ export function createSitePublicId() {
 }
 
 export function createRecipientShortCode(_attempt = 0) {
-  return randomBytes(12).toString("base64url");
+  return createPublicCode(RECIPIENT_SHORT_CODE_GENERATED_LENGTH);
 }
 
 export function recipientShortCodeLengthForAttempt(_attempt: number) {

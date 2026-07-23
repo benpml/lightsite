@@ -319,6 +319,7 @@ describe("canonical site document", () => {
     expect(html).toContain('src="/api/public/site-logo/acme/rollout/recipient?theme=dark&amp;variant=mira"');
     expect(html).toContain('data-handout-logo-kind="workspace"');
     expect(html).toContain('data-handout-logo-kind="recipient"');
+    expect(html).toContain('fetchpriority="high" decoding="async"');
     expect(html).toContain("<strong>Bold</strong>");
     expect(html).toContain('data-handout-element-id="book-call"');
     expect(html).toContain('class="handout-button-block handout-button-block-full"');

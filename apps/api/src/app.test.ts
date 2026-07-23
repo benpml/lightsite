@@ -31,6 +31,8 @@ import {
 import type { PublicSiteService } from "./public-sites/service";
 import { createPublicSiteService } from "./public-sites/service";
 import { createUnavailablePublicSiteRepository } from "./public-sites/repository";
+import { createMemoryRecipientLogoRepository } from "./recipient-logos/repository";
+import { createRecipientLogoService } from "./recipient-logos/service";
 import {
   buildMemorySite,
   buildMemorySiteVersion,
@@ -81,11 +83,16 @@ function createTestApp(input: {
   actor?: CurrentActor | null;
 } = {}) {
   const actor = "actor" in input ? (input.actor ?? null) : testActor;
+  const logoPreview = input.logoPreview ?? createLogoDevPreviewService(undefined);
 
   return createApp({
     billing: input.billing ?? createFakeBillingService(),
     bootstrap: createBootstrapService(createMemoryBootstrapRepository(input.bootstrap)),
-    logoPreview: input.logoPreview ?? createLogoDevPreviewService(undefined),
+    logoPreview,
+    recipientLogos: createRecipientLogoService(
+      createMemoryRecipientLogoRepository(),
+      logoPreview,
+    ),
     publicSites:
       input.publicSites ??
       createPublicSiteService(createUnavailablePublicSiteRepository()),
@@ -2439,6 +2446,10 @@ describe("Handout API", () => {
 
   it("serves workspace and recipient logos only through published site context", async () => {
     const fetchedLogos: Array<{ domain: string; size: number; theme: "dark" | "light" }> = [];
+    const onePixelPng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    );
     const payload = buildPublicHtmlPayload();
     payload.selectedVariant!.variableValues.website = "linear.app";
     delete payload.selectedVariant!.variableValues.recipient_website;
@@ -2451,8 +2462,8 @@ describe("Handout API", () => {
         async fetchImage(input) {
           fetchedLogos.push(input);
           return {
-            body: Uint8Array.from([1, 2, 3]),
-            contentType: "image/webp",
+            body: onePixelPng,
+            contentType: "image/png",
             cacheControl: "private, max-age=60",
           };
         },
@@ -2479,13 +2490,17 @@ describe("Handout API", () => {
       .get("/api/public/site-logo/acme/rollout-brief/recipient")
       .query({ theme: "light", variant: "mira" })
       .expect(200);
+    await request(app)
+      .get("/api/public/site-logo/acme/rollout-brief/recipient")
+      .query({ theme: "light", variant: "mira" })
+      .expect(200);
 
-    expect(workspaceLogo.headers["content-type"]).toContain("image/webp");
+    expect(workspaceLogo.headers["content-type"]).toContain("image/png");
     expect(workspaceLogo.headers["cache-control"]).toBe(
       "public, max-age=86400, stale-while-revalidate=604800",
     );
     expect(workspaceLogo.headers["cross-origin-resource-policy"]).toBe("same-origin");
-    expect(recipientLogo.headers["content-type"]).toContain("image/webp");
+    expect(recipientLogo.headers["content-type"]).toContain("image/png");
     expect(fetchedLogos).toEqual([
       { domain: "acme.com", size: 128, theme: "dark" },
       { domain: "linear.app", size: 128, theme: "light" },
