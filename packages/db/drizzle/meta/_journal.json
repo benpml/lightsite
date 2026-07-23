@@ -169,6 +169,13 @@
       "when": 1784776251795,
       "tag": "0023_tiny_elektra",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1784836487662,
+      "tag": "0024_grant_hello_team_pro",
+      "breakpoints": true
     }
   ]
 }
