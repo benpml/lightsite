@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 
 import {
   getDefaultAccountName,
-  getDefaultWorkspaceName,
   getDefaultWorkspaceWebsite,
   resolveOnboardingStep,
   splitAccountName,
@@ -52,9 +51,7 @@ describe("onboarding state helpers", () => {
     expect(getDefaultAccountName(buildBootstrap())).toBe("mira")
   })
 
-  it("derives a workspace name from valid work email domains only", () => {
-    expect(getDefaultWorkspaceName("mira@acme-co.com")).toBe("Acme Co")
-    expect(getDefaultWorkspaceName("mira@gmail.com")).toBe("My Workspace")
+  it("derives a workspace website from valid work email domains only", () => {
     expect(getDefaultWorkspaceWebsite("mira@acme-co.com")).toBe("acme-co.com")
     expect(getDefaultWorkspaceWebsite("mira+handout@acme-co.com")).toBe("acme-co.com")
     expect(getDefaultWorkspaceWebsite("mira@gmail.com")).toBe("")

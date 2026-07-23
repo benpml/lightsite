@@ -3,7 +3,6 @@ import {
   siteDefaultsResponseSchema,
   updateWorkspaceSettingsResponseSchema,
   uploadProfileImageResponseSchema,
-  uploadWorkspaceLogoResponseSchema,
   type SiteDefaults,
 } from "@handout/contracts"
 
@@ -34,14 +33,6 @@ export function updateWorkspaceSettings(workspaceId: string, input: { name: stri
     method: "PATCH",
     body: input,
     responseSchema: updateWorkspaceSettingsResponseSchema,
-  })
-}
-
-export function uploadWorkspaceLogo(workspaceId: string, input: { contentType: string; dataBase64: string; fileName: string }) {
-  return apiRequest(`/api/workspaces/${workspaceId}/logo`, {
-    method: "PUT",
-    body: input,
-    responseSchema: uploadWorkspaceLogoResponseSchema,
   })
 }
 

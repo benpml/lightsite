@@ -135,7 +135,9 @@ export function createWorkspaceService(
         });
       }
 
-      const slugResult = validateWorkspaceSlug(input.slug ?? slugifyName(input.name));
+      const slugResult = input.slug
+        ? validateWorkspaceSlug(input.slug)
+        : await getAvailableWorkspaceSlug(repository, input.name);
 
       if (!slugResult.ok) {
         throw new WorkspaceValidationError({
@@ -153,10 +155,12 @@ export function createWorkspaceService(
         });
       }
 
-      const existingWorkspace = await repository.findBySlug(slugResult.slug);
+      if (input.slug) {
+        const existingWorkspace = await repository.findBySlug(slugResult.slug);
 
-      if (existingWorkspace) {
-        throw new WorkspaceConflictError(slugResult.slug);
+        if (existingWorkspace) {
+          throw new WorkspaceConflictError(slugResult.slug);
+        }
       }
 
       try {
@@ -246,6 +250,40 @@ export function createWorkspaceService(
       return repository.findWorkspaceLogo(assetId);
     },
   };
+}
+
+async function getAvailableWorkspaceSlug(
+  repository: WorkspaceRepository,
+  name: string,
+) {
+  const normalizedName = slugifyName(name);
+  let seed = normalizedName.slice(0, 64).replace(/-+$/g, "");
+  let seedValidation = validateWorkspaceSlug(seed);
+
+  if (!seedValidation.ok) {
+    seed = slugifyName(`${normalizedName || "workspace"} workspace`)
+      .slice(0, 64)
+      .replace(/-+$/g, "");
+    seedValidation = validateWorkspaceSlug(seed);
+  }
+
+  if (!seedValidation.ok) {
+    return seedValidation;
+  }
+
+  for (let attempt = 1; attempt <= 1_000; attempt += 1) {
+    const suffix = attempt === 1 ? "" : `-${attempt}`;
+    const candidateBase = seedValidation.slug
+      .slice(0, 64 - suffix.length)
+      .replace(/-+$/g, "");
+    const candidate = validateWorkspaceSlug(`${candidateBase}${suffix}`);
+
+    if (candidate.ok && await repository.findBySlug(candidate.slug) === null) {
+      return candidate;
+    }
+  }
+
+  throw new WorkspaceConflictError(seedValidation.slug);
 }
 
 async function requireAdmin(repository: WorkspaceRepository, actorUserId: string, workspaceId: string) {
