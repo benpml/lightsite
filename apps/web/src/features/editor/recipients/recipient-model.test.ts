@@ -136,7 +136,7 @@ describe("recipient model", () => {
       siteUri: "workspace/site",
       siteVersion: "version-7",
     })).toContain(
-      'src="https://handout.link/aZ7k2Qr9LmNp/embed.jpg?v=version-7.'
+      'src="https://handout.link/aZ7k2Qr9LmNp/embed.jpg"'
     )
   })
 
@@ -185,8 +185,9 @@ describe("recipient model", () => {
       siteUri: "ab4125",
     })
     expect(embed).toContain(
-      'src="https://handout.link/ab4125/linear-david/embed.jpg?v='
+      'src="https://handout.link/ab4125/linear-david/embed.jpg"'
     )
+    expect(embed).not.toContain("embed.jpg?v=")
     expect(embed).toContain('style="display:block;width:600px;max-width:100%;height:auto')
   })
 })

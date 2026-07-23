@@ -21,13 +21,21 @@ import { createAutomationWorker } from "./automations/service"
 import { logger } from "./lib/logger"
 import { createDbSiteRepository } from "./sites/repository"
 import { createSiteService } from "./sites/service"
+import { createDbRecipientLogoRepository } from "./recipient-logos/repository"
+import { createRecipientLogoService } from "./recipient-logos/service"
 import { createDbTrackingV2Repository } from "./tracking/v2/repository"
 import { createConfiguredTrackingV2RecordingObjectStore } from "./tracking/v2/recording-config"
 import { createDbTrackingV2RecordingRepository } from "./tracking/v2/recording-repository"
 import { createTrackingV2RetentionService, startTrackingV2RetentionJob } from "./tracking/v2/retention"
+import { createLogoDevPreviewService } from "./workspaces/logo-preview"
 
 const bootstrapService = createBootstrapService(createDbBootstrapRepository())
 const siteRepository = createDbSiteRepository()
+const logoPreviewService = createLogoDevPreviewService(env.LOGO_DEV_TOKEN)
+const recipientLogoService = createRecipientLogoService(
+  createDbRecipientLogoRepository(),
+  logoPreviewService,
+)
 const authorizationSiteService = createSiteService(siteRepository)
 const collaboration = createSiteCollaborationServer({
   repository: createDbSiteCollaborationRepository(),
@@ -72,9 +80,12 @@ const collaboration = createSiteCollaborationServer({
 })
 const siteService = createSiteService(siteRepository, {
   contentCoordinator: collaboration.coordinator,
+  recipientLogoService,
 })
 const app = createApp({
   bootstrap: bootstrapService,
+  logoPreview: logoPreviewService,
+  recipientLogos: recipientLogoService,
   sites: siteService,
 })
 const server = createServer(app)

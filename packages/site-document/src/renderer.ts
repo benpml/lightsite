@@ -403,7 +403,7 @@ function renderPageTitle(node: TiptapNode, children: string | string[] | undefin
 
 function renderLogo(src: string, altText: string, kind: "recipient" | "workspace") {
   const safeSrc = sanitizeImageUrl(src);
-  return safeSrc ? `<span class="handout-page-title-logo" data-handout-logo-kind="${kind}"><img src="${attr(safeSrc)}" alt="${attr(altText)}"></span>` : "";
+  return safeSrc ? `<span class="handout-page-title-logo" data-handout-logo-kind="${kind}"><img src="${attr(safeSrc)}" alt="${attr(altText)}" fetchpriority="high" decoding="async"></span>` : "";
 }
 
 function buildLogoImagePath(

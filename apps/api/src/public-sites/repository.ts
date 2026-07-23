@@ -1,6 +1,7 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import {
   db as defaultDb,
+  siteVariantShortCodeAliases,
   siteVariants,
   siteVersions,
   sites,
@@ -151,11 +152,21 @@ export function createDbPublicSiteRepository(
           },
         })
         .from(siteVariants)
+        .leftJoin(
+          siteVariantShortCodeAliases,
+          and(
+            eq(siteVariantShortCodeAliases.variantId, siteVariants.id),
+            eq(siteVariantShortCodeAliases.shortCode, shortCode),
+          ),
+        )
         .innerJoin(sites, eq(siteVariants.siteId, sites.id))
         .innerJoin(workspaces, eq(sites.workspaceId, workspaces.id))
         .innerJoin(siteVersions, eq(sites.publishedVersionId, siteVersions.id))
         .where(and(
-          eq(siteVariants.shortCode, shortCode),
+          or(
+            eq(siteVariants.shortCode, shortCode),
+            eq(siteVariantShortCodeAliases.shortCode, shortCode),
+          ),
           eq(siteVariants.status, "active"),
           eq(workspaces.status, "active"),
           eq(sites.status, "published"),

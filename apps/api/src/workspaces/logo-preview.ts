@@ -91,6 +91,9 @@ export function createLogoDevPreviewService(
           theme: input.theme,
           token,
         }),
+        {
+          signal: AbortSignal.timeout(3_000),
+        },
       );
 
       if (providerResponse.status === 404) {

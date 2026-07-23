@@ -401,7 +401,7 @@ const EditorPublishMenu = memo(function EditorPublishMenu({
             <div className={cn("flex flex-col px-1", isPublished && "gap-2")}>
               {publishStatus === "published" ? (
                 <Button
-                  className="w-full disabled:opacity-100"
+                  className="w-full bg-muted text-muted-foreground hover:bg-muted disabled:opacity-100"
                   disabled
                   size="compact"
                   variant="secondary"
