@@ -27,25 +27,6 @@ export function getDefaultAccountName(bootstrap: AppBootstrapResponse) {
   return bootstrap.user.email.split("@")[0]?.replace(/[._-]+/g, " ").trim() ?? ""
 }
 
-export function getDefaultWorkspaceName(email: string) {
-  const validation = getWorkspaceEmailDomain(email)
-
-  if (!validation) {
-    return "My Workspace"
-  }
-
-  const companyLabel = validation.split(".")[0]?.replace(/[-_]+/g, " ").trim()
-
-  if (!companyLabel) {
-    return "My Workspace"
-  }
-
-  return companyLabel
-    .split(/\s+/)
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ")
-}
-
 export function getDefaultWorkspaceWebsite(email: string) {
   return getWorkspaceEmailDomain(email) ?? ""
 }

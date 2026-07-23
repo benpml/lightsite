@@ -59,6 +59,7 @@ import {
   ReplayAgreementDialog,
 } from "@/features/site-settings/components/tracking-settings"
 import { VariablesSettings } from "@/features/site-settings/components/variables-settings"
+import { uploadWorkspaceLogo } from "@/features/workspaces/api"
 import {
   createSiteVariableDefinition,
   modeOptions,
@@ -66,6 +67,7 @@ import {
 } from "@/features/site-settings/model"
 import { getApiErrorMessage, getApiFieldError } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
+import { readSquareImageAsBase64 } from "@/lib/image-upload"
 import { cn } from "@/lib/utils"
 
 import {
@@ -74,7 +76,6 @@ import {
   updateSiteDefaults,
   updateWorkspaceSettings,
   uploadProfileImage,
-  uploadWorkspaceLogo,
 } from "./api"
 
 const settingsTabs = ["workspace", "you", "site-defaults", "billing"] as const
@@ -160,7 +161,7 @@ function WorkspaceTabForm({ workspace }: { workspace: ReturnType<typeof useActiv
   const upload = useMutation({
     mutationFn: async (file: File) => uploadWorkspaceLogo(workspace.id, {
       contentType: file.type,
-      dataBase64: await fileToBase64(file),
+      dataBase64: await readSquareImageAsBase64(file),
       fileName: file.name,
     }),
     onSuccess: async () => {
@@ -257,7 +258,7 @@ function YouTab() {
   const profileImage = useMutation({
     mutationFn: async (file: File) => uploadProfileImage({
       contentType: file.type,
-      dataBase64: await validatedSquareImageBase64(file),
+      dataBase64: await readSquareImageAsBase64(file),
       fileName: file.name,
     }),
     onSuccess: ({ imageUrl }) => {
@@ -868,44 +869,4 @@ function splitDisplayName(displayName: string) {
 
 function joinDisplayName(firstName: string, lastName: string) {
   return [firstName, lastName].map((part) => part.trim()).filter(Boolean).join(" ")
-}
-
-async function validatedSquareImageBase64(file: File) {
-  const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"])
-  if (!allowedTypes.has(file.type)) {
-    throw new Error("Choose a PNG, JPG, or WEBP image.")
-  }
-  if (!file.size || file.size > 1_048_576) {
-    throw new Error("Choose an image no larger than 1 MB.")
-  }
-
-  const objectUrl = URL.createObjectURL(file)
-  try {
-    const dimensions = await readBrowserImageDimensions(objectUrl)
-    if (dimensions.width !== dimensions.height) {
-      throw new Error("Profile images must have a 1:1 square aspect ratio.")
-    }
-  } finally {
-    URL.revokeObjectURL(objectUrl)
-  }
-
-  return fileToBase64(file)
-}
-
-function readBrowserImageDimensions(src: string) {
-  return new Promise<{ height: number; width: number }>((resolve, reject) => {
-    const image = new Image()
-    image.onerror = () => reject(new Error("Image dimensions could not be read."))
-    image.onload = () => resolve({ height: image.naturalHeight, width: image.naturalWidth })
-    image.src = src
-  })
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error("File could not be read."))
-    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "")
-    reader.readAsDataURL(file)
-  })
 }

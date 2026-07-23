@@ -30,4 +30,22 @@ describe("workspace transactional email", () => {
       workspaceId: result.workspace.id,
     });
   });
+
+  it("allocates an available workspace slug when signup does not expose one", async () => {
+    const service = createWorkspaceService(createMemoryWorkspaceRepository());
+
+    const first = await service.createWorkspace({
+      name: "Acme",
+      website: "acme.com",
+      creatorUserId: "user_123",
+    });
+    const second = await service.createWorkspace({
+      name: "Acme",
+      website: "acme.com",
+      creatorUserId: "user_456",
+    });
+
+    expect(first.workspace.slug).toBe("acme");
+    expect(second.workspace.slug).toBe("acme-2");
+  });
 });

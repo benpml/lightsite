@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { IconBuilding, IconPhoto } from "@tabler/icons-react"
+import { IconPhoto } from "@tabler/icons-react"
 import {
   HANDOUT_TEXT_LIMITS,
   normalizeWebsiteDomain,
-  slugifyName,
-  validateWorkspaceSlug,
 } from "@handout/domain"
+import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,18 +21,22 @@ import {
   AuthFlowShell,
   AuthFooterLinks,
 } from "@/features/auth/components/auth-flow-shell"
+import { uploadWorkspaceLogo } from "@/features/workspaces/api"
 import { getApiErrorMessage, getApiFieldError, isApiClientError } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
+import {
+  readFileAsBase64,
+  readSquareImageAsBase64,
+  validateSquareImageFile,
+} from "@/lib/image-upload"
 
 import {
   createWorkspace,
   getWorkspaceLogoPreview,
-  getWorkspaceSlugAvailability,
   uploadOnboardingProfileImage,
 } from "./api"
 import {
   getDefaultAccountName,
-  getDefaultWorkspaceName,
   getDefaultWorkspaceWebsite,
   resolveOnboardingStep,
   splitAccountName,
@@ -97,7 +100,6 @@ export function OnboardingPage() {
 
   return (
     <WorkspaceSetup
-      defaultName={getDefaultWorkspaceName(bootstrap.user.email)}
       defaultWebsite={getDefaultWorkspaceWebsite(bootstrap.user.email)}
     />
   )
@@ -120,10 +122,9 @@ function AccountSetup({
 
   const profileImageMutation = useMutation({
     mutationFn: async (file: File) => {
-      validateProfileImage(file)
       return uploadOnboardingProfileImage({
         contentType: file.type,
-        dataBase64: await fileToBase64(file),
+        dataBase64: await readSquareImageAsBase64(file),
         fileName: file.name,
       })
     },
@@ -255,28 +256,28 @@ function AccountSetup({
 }
 
 function WorkspaceSetup({
-  defaultName,
   defaultWebsite,
 }: {
-  defaultName: string
   defaultWebsite: string
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [name, setName] = useState(defaultName)
-  const [slug, setSlug] = useState(slugifyName(defaultName))
-  const [slugTouched, setSlugTouched] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [name, setName] = useState("")
   const [website, setWebsite] = useState(defaultWebsite)
-  const slugValidation = useMemo(() => validateWorkspaceSlug(slug), [slug])
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const customLogoUrl = useMemo(
+    () => logoFile ? URL.createObjectURL(logoFile) : null,
+    [logoFile],
+  )
   const websiteValidation = useMemo(() => normalizeWebsiteDomain(website), [website])
 
-  const slugAvailabilityQuery = useQuery({
-    queryKey: queryKeys.workspaceSlugAvailability(slugValidation.ok ? slugValidation.slug : ""),
-    queryFn: ({ signal }) =>
-      getWorkspaceSlugAvailability(slugValidation.ok ? slugValidation.slug : slug, signal),
-    enabled: slugValidation.ok,
-    staleTime: 10_000,
-  })
+  useEffect(() => {
+    return () => {
+      if (customLogoUrl) URL.revokeObjectURL(customLogoUrl)
+    }
+  }, [customLogoUrl])
+
   const logoPreviewQuery = useQuery({
     queryKey: queryKeys.workspaceLogoPreview(websiteValidation.ok ? websiteValidation.domain : ""),
     queryFn: ({ signal }) =>
@@ -289,7 +290,23 @@ function WorkspaceSetup({
     staleTime: 60_000,
   })
   const workspaceMutation = useMutation({
-    mutationFn: createWorkspace,
+    mutationFn: async (input: { name: string; website: string }) => {
+      const created = await createWorkspace(input)
+
+      if (logoFile) {
+        try {
+          await uploadWorkspaceLogo(created.workspace.id, {
+            contentType: logoFile.type,
+            dataBase64: await readFileAsBase64(logoFile),
+            fileName: logoFile.name,
+          })
+        } catch (error) {
+          toast.error(getApiErrorMessage(error, "Workspace created, but the logo could not be uploaded."))
+        }
+      }
+
+      return created
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.me() })
       await navigate({ to: "/sites" })
@@ -297,68 +314,32 @@ function WorkspaceSetup({
   })
 
   const nameError = getApiFieldError(workspaceMutation.error, "name")
-  const slugError = getApiFieldError(workspaceMutation.error, "slug")
   const websiteError = getApiFieldError(workspaceMutation.error, "website")
-  const hasSlugError =
-    Boolean(slugError) || !slugValidation.ok || slugAvailabilityQuery.data?.available === false
   const hasWebsiteError = Boolean(websiteError) || (website.length > 0 && !websiteValidation.ok)
   const canSubmit =
     name.trim().length > 0 &&
-    slugValidation.ok &&
     websiteValidation.ok &&
-    slugAvailabilityQuery.data?.available === true &&
     !workspaceMutation.isPending
 
   return (
     <AuthFlowShell wide footer={<AuthFooterLinks showSignOut />}>
       <OnboardingSplitLayout>
         <form
-          className="flex w-full min-w-0 flex-col items-center gap-6 bg-background px-6 pt-8 pb-10 sm:px-8"
+          className="flex w-full min-w-0 flex-col items-center gap-6 bg-background p-8"
           onSubmit={(event) => {
             event.preventDefault()
-            if (!canSubmit || !slugValidation.ok || !websiteValidation.ok) return
+            if (!canSubmit || !websiteValidation.ok) return
             workspaceMutation.mutate({
               name: name.trim(),
-              slug: slugValidation.slug,
               website: websiteValidation.domain,
             })
           }}
         >
-          <div className="flex w-full flex-col items-center gap-1 text-center">
-            <h1 className="text-xl leading-7 font-medium">Set up your workspace</h1>
-            <p className="text-sm leading-5 text-muted-foreground">
-              Add the details your team will use in Handout.
-            </p>
-          </div>
+          <h1 className="w-full text-center text-xl leading-7 font-medium">
+            Now let’s set up your company
+          </h1>
 
-          <WorkspaceLogoPreview
-            imageUrl={logoPreviewQuery.data?.imageUrl ?? null}
-            loading={logoPreviewQuery.isFetching}
-            name={name}
-          />
-
-          <FieldGroup className="gap-5">
-            <Field className="gap-2" data-invalid={Boolean(nameError) || undefined}>
-              <FieldLabel htmlFor="workspace-name">Company name</FieldLabel>
-              <Input
-                id="workspace-name"
-                maxLength={HANDOUT_TEXT_LIMITS.workspaceName}
-                value={name}
-                onChange={(event) => {
-                  const nextName = event.target.value
-                  setName(nextName)
-                  if (!slugTouched) setSlug(slugifyName(nextName))
-                  if (workspaceMutation.isError) workspaceMutation.reset()
-                }}
-                autoComplete="organization"
-                disabled={workspaceMutation.isPending}
-                aria-invalid={Boolean(nameError) || undefined}
-                placeholder="Acme"
-                required
-              />
-              {nameError ? <FieldError>{nameError}</FieldError> : null}
-            </Field>
-
+          <FieldGroup className="gap-6">
             <Field className="gap-2" data-invalid={hasWebsiteError || undefined}>
               <FieldLabel htmlFor="workspace-website">Website</FieldLabel>
               <Input
@@ -382,32 +363,86 @@ function WorkspaceSetup({
               ) : null}
             </Field>
 
-            <Field className="gap-2" data-invalid={hasSlugError || undefined}>
-              <FieldLabel htmlFor="workspace-slug">Workspace URL</FieldLabel>
+            <Field className="gap-2" data-invalid={Boolean(nameError) || undefined}>
+              <FieldLabel htmlFor="workspace-name">Company name</FieldLabel>
               <Input
-                id="workspace-slug"
-                maxLength={HANDOUT_TEXT_LIMITS.slug}
-                value={slug}
+                id="workspace-name"
+                maxLength={HANDOUT_TEXT_LIMITS.workspaceName}
+                value={name}
                 onChange={(event) => {
-                  setSlugTouched(true)
-                  setSlug(slugifyName(event.target.value))
+                  setName(event.target.value)
                   if (workspaceMutation.isError) workspaceMutation.reset()
                 }}
-                autoComplete="off"
+                autoComplete="organization"
                 disabled={workspaceMutation.isPending}
-                aria-invalid={hasSlugError || undefined}
-                placeholder="acme"
+                aria-invalid={Boolean(nameError) || undefined}
+                placeholder="Acme"
                 required
               />
-              {slugError ? <FieldError>{slugError}</FieldError> : null}
-              {!slugError && !slugValidation.ok ? <FieldError>{slugValidation.message}</FieldError> : null}
-              {!slugError && slugValidation.ok && slugAvailabilityQuery.data?.available === false ? (
-                <FieldError>This workspace URL is already in use.</FieldError>
-              ) : null}
+              {nameError ? <FieldError>{nameError}</FieldError> : null}
+            </Field>
+
+            <Field className="gap-2.5">
+              <FieldLabel htmlFor="workspace-logo">Profile logo</FieldLabel>
+              <div className="flex w-full items-center gap-4 rounded-2xl border border-border bg-popover py-2.5 pr-5 pl-2.5">
+                <Avatar
+                  size="2xl"
+                  shape="square"
+                  className="border border-dashed border-border bg-secondary"
+                >
+                  {customLogoUrl || logoPreviewQuery.data?.imageUrl ? (
+                    <AvatarImage
+                      src={customLogoUrl ?? logoPreviewQuery.data?.imageUrl ?? undefined}
+                      alt={`${name || "Company"} logo`}
+                      className="object-contain"
+                    />
+                  ) : null}
+                  <AvatarFallback className="bg-secondary text-muted-foreground">
+                    {logoPreviewQuery.isFetching ? <Spinner /> : <IconPhoto aria-hidden="true" />}
+                  </AvatarFallback>
+                </Avatar>
+                <p className="min-w-0 flex-1 text-xs leading-4 text-muted-foreground">
+                  1:1 square image, .png or .jpg<br />
+                  512 x 512 recommended
+                </p>
+                <Input
+                  ref={fileInputRef}
+                  id="workspace-logo"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  disabled={workspaceMutation.isPending}
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0]
+                    if (file) {
+                      try {
+                        await validateSquareImageFile(file)
+                        setLogoFile(file)
+                      } catch (error) {
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Choose a PNG, JPG, or WebP image under 1 MB.",
+                        )
+                      }
+                    }
+                    event.target.value = ""
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="compact"
+                  disabled={workspaceMutation.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload
+                </Button>
+              </div>
             </Field>
           </FieldGroup>
 
-          {workspaceMutation.isError && !nameError && !slugError && !websiteError ? (
+          {workspaceMutation.isError && !nameError && !websiteError ? (
             <Alert variant="destructive">
               <AlertTitle>Workspace was not created</AlertTitle>
               <AlertDescription>
@@ -418,12 +453,12 @@ function WorkspaceSetup({
 
           <Button type="submit" size="lg" className="w-full" disabled={!canSubmit}>
             {workspaceMutation.isPending ? <Spinner data-icon="inline-start" /> : null}
-            Create workspace
+            Continue
           </Button>
 
           <p className="text-center text-sm leading-5 text-muted-foreground">
-            Joining an existing workspace?{" "}
-            <a href="/onboarding/join" className="underline">Enter an invite code</a>
+            Join an existing workspace{" "}
+            <a href="/onboarding/join" className="underline">here</a>
           </p>
         </form>
       </OnboardingSplitLayout>
@@ -437,34 +472,6 @@ function OnboardingSplitLayout({ children }: { children: ReactNode }) {
       {children}
       <Separator orientation="vertical" className="hidden md:block" />
       <AuthArtwork />
-    </div>
-  )
-}
-
-function WorkspaceLogoPreview({
-  imageUrl,
-  loading,
-  name,
-}: {
-  imageUrl: string | null
-  loading: boolean
-  name: string
-}) {
-  return (
-    <div className="flex w-full items-center gap-4 rounded-2xl border border-border bg-popover py-2.5 pr-5 pl-2.5">
-      <Avatar size="2xl" shape="square" className="border border-border bg-muted">
-        {imageUrl ? <AvatarImage src={imageUrl} alt={`${name || "Workspace"} logo`} className="object-contain" /> : null}
-        <AvatarFallback>
-          {loading ? <Spinner /> : <IconBuilding aria-hidden="true" />}
-        </AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{name || "Workspace"}</p>
-        <p className="truncate text-xs leading-4 text-muted-foreground">
-          {imageUrl ? "Logo found from your website" : loading ? "Finding your logo…" : "We’ll use your workspace initial"}
-        </p>
-      </div>
-      <IconPhoto aria-hidden="true" className="text-muted-foreground" />
     </div>
   )
 }
@@ -489,22 +496,4 @@ function OnboardingStatus({
       </div>
     </AuthFlowShell>
   )
-}
-
-function validateProfileImage(file: File) {
-  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-    throw new Error("Choose a PNG, JPG, or WEBP image.")
-  }
-  if (file.size > 1_048_576) {
-    throw new Error("Choose an image no larger than 1 MB.")
-  }
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error("File could not be read."))
-    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "")
-    reader.readAsDataURL(file)
-  })
 }
