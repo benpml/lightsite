@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type SetStateAction } from "react"
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { useNavigate, useParams } from "@tanstack/react-router"
-import { useEditor, useEditorState } from "@tiptap/react"
+import { useEditor, useEditorState, type Editor } from "@tiptap/react"
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
 import type { Transaction } from "@tiptap/pm/state"
 import type { ListSitesResponse } from "@handout/contracts"
@@ -55,6 +55,7 @@ import {
   type EditorSiteDraft,
 } from "./site-sidebar-model"
 import { createEditorExtensions } from "./tiptap/extensions"
+import { uploadEmbeddedImageDataUrl } from "./tiptap/image-utils"
 import { initialEditorContent, type HandoutVariableOption } from "./tiptap/schema"
 import { getAppTheme, resolveEditorSiteTheme } from "./theme"
 import {
@@ -186,6 +187,11 @@ function ReadyEditorPage({
   const [variableDefinitions, setVariableDefinitions] =
     useState<HandoutVariableOption[]>(() => editorVariables)
   const variableDefinitionsRef = useRef(variableDefinitions)
+  const legacyInlineImageMigrationRef = useRef<Promise<void>>(Promise.resolve())
+  const legacyInlineImageMigrationRunRef = useRef<{
+    editor: Editor
+    promise: Promise<void>
+  } | null>(null)
   const [editorMode, setEditorMode] = useState<EditorMode>("edit")
   const [documentRevision, setDocumentRevision] = useState(0)
   const sitesQuery = useQuery({
@@ -194,6 +200,7 @@ function ReadyEditorPage({
   })
   const publishSiteMutation = useMutation({
     mutationFn: async () => {
+      await legacyInlineImageMigrationRef.current
       await collaboration.saveNow()
       return publishSite(siteId)
     },
@@ -389,6 +396,23 @@ function ReadyEditorPage({
   const redo = useCallback(() => {
     editor?.chain().focus().redo().run()
   }, [editor])
+
+  useEffect(() => {
+    if (!activeEditor || legacyInlineImageMigrationRunRef.current?.editor === activeEditor) {
+      return
+    }
+
+    const promise = migrateLegacyInlineImages(activeEditor, activeWorkspace.id)
+    legacyInlineImageMigrationRunRef.current = {
+      editor: activeEditor,
+      promise,
+    }
+    legacyInlineImageMigrationRef.current = promise
+
+    void promise.catch(() => {
+      toast.error("An older embedded image could not be prepared for publishing.")
+    })
+  }, [activeEditor, activeWorkspace.id])
 
   const sidebarModel = useMemo(() => getEditorSidebarModel(siteDraft), [siteDraft])
   const activePageIndex = siteDraft.pages.findIndex((page) => page.id === activePageId)
@@ -1093,6 +1117,61 @@ function ReadyEditorPage({
       />
     </div>
   )
+}
+
+async function migrateLegacyInlineImages(editor: Editor, workspaceId: string) {
+  const sources = new Set<string>()
+
+  editor.state.doc.descendants((node) => {
+    const src = typeof node.attrs.src === "string" ? node.attrs.src : ""
+
+    if (src.startsWith("data:image/")) {
+      sources.add(src)
+    }
+  })
+
+  if (sources.size === 0) {
+    return
+  }
+
+  const replacements = new Map(
+    await Promise.all(
+      Array.from(sources, async (src, index) => [
+        src,
+        await uploadEmbeddedImageDataUrl(
+          src,
+          workspaceId,
+          `migrated-editor-image-${index + 1}`,
+        ),
+      ] as const),
+    ),
+  )
+
+  if (editor.isDestroyed) {
+    return
+  }
+
+  let transaction = editor.state.tr
+
+  editor.state.doc.descendants((node, pos) => {
+    const src = typeof node.attrs.src === "string" ? node.attrs.src : ""
+    const replacement = replacements.get(src)
+
+    if (replacement) {
+      transaction = transaction.setNodeMarkup(pos, undefined, {
+        ...node.attrs,
+        src: replacement,
+      })
+    }
+  })
+
+  if (transaction.docChanged) {
+    editor.view.dispatch(
+      transaction
+        .setMeta("addToHistory", false)
+        .setMeta("handoutLegacyImageMigration", true),
+    )
+  }
 }
 
 function getShareVariableDefinitions(

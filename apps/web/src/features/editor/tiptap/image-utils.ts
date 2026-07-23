@@ -19,21 +19,31 @@ const webpQualitySteps = [0.86, 0.74, 0.62, 0.5]
 
 export async function uploadImageFileAsAttrs(file: File, workspaceId: string) {
   const attrs = await readImageFileAsAttrs(file)
-  const source = parseUploadableImageDataUrl(attrs.src)
+  const src = await uploadEmbeddedImageDataUrl(attrs.src, workspaceId, file.name)
+
+  return {
+    ...attrs,
+    src,
+  }
+}
+
+export async function uploadEmbeddedImageDataUrl(
+  src: string,
+  workspaceId: string,
+  fileName = "migrated-editor-image",
+) {
+  const source = parseUploadableImageDataUrl(src)
   const response = await apiRequest(`/api/workspaces/${workspaceId}/assets/import`, {
     method: "POST",
     body: {
-      fileName: file.name,
+      fileName,
       purpose: "image",
       source,
     },
     responseSchema: workspaceAssetImportResponseSchema,
   })
 
-  return {
-    ...attrs,
-    src: response.asset.url,
-  }
+  return response.asset.url
 }
 
 function readImageFileAsAttrs(file: File) {
