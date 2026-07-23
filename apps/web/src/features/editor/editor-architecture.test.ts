@@ -426,6 +426,15 @@ describe("editor architecture", () => {
     expect(sidebarSource).toContain('{isEditing ? "Done" : "Save"}')
   })
 
+  it("portals the tab rename editor outside the sidebar scroll container", () => {
+    const sidebarSource = editorModules["./components/site-sidebar.tsx"] as string
+
+    expect(sidebarSource).toContain('aria-label="Edit tab name"')
+    expect(sidebarSource).toContain("<Popover open={open} onOpenChange={setPopoverOpen}>")
+    expect(sidebarSource).toContain('side="right"')
+    expect(sidebarSource).not.toContain("absolute top-0 left-full")
+  })
+
   it("creates icon cards with explicit Tiptap title and body nodes", () => {
     expect(createBlockContent("iconCard")).toMatchObject({
       type: "iconCard",

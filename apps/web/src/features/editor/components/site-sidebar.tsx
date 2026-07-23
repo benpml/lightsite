@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useId,
   useMemo,
   useRef,
@@ -1091,113 +1090,97 @@ function PageRenamePopover({
 }) {
   const [open, setOpen] = useState(false)
   const [draftName, setDraftName] = useState(page.name)
-  const panelRef = useRef<HTMLDivElement>(null)
   const originalNameRef = useRef(page.name)
+
+  const setPopoverOpen = (nextOpen: boolean) => {
+    if (nextOpen) {
+      originalNameRef.current = page.name
+      setDraftName(page.name)
+    }
+
+    setOpen(nextOpen)
+  }
 
   const cancel = () => {
     onRenamePage(page.id, originalNameRef.current)
     setOpen(false)
   }
 
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (event.target instanceof Node && !panelRef.current?.contains(event.target)) {
-        setOpen(false)
-      }
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onRenamePage(page.id, originalNameRef.current)
-        setOpen(false)
-      }
-    }
-
-    document.addEventListener("pointerdown", closeOnOutsidePointer)
-    document.addEventListener("keydown", closeOnEscape)
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePointer)
-      document.removeEventListener("keydown", closeOnEscape)
-    }
-  }, [open, onRenamePage, page.id])
-
   return (
-    <div ref={panelRef} className="relative inline-flex">
+    <Popover open={open} onOpenChange={setPopoverOpen}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex">
-            <button
+            <PopoverTrigger
               type="button"
               aria-label={`Edit ${page.name} tab name`}
               className="inline-flex size-[26px] shrink-0 items-center justify-center rounded-lg text-tertiary-foreground outline-none transition hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground [&_svg]:size-3.5"
-              onClick={() => {
-                originalNameRef.current = page.name
-                setDraftName(page.name)
-                setOpen(true)
-              }}
             >
               <IconPencil />
-            </button>
+            </PopoverTrigger>
           </span>
         </TooltipTrigger>
         <TooltipContent>Edit tab name</TooltipContent>
       </Tooltip>
-      {open ? (
-        <div
-          role="dialog"
-          aria-label="Edit tab name"
-          className="absolute top-0 left-full z-50 ml-2 flex w-[260px] flex-col gap-3 rounded-lg bg-popover p-3 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10"
+      <PopoverContent
+        align="start"
+        side="right"
+        sideOffset={8}
+        collisionPadding={12}
+        aria-label="Edit tab name"
+        className="w-[260px] gap-3 p-3"
+        onEscapeKeyDown={() => {
+          onRenamePage(page.id, originalNameRef.current)
+        }}
+      >
+        <PopoverHeader>
+          <PopoverTitle>Edit tab name</PopoverTitle>
+        </PopoverHeader>
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+
+            if (!draftName.trim()) {
+              return
+            }
+
+            setOpen(false)
+          }}
         >
-          <div className="font-medium">Edit tab name</div>
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={(event) => {
-              event.preventDefault()
+          <Input
+            autoFocus
+            maxLength={HANDOUT_TEXT_LIMITS.siteName}
+            value={draftName}
+            onChange={(event) => {
+              const nextName = event.target.value
+              setDraftName(nextName)
 
-              if (!draftName.trim()) {
-                return
+              if (nextName.trim()) {
+                onRenamePage(page.id, nextName)
               }
-
-              setOpen(false)
             }}
-          >
-            <Input
-              autoFocus
-              maxLength={HANDOUT_TEXT_LIMITS.siteName}
-              value={draftName}
-              onChange={(event) => {
-                const nextName = event.target.value
-                setDraftName(nextName)
-
-                if (nextName.trim()) {
-                  onRenamePage(page.id, nextName)
-                }
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && draftName.trim()) {
-                  event.preventDefault()
-                  setOpen(false)
-                }
-              }}
-            />
-            <div className="flex justify-end gap-1.5">
-              <Button
-                type="button"
-                variant="ghost"
-                className={cancelButtonClassName}
-                onClick={cancel}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!draftName.trim()}>Done</Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
-    </div>
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && draftName.trim()) {
+                event.preventDefault()
+                setOpen(false)
+              }
+            }}
+          />
+          <div className="flex justify-end gap-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              className={cancelButtonClassName}
+              onClick={cancel}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!draftName.trim()}>Done</Button>
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
   )
 }
 
