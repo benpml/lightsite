@@ -559,7 +559,7 @@ function PlanCard({
           {annual ? <Badge variant="secondary" className="bg-green-background text-green-foreground">20% off</Badge> : null}
         </div>
         <div className="flex flex-col gap-1.5">
-          <p className="text-2xl leading-8 font-medium text-tertiary-foreground">${billingPrices[plan][annual ? "year" : "month"]}</p>
+          <p className="text-2xl leading-8 font-medium text-foreground">${billingPrices[plan][annual ? "year" : "month"]}</p>
           <p className="text-sm leading-5 text-muted-foreground">Per seat / month</p>
         </div>
       </div>
