@@ -83,7 +83,7 @@ const SequenceEmbedDialog = lazy(() => loadSequenceEmbedDialog().then((module) =
 // Durable recipient creation must stay unavailable until the server issues
 // revocable, budgeted campaign capabilities for sequence links.
 const SEQUENCE_EMBED_ENABLED = false
-const PREVIEW_CLICK_TOOLTIP_DURATION_MS = 1600
+const PREVIEW_CLICK_TOOLTIP_DURATION_MS = 1000
 
 type EditorHeaderProps = {
   canManageTracking: boolean
@@ -532,6 +532,8 @@ function EditorModeToggle({
   const [hoverTooltipOpen, setHoverTooltipOpen] = useState(false)
   const [clickTooltipLabel, setClickTooltipLabel] = useState<string | null>(null)
   const clickTooltipTimeoutRef = useRef<number | null>(null)
+  const hoverTooltipSuppressedRef = useRef(false)
+  const pointerLeftSinceClickRef = useRef(false)
   const tooltipOpen = clickTooltipLabel !== null || hoverTooltipOpen
 
   useEffect(() => () => {
@@ -543,12 +545,15 @@ function EditorModeToggle({
   const changeMode = () => {
     const nextMode = isPreview ? "edit" : "preview"
 
+    hoverTooltipSuppressedRef.current = true
+    pointerLeftSinceClickRef.current = false
     setHoverTooltipOpen(false)
     setClickTooltipLabel(nextMode === "preview" ? "Previewing site" : "Editing site")
     if (clickTooltipTimeoutRef.current !== null) {
       window.clearTimeout(clickTooltipTimeoutRef.current)
     }
     clickTooltipTimeoutRef.current = window.setTimeout(() => {
+      setHoverTooltipOpen(false)
       setClickTooltipLabel(null)
       clickTooltipTimeoutRef.current = null
     }, PREVIEW_CLICK_TOOLTIP_DURATION_MS)
@@ -559,7 +564,7 @@ function EditorModeToggle({
     <Tooltip
       open={tooltipOpen}
       onOpenChange={(open) => {
-        if (clickTooltipLabel === null) {
+        if (!hoverTooltipSuppressedRef.current) {
           setHoverTooltipOpen(open)
         }
       }}
@@ -575,7 +580,28 @@ function EditorModeToggle({
           size="icon-compact"
           type="button"
           variant="ghost"
+          onBlur={() => {
+            hoverTooltipSuppressedRef.current = false
+            pointerLeftSinceClickRef.current = false
+            setHoverTooltipOpen(false)
+          }}
           onClick={changeMode}
+          onPointerEnter={() => {
+            if (
+              hoverTooltipSuppressedRef.current
+              && pointerLeftSinceClickRef.current
+              && clickTooltipLabel === null
+            ) {
+              hoverTooltipSuppressedRef.current = false
+              pointerLeftSinceClickRef.current = false
+            }
+          }}
+          onPointerLeave={() => {
+            if (hoverTooltipSuppressedRef.current) {
+              pointerLeftSinceClickRef.current = true
+            }
+            setHoverTooltipOpen(false)
+          }}
         >
           <IconEye />
         </Button>

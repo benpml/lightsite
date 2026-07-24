@@ -1574,8 +1574,10 @@ describe("editor architecture", () => {
     expect(headerSource).toContain('const label = isPreview ? "Stop previewing" : "Preview site"')
     expect(headerSource).toContain('"Previewing site"')
     expect(headerSource).toContain('"Editing site"')
-    expect(headerSource).toContain("PREVIEW_CLICK_TOOLTIP_DURATION_MS = 1600")
-    expect(headerSource).toContain("clickTooltipLabel === null")
+    expect(headerSource).toContain("PREVIEW_CLICK_TOOLTIP_DURATION_MS = 1000")
+    expect(headerSource).toContain("hoverTooltipSuppressedRef.current = true")
+    expect(headerSource).toContain("pointerLeftSinceClickRef.current = true")
+    expect(headerSource).toContain("if (!hoverTooltipSuppressedRef.current)")
     expect(headerSource).toContain("<TooltipContent>{clickTooltipLabel ?? label}</TooltipContent>")
     expect(headerSource).toContain('aria-pressed={isPreview}')
     expect(headerSource).toContain(
