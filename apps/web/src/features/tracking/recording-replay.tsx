@@ -14,6 +14,7 @@ import type {
 } from "@handout/tracking-schema"
 import { TRACKING_V2_RECORDING_MAX_BYTES } from "@handout/tracking-schema"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,7 +26,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { Slider } from "@/components/ui/slider"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { getApiErrorMessage, isApiClientError } from "@/lib/api/errors"
@@ -340,7 +341,7 @@ function RrwebReplayPlayer({
         />
         {status === "loading" ? (
           <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-            <Skeleton className="h-10 w-48 rounded-lg" />
+            <Spinner aria-label="Loading replay" />
           </div>
         ) : null}
       </div>
@@ -453,10 +454,14 @@ function RrwebReplayPlayer({
 
 function RecordingReplayLoading({ variant }: { variant: "default" | "drawer" }) {
   return (
-    <div className={cn("flex flex-col", variant === "drawer" ? "gap-0" : "gap-3")}>
-      <Skeleton className={cn(variant === "drawer" ? "h-[278px] rounded-none" : "aspect-video rounded-lg")} />
-      <Skeleton className={cn(variant === "drawer" ? "m-3 h-12 rounded-lg" : "h-8 rounded-lg")} />
-    </div>
+    <LoadingState
+      placement="compact"
+      label="Loading replay"
+      className={cn(
+        "min-h-0",
+        variant === "drawer" ? "h-[326px]" : "aspect-video",
+      )}
+    />
   )
 }
 

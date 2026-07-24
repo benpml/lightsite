@@ -6,6 +6,31 @@ import type { EditorView } from "@tiptap/pm/view"
 const MARQUEE_DRAG_THRESHOLD = 6
 const MARQUEE_MIN_HEIGHT = 24
 const MARQUEE_MIN_WIDTH = 12
+const MARQUEE_START_SURFACE_SELECTOR =
+  "[data-editor-canvas], [data-editor-marquee-surface]"
+const MARQUEE_INTERACTIVE_TARGET_SELECTOR = [
+  "a",
+  "button",
+  "input",
+  "label",
+  "select",
+  "textarea",
+  "[draggable='true']",
+  "[contenteditable='true']:not(.ProseMirror)",
+  "[role='button']",
+  "[role='checkbox']",
+  "[role='combobox']",
+  "[role='dialog']",
+  "[role='link']",
+  "[role='menu']",
+  "[role='menuitem']",
+  "[role='option']",
+  "[role='radio']",
+  "[role='slider']",
+  "[role='switch']",
+  "[role='tab']",
+  "[role='textbox']",
+].join(", ")
 
 type Point = {
   x: number
@@ -308,7 +333,11 @@ function canStartMarquee(view: EditorView, event: MouseEvent) {
     return false
   }
 
-  if (!target.closest("[data-editor-canvas]")) {
+  if (!target.closest(MARQUEE_START_SURFACE_SELECTOR)) {
+    return false
+  }
+
+  if (target.closest(MARQUEE_INTERACTIVE_TARGET_SELECTOR)) {
     return false
   }
 

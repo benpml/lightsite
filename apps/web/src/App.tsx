@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-router"
 
 import { AppThemeProvider } from "@/components/common/app-theme-provider"
+import { LoadingState } from "@/components/common/loading-state"
 import { createHandoutQueryClient } from "@/lib/api/query-client"
 
 const queryClient = createHandoutQueryClient()
@@ -422,17 +423,7 @@ function isPublicSitePath(pathname: string) {
 }
 
 function RouteFallback() {
-  return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="h-8 w-48 rounded-lg bg-muted" />
-      <div className="h-4 w-80 max-w-full rounded-lg bg-muted" />
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="h-32 rounded-lg bg-muted" />
-        <div className="h-32 rounded-lg bg-muted" />
-        <div className="h-32 rounded-lg bg-muted" />
-      </div>
-    </div>
-  )
+  return <LoadingState placement="fullscreen" label="Loading page" />
 }
 
 function MarketingWebsiteRedirect() {

@@ -37,6 +37,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Sidebar,
   SidebarContent,
@@ -306,6 +307,7 @@ function ShareSiteSubmenu({
         <DropdownMenuGroup className="flex flex-col gap-0.5 p-1 pb-2">
           {isLoading ? (
             <DropdownMenuItem className="gap-2 px-2 py-1.5" disabled>
+              <Spinner aria-hidden="true" />
               Loading sites
             </DropdownMenuItem>
           ) : null}

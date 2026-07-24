@@ -33,6 +33,7 @@ import { toast } from "sonner"
 
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { LoadingState } from "@/components/common/loading-state"
 import { TrackingEventCountBadge } from "@/components/data-display/tracking-event-count-badge"
 import {
   Dialog,
@@ -56,7 +57,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -748,13 +748,7 @@ function TrackingEventIcon({ event }: { event: TrackingV2EventFeedItem }) {
 }
 
 function TrackingSectionLoading() {
-  return (
-    <div className="flex flex-col gap-2">
-      <Skeleton className="h-7 rounded-lg" />
-      <Skeleton className="h-11 rounded-lg" />
-      <Skeleton className="h-11 rounded-lg" />
-    </div>
-  )
+  return <LoadingState placement="compact" label="Loading recipient activity" />
 }
 
 function TrackingSectionError({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -986,30 +980,7 @@ function createRecipientDraft(recipient: SiteRecipient): RecipientEditDraft {
 }
 
 function RecipientDetailsLoadingState() {
-  return (
-    <div className="flex min-h-full flex-col px-6 pt-5 pb-6">
-      <div className="mx-auto flex w-full max-w-[695px] flex-col">
-        <Skeleton className="h-[30px] w-24" />
-        <div className="mx-auto mt-7 flex w-full max-w-[640px] flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <Skeleton className="size-10 rounded-lg" />
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-7 w-56" />
-                <Skeleton className="h-5 w-44" />
-              </div>
-            </div>
-            <Skeleton className="h-[30px] w-80" />
-          </div>
-          <div className="grid gap-3 md:grid-cols-[216px_minmax(0,1fr)]">
-            <Skeleton className="h-[150px] rounded-xl" />
-            <Skeleton className="h-[150px] rounded-xl" />
-          </div>
-        </div>
-        <Skeleton className="mx-auto mt-9 h-48 w-full max-w-[640px] rounded-xl" />
-      </div>
-    </div>
-  )
+  return <LoadingState placement="page" label="Loading recipient details" />
 }
 
 function RecipientDetailsErrorState({

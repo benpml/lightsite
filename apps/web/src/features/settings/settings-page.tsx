@@ -15,6 +15,7 @@ import type { SiteDefaults, SiteTrackingConsentPopup } from "@handout/site-docum
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/page-header"
+import { LoadingState } from "@/components/common/loading-state"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -42,7 +43,6 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -645,21 +645,8 @@ function SiteDefaultsForm({ initialDefaults }: { initialDefaults: SiteDefaults }
 
 function SiteDefaultsLoadingState() {
   return (
-    <SettingsSurface className="gap-9" aria-busy="true">
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-5 w-80 max-w-full" />
-        <Separator className="mt-4" />
-      </div>
-      {Array.from({ length: 5 }, (_, index) => (
-        <div key={index} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-64 max-w-full" />
-          </div>
-          <Skeleton className={index === 0 ? "h-[280px] w-full" : "h-24 w-full"} />
-        </div>
-      ))}
+    <SettingsSurface>
+      <LoadingState placement="page" label="Loading site defaults" />
     </SettingsSurface>
   )
 }

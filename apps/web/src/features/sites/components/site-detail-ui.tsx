@@ -4,10 +4,10 @@ import {
   type TablerIcon,
 } from "@tabler/icons-react"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { RecipientAvatar } from "@/components/common/recipient-avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { PublicSiteRenderer } from "@/features/public-site/public-site-renderer"
 import { cn } from "@/lib/utils"
 import type { SiteRecipient } from "@/features/editor/recipients/recipient-model"
@@ -29,7 +29,13 @@ export function SiteDetailPreviewCard({
 }) {
   return (
     <div className="relative h-[150px] overflow-hidden rounded-xl border bg-card p-4">
-      {isLoading ? <Skeleton className="h-full w-full rounded-lg" /> : null}
+      {isLoading ? (
+        <LoadingState
+          placement="compact"
+          label="Loading site preview"
+          className="absolute inset-0 min-h-0"
+        />
+      ) : null}
       {isError ? (
         <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
           <p className="text-sm text-muted-foreground">Preview unavailable</p>

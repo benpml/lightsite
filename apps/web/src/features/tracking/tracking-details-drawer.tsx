@@ -25,6 +25,7 @@ import {
   type TablerIcon,
 } from "@tabler/icons-react"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { RecipientAvatar } from "@/components/common/recipient-avatar"
 import { Button } from "@/components/ui/button"
@@ -41,7 +42,6 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -473,13 +473,7 @@ function SectionTitle({ children, icon: Icon }: { children: ReactNode; icon: Tab
 }
 
 function SessionDrawerLoading() {
-  return (
-    <div className="flex flex-col gap-6">
-      <Skeleton className="h-[342px] rounded-xl" />
-      <Skeleton className="h-[382px] rounded-xl" />
-      <Skeleton className="h-[300px] rounded-xl" />
-    </div>
-  )
+  return <LoadingState placement="page" label="Loading session details" />
 }
 
 function formatDrawerDateTime(value: string | null) {

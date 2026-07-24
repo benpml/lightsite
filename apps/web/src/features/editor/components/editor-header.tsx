@@ -40,6 +40,19 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Tooltip,
@@ -284,26 +297,56 @@ function EditorCollaborators({ collaborators }: { collaborators: EditorCollabora
 
   const visible = collaborators.slice(0, 2)
   const hiddenCount = collaborators.length - visible.length
+  const editorLabel = `${collaborators.length} other editor${collaborators.length === 1 ? "" : "s"}`
 
   return (
-    <AvatarGroup
-      aria-label={`${collaborators.length} other editor${collaborators.length === 1 ? "" : "s"}`}
-      className="-space-x-1 shrink-0 *:data-[slot=avatar]:ring-1"
-    >
-      {visible.map((collaborator) => (
-        <Tooltip key={collaborator.id}>
-          <TooltipTrigger asChild>
-            <RecipientAvatar
-              recipient={{ name: collaborator.name }}
-              shape="circle"
-              size="sm"
-            />
-          </TooltipTrigger>
-          <TooltipContent>{collaborator.name} is editing</TooltipContent>
-        </Tooltip>
-      ))}
-      {hiddenCount > 0 ? <AvatarGroupCount>+{hiddenCount}</AvatarGroupCount> : null}
-    </AvatarGroup>
+    <HoverCard openDelay={120} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${editorLabel} editing now`}
+          className="cursor-default rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <AvatarGroup
+            aria-hidden="true"
+            className="-space-x-1 shrink-0 *:data-[slot=avatar]:ring-1"
+          >
+            {visible.map((collaborator) => (
+              <RecipientAvatar
+                key={collaborator.id}
+                recipient={{ name: collaborator.name }}
+                shape="circle"
+                size="sm"
+              />
+            ))}
+            {hiddenCount > 0 ? <AvatarGroupCount>+{hiddenCount}</AvatarGroupCount> : null}
+          </AvatarGroup>
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent align="end" className="w-64 p-1.5" sideOffset={8}>
+        <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+          <p className="text-sm font-medium">Editing now</p>
+          <Badge variant="secondary">{collaborators.length}</Badge>
+        </div>
+        <ItemGroup className="max-h-72 gap-0.5 overflow-y-auto">
+          {collaborators.map((collaborator) => (
+            <Item key={collaborator.id} size="xs">
+              <ItemMedia>
+                <RecipientAvatar
+                  recipient={{ name: collaborator.name }}
+                  shape="circle"
+                  size="md"
+                />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle>{collaborator.name}</ItemTitle>
+                <ItemDescription>Editing this Handout</ItemDescription>
+              </ItemContent>
+            </Item>
+          ))}
+        </ItemGroup>
+      </HoverCardContent>
+    </HoverCard>
   )
 }
 

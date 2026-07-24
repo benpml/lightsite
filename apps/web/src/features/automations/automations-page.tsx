@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { IconArrowRight, IconBolt, IconRefresh } from "@tabler/icons-react"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useActiveWorkspace } from "@/features/app-bootstrap/app-bootstrap-hooks"
 import { getApiErrorMessage } from "@/lib/api/errors"
@@ -103,4 +103,6 @@ function describeTrigger(trigger: { eventTypes: string[]; siteScope: string; rec
   return `${actions} · ${trigger.siteScope === "all" ? "all sites" : "selected sites"} · ${trigger.recipientScope === "anyone" ? "any visitor" : trigger.recipientScope}`
 }
 
-function AutomationsLoading() { return <div className="space-y-5 p-6"><Skeleton className="h-8 w-40" /><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /></div> }
+function AutomationsLoading() {
+  return <LoadingState placement="page" label="Loading automations" />
+}

@@ -4,12 +4,13 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router"
 import { IconArrowLeft, IconCheck, IconCopy, IconPlayerPause, IconPlayerPlay, IconRefresh, IconRotate, IconSend, IconTrash } from "@tabler/icons-react"
 import { toast } from "sonner"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useActiveWorkspace } from "@/features/app-bootstrap/app-bootstrap-hooks"
@@ -86,7 +87,7 @@ export function AutomationDetailPage() {
     ])
   }, [automationId, awaitedStatus, queryClient, workspace.id])
 
-  if (detail.isLoading) return <div className="space-y-5 p-6"><Skeleton className="h-8 w-48" /><Skeleton className="h-72 w-full" /></div>
+  if (detail.isLoading) return <LoadingState placement="page" label="Loading automation" />
   if (detail.isError || !detail.data) return <div className="p-6"><Alert variant="destructive"><AlertTitle>Automation couldn’t load</AlertTitle><AlertDescription>{getApiErrorMessage(detail.error)}</AlertDescription></Alert></div>
   const automation = detail.data.automation
   const canManage = entitlement.data?.plan === "pro" && entitlement.data.role === "admin"
@@ -153,7 +154,7 @@ export function AutomationDetailPage() {
                 <TableBody>{deliveries.length ? deliveries.map((delivery) => <TableRow key={delivery.id}><TableCell><div className="font-medium">{eventLabel(delivery.eventType)}</div><div className="text-xs text-muted-foreground">{delivery.kind === "test" ? "Test" : delivery.eventId}</div></TableCell><TableCell><DeliveryStatus status={delivery.status} /></TableCell><TableCell>{delivery.attemptCount}</TableCell><TableCell>{delivery.responseStatus ?? friendlyError(delivery.errorCode)}</TableCell><TableCell className="text-muted-foreground">{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(delivery.createdAt))}</TableCell><TableCell><div className="flex justify-end gap-1"><AutomationDeliveryDataDialog workspaceId={workspace.id} automationId={automation.id} deliveryId={delivery.id} payloadRetained={delivery.payloadRetained} />{delivery.payloadRetained && delivery.status === "failed" && delivery.revisionId === automation.currentRevisionId && (delivery.kind === "test" || automation.state === "enabled") ? <Button variant="ghost" size="sm" onClick={() => retryMutation.mutate(delivery.id)} disabled={!canManage || retryMutation.isPending}><IconRefresh data-icon="inline-start" />Retry</Button> : null}</div></TableCell></TableRow>) : <TableRow><TableCell colSpan={6} className="h-32 text-center text-muted-foreground">No deliveries yet. Send a test to check the connection.</TableCell></TableRow>}</TableBody>
             </Table>
           </div>
-          {activity.hasNextPage ? <div className="mt-3 flex justify-center"><Button variant="outline" size="sm" onClick={() => activity.fetchNextPage()} disabled={activity.isFetchingNextPage}>{activity.isFetchingNextPage ? "Loading…" : "Load older activity"}</Button></div> : null}
+          {activity.hasNextPage ? <div className="mt-3 flex justify-center"><Button variant="outline" size="sm" onClick={() => activity.fetchNextPage()} disabled={activity.isFetchingNextPage}>{activity.isFetchingNextPage ? <Spinner data-icon="inline-start" /> : null}{activity.isFetchingNextPage ? "Loading" : "Load older activity"}</Button></div> : null}
         </TabsContent>
       </Tabs>
     </div>

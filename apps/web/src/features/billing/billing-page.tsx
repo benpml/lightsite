@@ -23,6 +23,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert"
+import { LoadingState } from "@/components/common/loading-state"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +46,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { useActiveWorkspace } from "@/features/app-bootstrap/app-bootstrap-hooks"
@@ -431,16 +431,7 @@ function BillingSettingsContent({ workspaceId }: { workspaceId: string }) {
 }
 
 function BillingLoadingState() {
-  return (
-    <div className="flex w-full max-w-[560px] flex-col gap-10" aria-busy="true">
-      {Array.from({ length: 4 }, (_, index) => (
-        <section key={index} className="flex flex-col gap-4">
-          <Skeleton className="h-6 w-28" />
-          <Skeleton className={cn("w-full rounded-[16px]", index === 2 ? "h-[284px]" : "h-20")} />
-        </section>
-      ))}
-    </div>
-  )
+  return <LoadingState placement="page" label="Loading billing" />
 }
 
 function PlanChangeDialog({

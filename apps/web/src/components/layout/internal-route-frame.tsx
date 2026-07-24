@@ -3,11 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { Link, Navigate } from "@tanstack/react-router"
 import { IconArrowRight, IconRefresh, IconUserCheck } from "@tabler/icons-react"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { AppShell } from "@/components/layout/app-shell"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppBootstrapProvider } from "@/features/app-bootstrap/app-bootstrap-context"
@@ -94,51 +94,12 @@ export function InternalRouteFrame({ children, chrome = "app" }: InternalRouteFr
 }
 
 function InternalLoadingState({ chrome }: { chrome: InternalRouteFrameProps["chrome"] }) {
-  if (chrome === "bare") {
-    return (
-      <div className="flex min-h-dvh flex-col gap-1.5 bg-page-background p-1.5">
-        <div className="flex h-[46px] shrink-0 items-center px-2.5">
-          <Skeleton className="h-7 w-48" />
-          <div className="ml-auto flex gap-2">
-            <Skeleton className="h-7 w-20" />
-            <Skeleton className="h-7 w-20" />
-          </div>
-        </div>
-        <div className="grid min-h-0 flex-1 grid-cols-[303px_minmax(0,1fr)] gap-1.5">
-          <Skeleton className="h-full rounded-xl" />
-          <Skeleton className="h-full rounded-xl" />
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex min-h-dvh bg-page-background">
-      <aside className="hidden w-60 shrink-0 bg-sidebar p-3 md:flex md:flex-col md:gap-4">
-        <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-8 w-full" />
-        <div className="flex flex-col gap-2 pt-2">
-          {Array.from({ length: 5 }, (_, index) => (
-            <Skeleton key={index} className="h-8 w-full" />
-          ))}
-        </div>
-      </aside>
-      <main className="flex min-w-0 flex-1 bg-page-background py-1.5 pr-1.5">
-        <div className="min-h-0 flex-1 overflow-hidden rounded-xl border bg-background p-6">
-          <div className="flex max-w-5xl flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-80 max-w-full" />
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+    <LoadingState
+      placement="fullscreen"
+      label={chrome === "bare" ? "Loading editor" : "Loading app"}
+      className="bg-page-background"
+    />
   )
 }
 

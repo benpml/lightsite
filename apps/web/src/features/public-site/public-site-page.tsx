@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams } from "@tanstack/react-router"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { getPublicSitePayload, type PublicSiteLookupResult } from "./public-site-api"
 import { usePublicMetadata, usePublicUnavailableMetadata } from "./public-metadata"
 import { PublicSiteRenderer } from "./public-site-renderer"
@@ -83,12 +84,7 @@ function PublicLoadingPage() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-5 font-site text-foreground">
-      <div className="w-full max-w-md">
-        <div className="h-4 w-24 rounded-md bg-muted" />
-        <div className="mt-4 h-9 w-full max-w-sm rounded-lg bg-muted" />
-        <div className="mt-4 h-4 w-full rounded-md bg-muted" />
-        <div className="mt-2 h-4 w-3/4 rounded-md bg-muted" />
-      </div>
+      <LoadingState placement="fullscreen" label="Loading site" />
     </main>
   )
 }

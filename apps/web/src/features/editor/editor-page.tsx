@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner"
 
 import { useAppThemeOverride } from "@/components/common/app-theme-context"
+import { LoadingState } from "@/components/common/loading-state"
 import {
   useActiveWorkspace,
   useAppBootstrap,
@@ -156,13 +157,21 @@ export function EditorPage() {
   const collaboration = useSiteCollaboration({ bootstrap, siteId })
 
   if (!collaboration.isReady) {
+    if (collaboration.saveStatus !== "offline" && collaboration.saveStatus !== "unavailable") {
+      return (
+        <LoadingState
+          placement="fullscreen"
+          label="Opening collaborative editor"
+          className="bg-background"
+        />
+      )
+    }
+
     return (
       <div className="flex h-svh items-center justify-center bg-background px-6 text-sm text-muted-foreground">
         {collaboration.saveStatus === "offline"
           ? "Reconnect to load this site on this device."
-          : collaboration.saveStatus === "unavailable"
-            ? "This collaborative editor could not be opened."
-            : "Opening collaborative editor…"}
+          : "This collaborative editor could not be opened."}
       </div>
     )
   }
@@ -1063,11 +1072,17 @@ function ReadyEditorPage({
                 onSelectPage={switchToPage}
               />
             ) : (
-              <div className="p-8 text-sm text-muted-foreground">
-                {collaboration.saveStatus === "offline"
-                  ? "Reconnect to load this site on this device."
-                  : "Loading collaborative editor"}
-              </div>
+              collaboration.saveStatus === "offline" ? (
+                <div className="p-8 text-sm text-muted-foreground">
+                  Reconnect to load this site on this device.
+                </div>
+              ) : (
+                <LoadingState
+                  placement="section"
+                  label="Loading collaborative editor"
+                  className="h-full"
+                />
+              )
             )}
           </section>
         </div>

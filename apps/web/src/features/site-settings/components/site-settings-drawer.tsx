@@ -9,9 +9,9 @@ import type { ReactNode, SetStateAction } from "react"
 import type { WorkspacePlan } from "@handout/contracts"
 import type { SiteContent, SiteVariableDefinition } from "@handout/site-document"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Sheet,
   SheetClose,
@@ -143,20 +143,7 @@ export function SiteSettingsDrawer({
 }
 
 function SiteSettingsLoadingState() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 px-4" aria-busy="true" aria-label="Loading site settings">
-      <div className="flex h-[42px] items-center gap-2 border-b border-border-subtle">
-        <Skeleton className="h-5 w-24" />
-        <Skeleton className="h-5 w-20" />
-        <Skeleton className="h-5 w-20" />
-      </div>
-      <div className="flex flex-col gap-5 px-px">
-        <Skeleton className="h-16 w-full rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-xl" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-      </div>
-    </div>
-  )
+  return <LoadingState placement="section" label="Loading site settings" className="min-h-0 flex-1" />
 }
 
 function SettingsTab({ children, value }: { children: ReactNode; value: string }) {

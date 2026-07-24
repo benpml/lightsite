@@ -25,6 +25,7 @@ import {
   IconX,
 } from "@tabler/icons-react"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { RecipientAvatar } from "@/components/common/recipient-avatar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -35,7 +36,6 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -666,7 +666,13 @@ function EmailCardPreview({ company, recipientName, screenshotUrl }: {
 
   return (
     <div className="relative aspect-[1200/630] w-full max-w-full min-w-0 overflow-hidden rounded-xl border border-border bg-background shadow-xs">
-      {status === "loading" ? <Skeleton className="absolute inset-0 size-full rounded-none" /> : null}
+      {status === "loading" ? (
+        <LoadingState
+          placement="compact"
+          label="Loading email preview"
+          className="absolute inset-0 min-h-0"
+        />
+      ) : null}
       {status === "error" ? (
         <Empty className="absolute inset-0 gap-2 p-4">
           <EmptyHeader>
@@ -709,7 +715,7 @@ function SearchInput({ autoFocus, placeholder, query, onQueryChange }: { autoFoc
 }
 
 function PanelLoading({ label = "Loading Handout" }: { label?: string }) {
-  return <div className="flex min-h-0 flex-1 flex-col gap-3 p-4" aria-label={label}><Skeleton className="h-8 w-2/3" /><Skeleton className="h-9 w-full" /><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></div>
+  return <LoadingState placement="section" label={label} className="min-h-0 flex-1" />
 }
 
 async function api<T>(path: string, options: { method?: "GET" | "POST"; body?: unknown } = {}) {

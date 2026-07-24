@@ -4,12 +4,12 @@ import { IconAlertTriangle, IconDeviceFloppy, IconPlus, IconRefresh, IconShieldC
 import type { TrackingV2TrackingSettings } from "@handout/tracking-schema"
 import { toast } from "sonner"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldTitle } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { getApiErrorMessage } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/query-keys"
@@ -217,7 +217,9 @@ function InternalTrafficSettings({ canManage, workspaceId }: { canManage: boolea
         </p>
       </div>
 
-      {rangesQuery.isLoading ? <Skeleton className="h-10 rounded-lg" /> : null}
+      {rangesQuery.isLoading ? (
+        <LoadingState placement="compact" label="Loading internal networks" />
+      ) : null}
       {rangesQuery.isError ? (
         <Alert variant="destructive">
           <IconAlertTriangle />
@@ -294,11 +296,7 @@ function TrackingSiteSettingsLoadingState() {
   return (
     <section className="flex flex-col gap-3">
       <TrackingPanelHeader />
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-        <Skeleton className="h-14 rounded-lg" />
-        <Skeleton className="h-14 rounded-lg" />
-        <Skeleton className="h-20 rounded-lg" />
-      </div>
+      <LoadingState placement="section" label="Loading tracking settings" />
     </section>
   )
 }

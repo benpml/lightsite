@@ -251,13 +251,10 @@ describe("editor architecture", () => {
     expect(imageUtilsSource).toContain("export async function uploadEmbeddedImageDataUrl")
   })
 
-  it("places the editor loading sidebar on the left", () => {
-    expect(internalRouteFrameSource).toContain(
-      "grid-cols-[303px_minmax(0,1fr)]",
-    )
-    expect(internalRouteFrameSource).not.toContain(
-      "grid-cols-[minmax(0,1fr)_303px]",
-    )
+  it("uses the canonical loading state while the editor shell loads", () => {
+    expect(internalRouteFrameSource).toContain("<LoadingState")
+    expect(internalRouteFrameSource).toContain('placement="fullscreen"')
+    expect(internalRouteFrameSource).toContain('"Loading editor"')
   })
 
   it("offers sidebar button icons without icon color controls", () => {
@@ -908,6 +905,7 @@ describe("editor architecture", () => {
       editorModules["./tiptap/extensions/block-marquee-selection.ts"]
     const selectionCleanupSource =
       editorModules["./tiptap/extensions/selection-cleanup.ts"]
+    const sidebarSource = editorModules["./components/site-sidebar.tsx"]
     expect(blockSelectionSource).toContain("isNodeRangeSelection")
     expect(blockSelectionSource).toContain("handleKeyDown")
     expect(blockSelectionSource).toContain("Delete:")
@@ -936,8 +934,15 @@ describe("editor architecture", () => {
     expect(blockMarqueeSelectionSource).toContain("nativeSelectionAllowed")
     expect(blockMarqueeSelectionSource).toContain("startsInsideTopLevelBlock")
     expect(blockMarqueeSelectionSource).toContain("if (!nativeSelectionAllowed)")
+    expect(blockMarqueeSelectionSource).toContain(
+      '"[data-editor-canvas], [data-editor-marquee-surface]"'
+    )
+    expect(blockMarqueeSelectionSource).toContain("MARQUEE_INTERACTIVE_TARGET_SELECTOR")
+    expect(blockMarqueeSelectionSource).toContain('"button"')
+    expect(blockMarqueeSelectionSource).toContain('"input"')
     expect(blockMarqueeSelectionSource).toContain(".handout-editor-button-settings")
     expect(selectionCleanupSource).toContain(".handout-editor-button-settings")
+    expect(sidebarSource).toContain('data-editor-marquee-surface={isEditing ? "" : undefined}')
     expect(blockMarqueeSelectionSource).not.toContain("event.buttons === 0")
     expect(selectionCleanupSource).not.toContain(
       'querySelectorAll(".ProseMirror-selectednoderange")'

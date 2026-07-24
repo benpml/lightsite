@@ -17,6 +17,7 @@ import type {
   TrackingV2SessionSummary,
 } from "@handout/tracking-schema"
 
+import { LoadingState } from "@/components/common/loading-state"
 import { RecipientAvatar } from "@/components/common/recipient-avatar"
 import { Button } from "@/components/ui/button"
 import { TrackingEventCountBadge } from "@/components/data-display/tracking-event-count-badge"
@@ -28,7 +29,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -191,7 +191,7 @@ export function TrackingPage() {
               onRetry={() => void dashboardQuery.refetch()}
             />
           ) : sessionsAreLoading ? (
-            <TrackingTableLoadingState rowHeight="h-[52px]" />
+            <TrackingTableLoadingState label="Loading tracking sessions" />
           ) : sessions.length === 0 ? (
             <TrackingEmptyState kind="sessions" />
           ) : (
@@ -215,7 +215,7 @@ export function TrackingPage() {
               onRetry={() => void eventsQuery.refetch()}
             />
           ) : eventsAreLoading ? (
-            <TrackingTableLoadingState rowHeight="h-10" />
+            <TrackingTableLoadingState label="Loading tracking events" />
           ) : events.length === 0 ? (
             <TrackingEmptyState kind="events" />
           ) : (
@@ -510,15 +510,8 @@ function EventTypeIcon({ event }: { event: TrackingV2EventFeedItem }) {
   return <Icon className="size-3.5 shrink-0" />
 }
 
-function TrackingTableLoadingState({ rowHeight }: { rowHeight: string }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Skeleton className="h-7 rounded-lg" />
-      {Array.from({ length: 4 }, (_, index) => (
-        <Skeleton key={index} className={rowHeight} />
-      ))}
-    </div>
-  )
+function TrackingTableLoadingState({ label }: { label: string }) {
+  return <LoadingState placement="section" label={label} />
 }
 
 function TrackingErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {

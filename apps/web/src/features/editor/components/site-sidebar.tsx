@@ -160,6 +160,7 @@ export function EditorSiteSidebar(props: EditorSiteSidebarProps) {
       />
       <aside
         aria-label={isEditing ? "Site sidebar editor" : "Site navigation"}
+        data-editor-marquee-surface={isEditing ? "" : undefined}
         className="handout-editor-sidebar-desktop flex h-full w-[289px] shrink-0 flex-col gap-6 bg-background px-6 pt-[26px] pb-5 text-foreground"
       >
         <div className="min-h-0 flex-1 overflow-y-auto">

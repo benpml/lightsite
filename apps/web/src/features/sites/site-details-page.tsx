@@ -23,6 +23,7 @@ import { toast } from "sonner"
 
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { LoadingState } from "@/components/common/loading-state"
 import { TrackingEventCountBadge } from "@/components/data-display/tracking-event-count-badge"
 import {
   DropdownMenu,
@@ -32,7 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -397,7 +398,7 @@ function RecipientsTable({
         {isLoading ? (
           <TableRow className="border-0 hover:bg-transparent">
             <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">
-              Loading recipients…
+              <Spinner aria-label="Loading recipients" className="mx-auto" />
             </TableCell>
           </TableRow>
         ) : error ? (
@@ -503,27 +504,7 @@ async function listAllSiteTrackingEvents(
 
 
 function SiteDetailsLoadingState() {
-  return (
-    <div className="flex min-h-full flex-col px-6 pt-5 pb-6">
-      <div className="mx-auto flex w-full max-w-[695px] flex-col">
-        <Skeleton className="h-[26px] w-24" />
-        <div className="@container/site-overview mx-auto mt-7 flex w-full max-w-[640px] flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-7 w-56" />
-              <Skeleton className="h-5 w-44" />
-            </div>
-            <Skeleton className="h-[30px] w-48" />
-          </div>
-          <div className="grid gap-3 @min-[540px]/site-overview:grid-cols-[216px_minmax(0,1fr)]">
-            <Skeleton className="h-[150px] rounded-xl" />
-            <Skeleton className="h-[150px] rounded-xl" />
-          </div>
-        </div>
-        <Skeleton className="mx-auto mt-9 h-48 w-full max-w-[640px] rounded-xl" />
-      </div>
-    </div>
-  )
+  return <LoadingState placement="page" label="Loading site details" />
 }
 
 function SiteDetailsErrorState({

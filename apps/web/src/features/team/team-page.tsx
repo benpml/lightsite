@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { PageHeader } from "@/components/common/page-header"
 import { RecipientAvatar } from "@/components/common/recipient-avatar"
 import { RoleBadge } from "@/components/common/status-badge"
+import { LoadingState } from "@/components/common/loading-state"
 import {
   Alert,
   AlertAction,
@@ -68,7 +69,6 @@ import {
   FieldSet,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -585,21 +585,7 @@ function InviteMemberDialog({
 }
 
 function TeamLoadingState() {
-  return (
-    <div className="flex flex-col gap-2">
-      {Array.from({ length: 3 }, (_, index) => (
-        <div key={index} className="flex h-16 items-center gap-3 rounded-lg px-2">
-          <Skeleton className="size-10 rounded-full" />
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-3 w-56" />
-          </div>
-          <Skeleton className="h-6 w-16" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      ))}
-    </div>
-  )
+  return <LoadingState placement="section" label="Loading team members" />
 }
 
 function TeamErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {

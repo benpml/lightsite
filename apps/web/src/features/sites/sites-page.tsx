@@ -19,6 +19,7 @@ import { useTheme } from "next-themes"
 import { toast } from "sonner"
 
 import { SiteStatusBadge } from "@/components/common/status-badge"
+import { LoadingState } from "@/components/common/loading-state"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -331,20 +332,7 @@ function SiteActions({
 }
 
 function SitesLoadingState() {
-  return (
-    <div className="flex flex-col gap-2">
-      {Array.from({ length: 3 }, (_, index) => (
-        <div key={index} className="flex h-16 items-center gap-4 rounded-lg px-2">
-          <Skeleton className="h-12 w-[38px] rounded-md" />
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-4 w-44" />
-            <Skeleton className="h-3 w-64" />
-          </div>
-          <Skeleton className="h-6 w-20" />
-        </div>
-      ))}
-    </div>
-  )
+  return <LoadingState placement="section" label="Loading sites" />
 }
 
 function SitesErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
