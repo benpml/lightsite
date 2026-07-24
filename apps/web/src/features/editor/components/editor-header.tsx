@@ -83,6 +83,7 @@ const SequenceEmbedDialog = lazy(() => loadSequenceEmbedDialog().then((module) =
 // Durable recipient creation must stay unavailable until the server issues
 // revocable, budgeted campaign capabilities for sequence links.
 const SEQUENCE_EMBED_ENABLED = false
+const PREVIEW_CLICK_TOOLTIP_DURATION_MS = 1600
 
 type EditorHeaderProps = {
   canManageTracking: boolean
@@ -550,7 +551,7 @@ function EditorModeToggle({
     clickTooltipTimeoutRef.current = window.setTimeout(() => {
       setClickTooltipLabel(null)
       clickTooltipTimeoutRef.current = null
-    }, 1600)
+    }, PREVIEW_CLICK_TOOLTIP_DURATION_MS)
     onModeChange(nextMode)
   }
 

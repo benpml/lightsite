@@ -1574,6 +1574,7 @@ describe("editor architecture", () => {
     expect(headerSource).toContain('const label = isPreview ? "Stop previewing" : "Preview site"')
     expect(headerSource).toContain('"Previewing site"')
     expect(headerSource).toContain('"Editing site"')
+    expect(headerSource).toContain("PREVIEW_CLICK_TOOLTIP_DURATION_MS = 1600")
     expect(headerSource).toContain("clickTooltipLabel === null")
     expect(headerSource).toContain("<TooltipContent>{clickTooltipLabel ?? label}</TooltipContent>")
     expect(headerSource).toContain('aria-pressed={isPreview}')
