@@ -1,5 +1,11 @@
 # Handout Engineering Notes
 
+## Git Branch and Worktree
+
+- Always use the latest `origin/main` as the canonical baseline for repository work.
+- Do not use, create, switch to, or modify a different branch or worktree unless the user explicitly instructs you to do so.
+- Before making changes, fetch `origin` and verify that the active checkout is based on the current `origin/main`.
+
 ## Component Organization
 
 Organize components by ownership and reuse, not by abstract atomic labels.
