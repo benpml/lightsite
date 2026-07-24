@@ -133,6 +133,10 @@ describe("editor architecture", () => {
     expect(pageSource).toContain("const [previewReady, setPreviewReady] = useState(false)")
     expect(pageSource).toContain("setPreviewReady(false)")
     expect(pageSource).toContain('onModeChange={changeEditorMode}')
+    expect(pageSource).toContain('"Preview mode on"')
+    expect(pageSource).toContain('"Preview mode off"')
+    expect(pageSource).toContain('id: "editor-preview-mode"')
+    expect(pageSource).toContain("duration: 1600")
     expect(pageSource).toContain('editorMode === "preview" && previewReady')
     expect(pageSource).toContain('"pointer-events-none opacity-0"')
     expect(pageSource).not.toContain('editorMode === "edit" ? "flex" : "hidden"')
@@ -1577,6 +1581,12 @@ describe("editor architecture", () => {
     expect(headerSource).toContain("IconSettings")
     expect(headerSource).toContain(">Send</span>")
     expect(headerSource).toContain('aria-label="Send and personalize"')
+    expect(headerSource.indexOf("<EditorSiteSettingsMenu")).toBeLessThan(
+      headerSource.indexOf('aria-label="Send and personalize"'),
+    )
+    expect(headerSource.indexOf('aria-label="Send and personalize"')).toBeLessThan(
+      headerSource.indexOf("<EditorPublishMenu"),
+    )
     expect(headerSource).toContain("EditorPublishMenu")
     expect(headerSource).toContain("IconWorldLongitude")
     expect(headerSource).toContain("Last published")

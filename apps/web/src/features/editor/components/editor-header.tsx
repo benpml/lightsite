@@ -180,6 +180,31 @@ export function EditorHeader({
               </Tooltip>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
+              <EditorSiteSettingsMenu
+                canManageTracking={canManageTracking}
+                content={content}
+                onChange={onContentChange}
+                onCreateVariable={onCreateVariable}
+                onDeleteVariable={onDeleteVariable}
+                onEditVariable={onEditVariable}
+                plan={plan}
+                siteId={siteId}
+                siteName={siteName}
+                trigger={
+                  <Button
+                    aria-label="Site settings"
+                    className="border-border dark:border-border"
+                    size="icon-compact"
+                    title="Site settings"
+                    variant="outline"
+                  >
+                    <IconSettings />
+                  </Button>
+                }
+                usageCounts={usageCounts}
+                variables={variables}
+                workspaceId={workspaceId}
+              />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -206,31 +231,6 @@ export function EditorHeader({
                 publicId={publicId}
                 recipientCount={recipientCount}
                 variables={variables}
-              />
-              <EditorSiteSettingsMenu
-                canManageTracking={canManageTracking}
-                content={content}
-                onChange={onContentChange}
-                onCreateVariable={onCreateVariable}
-                onDeleteVariable={onDeleteVariable}
-                onEditVariable={onEditVariable}
-                plan={plan}
-                siteId={siteId}
-                siteName={siteName}
-                trigger={
-                  <Button
-                    aria-label="Site settings"
-                    className="border-border dark:border-border"
-                    size="icon-compact"
-                    title="Site settings"
-                    variant="outline"
-                  >
-                    <IconSettings />
-                  </Button>
-                }
-                usageCounts={usageCounts}
-                variables={variables}
-                workspaceId={workspaceId}
               />
             </div>
           </div>

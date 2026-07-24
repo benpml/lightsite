@@ -969,6 +969,10 @@ function ReadyEditorPage({
   const changeEditorMode = useCallback((nextMode: EditorMode) => {
     setPreviewReady(false)
     setEditorMode(nextMode)
+    toast(nextMode === "preview" ? "Preview mode on" : "Preview mode off", {
+      id: "editor-preview-mode",
+      duration: 1600,
+    })
   }, [setEditorMode, setPreviewReady])
   const markPreviewReady = useCallback(() => {
     setPreviewReady(true)
