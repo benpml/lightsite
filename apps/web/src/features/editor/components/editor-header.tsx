@@ -1,4 +1,13 @@
-import { lazy, memo, Suspense, useState, type ReactNode, type SetStateAction } from "react"
+import {
+  lazy,
+  memo,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type SetStateAction,
+} from "react"
 import { Link } from "@tanstack/react-router"
 import type { WorkspacePlan } from "@handout/contracts"
 import type { SiteContent, SiteVariableDefinition } from "@handout/site-document"
@@ -519,9 +528,41 @@ function EditorModeToggle({
 }) {
   const isPreview = mode === "preview"
   const label = isPreview ? "Stop previewing" : "Preview site"
+  const [hoverTooltipOpen, setHoverTooltipOpen] = useState(false)
+  const [clickTooltipLabel, setClickTooltipLabel] = useState<string | null>(null)
+  const clickTooltipTimeoutRef = useRef<number | null>(null)
+  const tooltipOpen = clickTooltipLabel !== null || hoverTooltipOpen
+
+  useEffect(() => () => {
+    if (clickTooltipTimeoutRef.current !== null) {
+      window.clearTimeout(clickTooltipTimeoutRef.current)
+    }
+  }, [])
+
+  const changeMode = () => {
+    const nextMode = isPreview ? "edit" : "preview"
+
+    setHoverTooltipOpen(false)
+    setClickTooltipLabel(nextMode === "preview" ? "Previewing site" : "Editing site")
+    if (clickTooltipTimeoutRef.current !== null) {
+      window.clearTimeout(clickTooltipTimeoutRef.current)
+    }
+    clickTooltipTimeoutRef.current = window.setTimeout(() => {
+      setClickTooltipLabel(null)
+      clickTooltipTimeoutRef.current = null
+    }, 1600)
+    onModeChange(nextMode)
+  }
 
   return (
-    <Tooltip>
+    <Tooltip
+      open={tooltipOpen}
+      onOpenChange={(open) => {
+        if (clickTooltipLabel === null) {
+          setHoverTooltipOpen(open)
+        }
+      }}
+    >
       <TooltipTrigger asChild>
         <Button
           aria-label={label}
@@ -533,12 +574,12 @@ function EditorModeToggle({
           size="icon-compact"
           type="button"
           variant="ghost"
-          onClick={() => onModeChange(isPreview ? "edit" : "preview")}
+          onClick={changeMode}
         >
           <IconEye />
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent>{clickTooltipLabel ?? label}</TooltipContent>
     </Tooltip>
   )
 }

@@ -969,10 +969,6 @@ function ReadyEditorPage({
   const changeEditorMode = useCallback((nextMode: EditorMode) => {
     setPreviewReady(false)
     setEditorMode(nextMode)
-    toast(nextMode === "preview" ? "Preview mode on" : "Preview mode off", {
-      id: "editor-preview-mode",
-      duration: 1600,
-    })
   }, [setEditorMode, setPreviewReady])
   const markPreviewReady = useCallback(() => {
     setPreviewReady(true)
@@ -1037,7 +1033,7 @@ function ReadyEditorPage({
         >
           <EditorSiteSidebar
             activePageId={activePageId}
-            mode={editorMode}
+            mode="edit"
             model={sidebarModel}
             primaryColorStyle={primaryColorStyle}
             onAddButton={addSidebarButton}
@@ -1061,7 +1057,7 @@ function ReadyEditorPage({
                 activePageId={activePageId}
                 editor={activeEditor}
                 emptyStateFallbackKind={emptyStateFallbackKind}
-                mode={editorMode}
+                mode="edit"
                 nextPage={nextPage}
                 previousPage={previousPage}
                 onSelectPage={switchToPage}

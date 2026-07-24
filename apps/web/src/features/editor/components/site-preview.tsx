@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, type SyntheticEvent } from "react"
 import {
   renderPublicSitePreviewHtml,
   SITE_DOCUMENT_IFRAME_SANDBOX,
@@ -50,6 +50,16 @@ export function EditorSitePreview({
     [activePageSlug, content, siteId, siteName, siteSlug, workspace],
   )
 
+  const markReadyAfterFontsLoad = async (event: SyntheticEvent<HTMLIFrameElement>) => {
+    const previewDocument = event.currentTarget.contentDocument
+
+    if (previewDocument?.fonts) {
+      await previewDocument.fonts.ready
+    }
+
+    onReady()
+  }
+
   return (
     <iframe
       className={cn(
@@ -57,7 +67,7 @@ export function EditorSitePreview({
         isReady ? "opacity-100" : "pointer-events-none opacity-0"
       )}
       data-editor-site-preview=""
-      onLoad={onReady}
+      onLoad={markReadyAfterFontsLoad}
       sandbox={SITE_DOCUMENT_IFRAME_SANDBOX}
       srcDoc={html}
       title={`${siteName} preview`}

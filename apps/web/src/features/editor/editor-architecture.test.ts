@@ -133,14 +133,13 @@ describe("editor architecture", () => {
     expect(pageSource).toContain("const [previewReady, setPreviewReady] = useState(false)")
     expect(pageSource).toContain("setPreviewReady(false)")
     expect(pageSource).toContain('onModeChange={changeEditorMode}')
-    expect(pageSource).toContain('"Preview mode on"')
-    expect(pageSource).toContain('"Preview mode off"')
-    expect(pageSource).toContain('id: "editor-preview-mode"')
-    expect(pageSource).toContain("duration: 1600")
     expect(pageSource).toContain('editorMode === "preview" && previewReady')
     expect(pageSource).toContain('"pointer-events-none opacity-0"')
     expect(pageSource).not.toContain('editorMode === "edit" ? "flex" : "hidden"')
-    expect(previewSource).toContain('onLoad={onReady}')
+    expect(pageSource).toContain('<EditorSiteSidebar\n            activePageId={activePageId}\n            mode="edit"')
+    expect(pageSource).toContain('emptyStateFallbackKind={emptyStateFallbackKind}\n                mode="edit"')
+    expect(previewSource).toContain("previewDocument.fonts.ready")
+    expect(previewSource).toContain('onLoad={markReadyAfterFontsLoad}')
     expect(previewSource).toContain('isReady ? "opacity-100" : "pointer-events-none opacity-0"')
     expect(previewSource).toContain("transition-opacity duration-150 ease-out")
   })
@@ -1573,6 +1572,10 @@ describe("editor architecture", () => {
     expect(headerSource).toContain("IconEye")
     expect(headerSource).not.toContain("IconPencil")
     expect(headerSource).toContain('const label = isPreview ? "Stop previewing" : "Preview site"')
+    expect(headerSource).toContain('"Previewing site"')
+    expect(headerSource).toContain('"Editing site"')
+    expect(headerSource).toContain("clickTooltipLabel === null")
+    expect(headerSource).toContain("<TooltipContent>{clickTooltipLabel ?? label}</TooltipContent>")
     expect(headerSource).toContain('aria-pressed={isPreview}')
     expect(headerSource).toContain(
       'isPreview && "bg-blue-background text-blue-foreground hover:bg-blue-background hover:text-blue-foreground"'
@@ -1593,7 +1596,6 @@ describe("editor architecture", () => {
     expect(headerSource).toContain("isPublishing")
     expect(headerSource).toContain('className="flex min-w-0 items-center gap-2 overflow-hidden"')
     expect(headerSource).toContain('<EditorCollaborators collaborators={collaborators} />')
-    expect(headerSource).toContain('<TooltipContent>{label}</TooltipContent>')
     expect(headerSource).toContain(
       'Switch editor to {editorTheme === "dark" ? "light" : "dark"} mode'
     )
